@@ -1,0 +1,13 @@
+# Environment and Python
+.env                # Keeps your secret tokens private
+__pycache__/       # Python cache files - not needed
+*.pyc              # Compiled Python files
+venv/              # Virtual environment folder
+
+# Audio files
+temp_live.wav      # Temporary audio recordings
+*.wav              # All WAV files
+
+# IDE specific
+.vscode/           # Visual Studio Code settings
+.idea/             # PyCharm settings

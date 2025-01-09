@@ -1,0 +1,7 @@
+discord.py
+flask
+deep-translator
+pyngrok
+SpeechRecognition
+PyAudio
+python-dotenv
