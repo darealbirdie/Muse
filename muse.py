@@ -293,7 +293,91 @@ async def stop_translation(interaction: discord.Interaction):
         await interaction.followup.send("Translation session ended and connection closed! 🛑")
     else:
         await interaction.followup.send("No active translation session found!")
-
+@tree.command(
+    name="list", 
+    description="View or search languages. Use: /list [display_language] [search_term]"
+)
+async def list_languages(
+    interaction: discord.Interaction, 
+    display_language: str = "en",
+    search: str = None
+):
+    languages = {
+        'af': 'Afrikaans', 'sq': 'Albanian', 'am': 'Amharic', 'ar': 'Arabic',
+        'hy': 'Armenian', 'az': 'Azerbaijani', 'eu': 'Basque', 'be': 'Belarusian',
+        'bn': 'Bengali', 'bs': 'Bosnian', 'bg': 'Bulgarian', 'ca': 'Catalan',
+        'ceb': 'Cebuano', 'zh': 'Chinese', 'co': 'Corsican', 'hr': 'Croatian',
+        'cs': 'Czech', 'da': 'Danish', 'nl': 'Dutch', 'en': 'English',
+        'eo': 'Esperanto', 'et': 'Estonian', 'fi': 'Finnish', 'fr': 'French',
+        'fy': 'Frisian', 'gl': 'Galician', 'ka': 'Georgian', 'de': 'German',
+        'el': 'Greek', 'gu': 'Gujarati', 'ht': 'Haitian Creole', 'ha': 'Hausa',
+        'haw': 'Hawaiian', 'he': 'Hebrew', 'hi': 'Hindi', 'hmn': 'Hmong',
+        'hu': 'Hungarian', 'is': 'Icelandic', 'ig': 'Igbo', 'id': 'Indonesian',
+        'ga': 'Irish', 'it': 'Italian', 'ja': 'Japanese', 'jv': 'Javanese',
+        'kn': 'Kannada', 'kk': 'Kazakh', 'km': 'Khmer', 'ko': 'Korean',
+        'ku': 'Kurdish', 'ky': 'Kyrgyz', 'lo': 'Lao', 'la': 'Latin',
+        'lv': 'Latvian', 'lt': 'Lithuanian', 'lb': 'Luxembourgish',
+        'mk': 'Macedonian', 'mg': 'Malagasy', 'ms': 'Malay', 'ml': 'Malayalam',
+        'mt': 'Maltese', 'mi': 'Maori', 'mr': 'Marathi', 'mn': 'Mongolian',
+        'my': 'Myanmar', 'ne': 'Nepali', 'no': 'Norwegian', 'ny': 'Nyanja',
+        'or': 'Odia', 'ps': 'Pashto', 'fa': 'Persian', 'pl': 'Polish',
+        'pt': 'Portuguese', 'pa': 'Punjabi', 'ro': 'Romanian', 'ru': 'Russian',
+        'sm': 'Samoan', 'gd': 'Scots Gaelic', 'sr': 'Serbian', 'st': 'Sesotho',
+        'sn': 'Shona', 'sd': 'Sindhi', 'si': 'Sinhala', 'sk': 'Slovak',
+        'sl': 'Slovenian', 'so': 'Somali', 'es': 'Spanish', 'su': 'Sundanese',
+        'sw': 'Swahili', 'sv': 'Swedish', 'tl': 'Tagalog', 'tg': 'Tajik',
+        'ta': 'Tamil', 'tt': 'Tatar', 'te': 'Telugu', 'th': 'Thai',
+        'tr': 'Turkish', 'tk': 'Turkmen', 'uk': 'Ukrainian', 'ur': 'Urdu',
+        'ug': 'Uyghur', 'uz': 'Uzbek', 'vi': 'Vietnamese', 'cy': 'Welsh',
+        'xh': 'Xhosa', 'yi': 'Yiddish', 'yo': 'Yoruba', 'zu': 'Zulu'
+    }
+    
+    await interaction.response.defer()
+    
+    try:
+        translator = GoogleTranslator(source='en', target=display_language)
+        header = translator.translate("Available Languages")
+        
+        filtered_languages = {}
+        if search:
+            search_lower = search.lower()
+            for code, name in languages.items():
+                if (search_lower in name.lower() or 
+                    search_lower in code.lower()):
+                    filtered_languages[code] = name
+        else:
+            filtered_languages = languages
+            
+        if not filtered_languages:
+            await interaction.followup.send(f"No languages found matching: '{search}'")
+            return
+            
+        formatted_list = []
+        for code, name in sorted(filtered_languages.items(), key=lambda x: x[1]):
+            translated_name = translator.translate(name)
+            formatted_list.append(f"`{code}` → {translated_name}")
+        
+        if search:
+            search_info = translator.translate(f"Search results for: {search}")
+            header = f"{header}\n{search_info}"
+        
+        chunks = []
+        current_chunk = f"🌎 **{header}:**\n"
+        
+        for entry in formatted_list:
+            if len(current_chunk + entry + "\n") > 1900:
+                chunks.append(current_chunk)
+                current_chunk = entry + "\n"
+            else:
+                current_chunk += entry + "\n"
+        chunks.append(current_chunk)
+        
+        await interaction.followup.send(chunks[0])
+        for chunk in chunks[1:]:
+            await interaction.channel.send(chunk)
+            
+    except Exception as e:
+        await interaction.followup.send(f"Please use a valid language code (e.g., 'en', 'es', 'fr')")
 @client.event
 async def on_ready():
     await tree.sync()
