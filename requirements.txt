@@ -1,7 +1,11 @@
 discord.py
-flask
+Flask
 deep-translator
 pyngrok
 SpeechRecognition
 PyAudio
 python-dotenv
+paypalrestsdk
+stripe
+wave
+
