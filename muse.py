@@ -14,12 +14,29 @@ import atexit
 from typing import Dict, Optional
 from dotenv import load_dotenv
 import os
-
+from paypalrestsdk import Payment
+import stripe
+class TierHandler:
+    def __init__(self):
+        self.premium_users = set()
+        self.tiers = {
+            'free': {
+                'text_limit': 100,    # 100 characters per translation
+                'voice_limit': 30     # 30 seconds voice translation
+            },
+            'premium': {
+                'text_limit': float('inf'),  # Unlimited characters
+                'voice_limit': 300           # 5 minutes voice translation
+            }
+        }
+    
+    def get_limits(self, user_id: int):
+        return self.tiers['premium'] if user_id in self.premium_users else self.tiers['free']
 # Load environment variables
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 NGROK_TOKEN = os.getenv('NGROK_TOKEN')
-
+tier_handler = TierHandler()
 def cleanup():
     ngrok.kill()
 
@@ -39,6 +56,8 @@ hidden_sessions = set()
 class UserSession:
     def __init__(self, user_id):
         self.user_id = user_id
+        limits = tier_handler.get_limits(user_id)
+        self.record_seconds = limits['voice_limit']
         self.frames = []
         self.active = True
         self.stream = None
@@ -116,7 +135,6 @@ class LiveVoiceTranslator:
                 session.frames = []
                 await self._process_audio(session, frames, interaction, source_lang, target_lang)
             await asyncio.sleep(0.1)
-
 class TranslationServer:
     def __init__(self):
         # Configure main tunnel
@@ -176,6 +194,14 @@ async def text_translate(
     target_lang: str
 ):
     user_id = interaction.user.id
+    limits = tier_handler.get_limits(user_id)
+    
+    if len(text) > limits['text_limit']:
+        await interaction.response.send_message(
+            f"🔒 Text too long! Free tier limit: {limits['text_limit']} characters\n"
+            f"Use /premium to get unlimited translation!"
+        )
+        return
     guild_id = interaction.guild_id
     
     if guild_id not in translation_server.translators or user_id not in translation_server.translators[guild_id]:
@@ -220,9 +246,13 @@ async def start(interaction: discord.Interaction):
             f"2. /translate [source_lang] [target_lang] - Start voice translation\n"
             f"3. /texttr [text] [source_lang] [target_lang] - Translate text\n"
             f"4. /hide or /show - Toggle original text visibility\n"
-            f"5. /stop - End translation session\n\n"
+            f"5. /stop - End translation session\n"
+            f"6. /premium - Unlock premium features through KoFi\n"
+            f"7. /status - Check your subscription status\n\n"
             f"📝 Language Codes: 'en' (English), 'es' (Spanish), 'fr' (French), 'de' (German)\n"
-            f"Example: /texttr 'Hello World' en es"
+            f"Example: /texttr 'Hello World' en es\n"
+            f"Use /list to see all supported language codes\n"
+            f"JOIN OUR SERVER TO LEARN MORE: https://discord.gg/VMpBsbhrff\n"
         )
         print(f"🔥 New user connected: {interaction.user.display_name}")
     else:
@@ -246,6 +276,7 @@ async def set_channel(interaction: discord.Interaction, channel_id: str):
 async def translate(interaction: discord.Interaction, source_lang: str, target_lang: str):
     user_id = interaction.user.id
     guild_id = interaction.guild_id
+    limits = tier_handler.get_limits(user_id)
     
     if guild_id not in translation_server.translators or user_id not in translation_server.translators[guild_id]:
         await interaction.response.send_message("Please use /start first to initialize your translator! 🎯")
@@ -256,8 +287,13 @@ async def translate(interaction: discord.Interaction, source_lang: str, target_l
         await interaction.response.send_message("You already have an active translation session!")
         return
     
-    await interaction.response.send_message(f"Starting translation from {source_lang} to {target_lang}...")
+    tier_type = "Premium" if user_id in tier_handler.premium_users else "Free"
+    await interaction.response.send_message(
+        f"Starting {tier_type} translation from {source_lang} to {target_lang}...\n"
+        f"Voice limit: {limits['voice_limit']} seconds per clip"
+    )
     await translator.live_translate(interaction, user_id, source_lang, target_lang)
+
 
 @tree.command(name="hide", description="Hide original speech")
 async def hide_speech(interaction: discord.Interaction):
@@ -293,6 +329,46 @@ async def stop_translation(interaction: discord.Interaction):
         await interaction.followup.send("Translation session ended and connection closed! 🛑")
     else:
         await interaction.followup.send("No active translation session found!")
+@tree.command(name="premium", description="Get premium access through Ko-fi")
+async def premium(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🌟 Get Premium Access - Just $1/month!",
+        description=(
+            "**Premium Features**\n"
+            "• Unlimited character translation\n"
+            "• 5 minute voice translations\n"
+            "• Priority support\n\n"
+            "How to Get Premium:\n"
+            "1. Click the Ko-fi button below\n"
+            f"2. Include your Discord ID ({interaction.user.id}) in the message\n"
+            "3. Set up monthly donation of $1\n"
+            "4. Get instant premium access!"
+        ),
+        color=0x29abe0  # Ko-fi blue
+    )
+    
+    view = discord.ui.View()
+    view.add_item(discord.ui.Button(
+        label="Subscribe on Ko-fi",
+        url="https://ko-fi.com/muse/tiers",  # Replace with your Ko-fi tiers page
+        style=discord.ButtonStyle.link
+    ))
+    
+    await interaction.response.send_message(embed=embed, view=view)
+
+@app.route('/webhook/kofi', methods=['POST'])
+def handle_kofi_donation():
+    data = request.json
+    
+    if data['type'] == 'Subscription' or (data['type'] == 'Donation' and float(data['amount']) >= 1.00):
+        user_id = int(data['message'])  # Users include their Discord ID in message
+        tier_handler.premium_users.add(user_id)
+        return {'status': 'success'}
+    return {'status': 'error'}
+
+def run_flask():
+    app.run(port=5000)
+
 @tree.command(
     name="list", 
     description="View or search languages. Use: /list [display_language] [search_term]"
@@ -378,15 +454,35 @@ async def list_languages(
             
     except Exception as e:
         await interaction.followup.send(f"Please use a valid language code (e.g., 'en', 'es', 'fr')")
+@tree.command(name="status", description="Check your subscription status")
+async def check_status(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    tier = "Premium" if user_id in tier_handler.premium_users else "Free"
+    limits = tier_handler.get_limits(user_id)
+    
+    embed = discord.Embed(
+        title="📊 Subscription Status",
+        description=(
+            f"**Current Tier:** {tier}\n"
+            f"**Text Limit:** {limits['text_limit']} characters\n"
+            f"**Voice Limit:** {limits['voice_limit']} seconds"
+        ),
+        color=0x2ecc71
+    )
+    
+    await interaction.response.send_message(embed=embed)   
 @client.event
 async def on_ready():
-    await tree.sync()
-    print(f"🎉 {client.user} is ready!")
-    print("Bot is ready to connect to any channel! Use /start to begin!")
-
-def run_flask():
-    app.run(port=5000)
+    print("🚀 Bot is starting up...")
+    try:
+        synced = await tree.sync()
+        print(f"✅ Successfully synced {len(synced)} commands!")
+    except Exception as e:
+        print(f"🔄 Sync status: {e}")
+    print("✨ Bot is ready to go!")
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
     client.run(TOKEN)
+
+
