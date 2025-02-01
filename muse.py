@@ -14,6 +14,7 @@ import atexit
 from typing import Dict, Optional
 from dotenv import load_dotenv
 import os
+from os import system
 from paypalrestsdk import Payment
 import stripe
 class TierHandler:
@@ -367,8 +368,8 @@ def handle_kofi_donation():
     return {'status': 'error'}
 
 def run_flask():
-    app.run(port=5000)
-
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
 @tree.command(
     name="list", 
     description="View or search languages. Use: /list [display_language] [search_term]"
@@ -481,8 +482,19 @@ async def on_ready():
         print(f"🔄 Sync status: {e}")
     print("✨ Bot is ready to go!")
 
+if 'HOSTING' in os.environ:
+    system('pip install -r requirements.txt')
+
 if __name__ == "__main__":
-    threading.Thread(target=run_flask, daemon=True).start()
-    client.run(TOKEN)
+    try:
+        # For Railway deployment
+        port = int(os.getenv('PORT', 5000))
+        threading.Thread(target=lambda: app.run(host='0.0.0.0', port=port), daemon=True).start()
+        client.run(TOKEN)
+    except Exception as e:
+        print(f"Startup Status: {e}")
+
+
+
 
 
