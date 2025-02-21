@@ -277,24 +277,135 @@ async def set_channel(interaction: discord.Interaction, channel_id: str):
 async def translate(interaction: discord.Interaction, source_lang: str, target_lang: str):
     user_id = interaction.user.id
     guild_id = interaction.guild_id
-    limits = tier_handler.get_limits(user_id)
     
+    # Enhanced tier handling
+    tier_info = {
+        "free": {
+            "voice_limit": 30,
+            "color": 0x95a5a6,
+            "icon": "🆓",
+            "features": ["Basic Translation"]
+        },
+        "premium": {
+            "voice_limit": 120,
+            "color": 0xf1c40f,
+            "icon": "✨",
+            "features": ["Extended Translation", "Priority Processing", "Advanced Features"]
+        }
+    }
+    
+    # Determine user's tier
+    user_tier = "premium" if user_id in tier_handler.premium_users else "free"
+    tier_data = tier_info[user_tier]
+    limits = tier_handler.get_limits(user_id)
+
     if guild_id not in translation_server.translators or user_id not in translation_server.translators[guild_id]:
         await interaction.response.send_message("Please use /start first to initialize your translator! 🎯")
         return
-    
+
     translator = translation_server.translators[guild_id][user_id]
     if user_id in translator.sessions:
         await interaction.response.send_message("You already have an active translation session!")
         return
-    
-    tier_type = "Premium" if user_id in tier_handler.premium_users else "Free"
-    await interaction.response.send_message(
-        f"Starting {tier_type} translation from {source_lang} to {target_lang}...\n"
-        f"Voice limit: {limits['voice_limit']} seconds per clip"
-    )
-    await translator.live_translate(interaction, user_id, source_lang, target_lang)
 
+    # Language name mapping
+    languages = {
+    'af': 'Afrikaans', 'sq': 'Albanian', 'am': 'Amharic', 'ar': 'Arabic',
+    'hy': 'Armenian', 'az': 'Azerbaijani', 'eu': 'Basque', 'be': 'Belarusian',
+    'bn': 'Bengali', 'bs': 'Bosnian', 'bg': 'Bulgarian', 'ca': 'Catalan',
+    'ceb': 'Cebuano', 'ny': 'Chichewa', 'zh': 'Chinese', 'co': 'Corsican',
+    'hr': 'Croatian', 'cs': 'Czech', 'da': 'Danish', 'nl': 'Dutch',
+    'en': 'English', 'eo': 'Esperanto', 'et': 'Estonian', 'tl': 'Filipino',
+    'fi': 'Finnish', 'fr': 'French', 'fy': 'Frisian', 'gl': 'Galician',
+    'ka': 'Georgian', 'de': 'German', 'el': 'Greek', 'gu': 'Gujarati',
+    'ht': 'Haitian Creole', 'ha': 'Hausa', 'haw': 'Hawaiian', 'iw': 'Hebrew',
+    'hi': 'Hindi', 'hmn': 'Hmong', 'hu': 'Hungarian', 'is': 'Icelandic',
+    'ig': 'Igbo', 'id': 'Indonesian', 'ga': 'Irish', 'it': 'Italian',
+    'ja': 'Japanese', 'jw': 'Javanese', 'kn': 'Kannada', 'kk': 'Kazakh',
+    'km': 'Khmer', 'ko': 'Korean', 'ku': 'Kurdish', 'ky': 'Kyrgyz',
+    'lo': 'Lao', 'la': 'Latin', 'lv': 'Latvian', 'lt': 'Lithuanian',
+    'lb': 'Luxembourgish', 'mk': 'Macedonian', 'mg': 'Malagasy', 'ms': 'Malay',
+    'ml': 'Malayalam', 'mt': 'Maltese', 'mi': 'Maori', 'mr': 'Marathi',
+    'mn': 'Mongolian', 'my': 'Myanmar', 'ne': 'Nepali', 'no': 'Norwegian',
+    'ps': 'Pashto', 'fa': 'Persian', 'pl': 'Polish', 'pt': 'Portuguese',
+    'pa': 'Punjabi', 'ro': 'Romanian', 'ru': 'Russian', 'sm': 'Samoan',
+    'gd': 'Scots Gaelic', 'sr': 'Serbian', 'st': 'Sesotho', 'sn': 'Shona',
+    'sd': 'Sindhi', 'si': 'Sinhala', 'sk': 'Slovak', 'sl': 'Slovenian',
+    'so': 'Somali', 'es': 'Spanish', 'su': 'Sundanese', 'sw': 'Swahili',
+    'sv': 'Swedish', 'tg': 'Tajik', 'ta': 'Tamil', 'te': 'Telugu',
+    'th': 'Thai', 'tr': 'Turkish', 'uk': 'Ukrainian', 'ur': 'Urdu',
+    'uz': 'Uzbek', 'vi': 'Vietnamese', 'cy': 'Welsh', 'xh': 'Xhosa',
+    'yi': 'Yiddish', 'yo': 'Yoruba', 'zu': 'Zulu'
+}
+
+    
+    # Get proper language names
+    source_name = languages.get(source_lang, source_lang)
+    target_name = languages.get(target_lang, target_lang)
+    
+    # Language to flag mapping (common languages, can be expanded)
+    flag_mapping = {
+    'af': '🇿🇦', 'sq': '🇦🇱', 'am': '🇪🇹', 'ar': '🇸🇦',
+    'hy': '🇦🇲', 'az': '🇦🇿', 'eu': '🇪🇸', 'be': '🇧🇾',
+    'bn': '🇧🇩', 'bs': '🇧🇦', 'bg': '🇧🇬', 'ca': '🇪🇸',
+    'ceb': '🇵🇭', 'ny': '🇲🇼', 'zh': '🇨🇳', 'co': '🇫🇷',
+    'hr': '🇭🇷', 'cs': '🇨🇿', 'da': '🇩🇰', 'nl': '🇳🇱',
+    'en': '🇬🇧', 'eo': '🌍', 'et': '🇪🇪', 'tl': '🇵🇭',
+    'fi': '🇫🇮', 'fr': '🇫🇷', 'fy': '🇳🇱', 'gl': '🇪🇸',
+    'ka': '🇬🇪', 'de': '🇩🇪', 'el': '🇬🇷', 'gu': '🇮🇳',
+    'ht': '🇭🇹', 'ha': '🇳🇬', 'haw': '🇺🇸', 'iw': '🇮🇱',
+    'hi': '🇮🇳', 'hmn': '🇨🇳', 'hu': '🇭🇺', 'is': '🇮🇸',
+    'ig': '🇳🇬', 'id': '🇮🇩', 'ga': '🇮🇪', 'it': '🇮🇹',
+    'ja': '🇯🇵', 'jw': '🇮🇩', 'kn': '🇮🇳', 'kk': '🇰🇿',
+    'km': '🇰🇭', 'ko': '🇰🇷', 'ku': '🇹🇷', 'ky': '🇰🇬',
+    'lo': '🇱🇦', 'la': '🇻🇦', 'lv': '🇱🇻', 'lt': '🇱🇹',
+    'lb': '🇱🇺', 'mk': '🇲🇰', 'mg': '🇲🇬', 'ms': '🇲🇾',
+    'ml': '🇮🇳', 'mt': '🇲🇹', 'mi': '🇳🇿', 'mr': '🇮🇳',
+    'mn': '🇲🇳', 'my': '🇲🇲', 'ne': '🇳🇵', 'no': '🇳🇴',
+    'ps': '🇦🇫', 'fa': '🇮🇷', 'pl': '🇵🇱', 'pt': '🇵🇹',
+    'pa': '🇮🇳', 'ro': '🇷🇴', 'ru': '🇷🇺', 'sm': '🇼🇸',
+    'gd': '🇬🇧', 'sr': '🇷🇸', 'st': '🇱🇸', 'sn': '🇿🇼',
+    'sd': '🇵🇰', 'si': '🇱🇰', 'sk': '🇸🇰', 'sl': '🇸🇮',
+    'so': '🇸🇴', 'es': '🇪🇸', 'su': '🇮🇩', 'sw': '🇹🇿',
+    'sv': '🇸🇪', 'tg': '🇹🇯', 'ta': '🇮🇳', 'te': '🇮🇳',
+    'th': '🇹🇭', 'tr': '🇹🇷', 'uk': '🇺🇦', 'ur': '🇵🇰',
+    'uz': '🇺🇿', 'vi': '🇻🇳', 'cy': '🇬🇧', 'xh': '🇿🇦',
+    'yi': '🇮🇱', 'yo': '🇳🇬', 'zu': '🇿🇦'
+}
+
+    
+    # Get flags or use 🌐 as default
+    source_flag = flag_mapping.get(source_lang, '🌐')
+    target_flag = flag_mapping.get(target_lang, '🌐')
+
+    embed = discord.Embed(
+        title=f"{tier_data['icon']} Live Translation Started",
+        color=tier_data['color']
+    )
+    
+    embed.add_field(
+        name="Translation Settings",
+        value=f"From: {source_flag} {source_name} ({source_lang})\nTo: {target_flag} {target_name} ({target_lang})",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="Session Info",
+        value=f"Tier: {tier_data['icon']} {user_tier.title()}\nTime Limit: ⏱️ {tier_data['voice_limit']} seconds per clip",
+        inline=False
+    )
+    
+    features_list = "\n".join([f"✓ {feature}" for feature in tier_data['features']])
+    embed.add_field(
+        name="Available Features",
+        value=features_list,
+        inline=False
+    )
+    
+    embed.set_footer(text="🎤 Speak now to begin translation!")
+
+    await interaction.response.send_message(embed=embed)
+    await translator.live_translate(interaction, user_id, source_lang, target_lang)
 
 @tree.command(name="hide", description="Hide original speech")
 async def hide_speech(interaction: discord.Interaction):
