@@ -17,6 +17,7 @@ import os
 from os import system
 from paypalrestsdk import Payment
 import stripe
+
 class TierHandler:
     def __init__(self):
         self.premium_users = set()
@@ -138,55 +139,31 @@ class LiveVoiceTranslator:
             await asyncio.sleep(0.1)
 class TranslationServer:
     def __init__(self):
-        # Configure main tunnel
-        ngrok_config = {
-            "tunnels": {
-                "main": {
-                    "addr": 5000,
-                    "proto": "http"
-                }
-            }
-        }
-        
-        # Initialize with main tunnel
+        # Single tunnel for all users
         self.main_tunnel = ngrok.connect(5000, "http", name="main")
         self.public_url = self.main_tunnel.public_url
         print(f"🌐 Main Ngrok URL: {self.public_url}")
         
         # Store user sessions
         self.translators: Dict[int, Dict[int, LiveVoiceTranslator]] = {}
-        self.user_ports: Dict[int, int] = {}
-        self.user_tunnels: Dict[int, ngrok.NgrokTunnel] = {}
         
+        # Single Flask app for all users
+        self.app = Flask("translation_server")
+        threading.Thread(
+            target=lambda: self.app.run(port=5000),
+            daemon=True
+        ).start()
+
     def get_user_url(self, user_id: int) -> str:
-        if user_id not in self.user_ports:
-            # Assign unique port to user
-            new_port = 5001 + len(self.user_ports)
-            self.user_ports[user_id] = new_port
-            
-            # Create Flask app for user
-            user_app = Flask(f"user_{user_id}")
-            threading.Thread(
-                target=lambda: user_app.run(port=new_port),
-                daemon=True
-            ).start()
-            
-            # Create user-specific tunnel
-            tunnel = ngrok.connect(new_port, "http", name=f"user_{user_id}")
-            self.user_tunnels[user_id] = tunnel
-            return tunnel.public_url
-        return self.user_tunnels[user_id].public_url
+        # All users share the same tunnel
+        return f"{self.public_url}/user/{user_id}"
 
     def cleanup_user(self, user_id: int):
-        if user_id in self.user_tunnels:
-            ngrok.disconnect(self.user_tunnels[user_id].public_url)
-            del self.user_tunnels[user_id]
-            del self.user_ports[user_id]
-
-translation_server = TranslationServer()
+        if user_id in self.translators:
+            del self.translators[user_id]
 
 # [Previous imports and setup remain the same]
-
+translation_server = TranslationServer()
 @tree.command(name="texttr", description="Translate text between languages")
 async def text_translate(
     interaction: discord.Interaction, 
@@ -604,8 +581,3 @@ if __name__ == "__main__":
         client.run(TOKEN)
     except Exception as e:
         print(f"Startup Status: {e}")
-
-
-
-
-
