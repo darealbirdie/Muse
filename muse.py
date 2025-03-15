@@ -338,7 +338,7 @@ async def translate(interaction: discord.Interaction, source_lang: str, target_l
     limits = tier_handler.get_limits(user_id)
 
     if guild_id not in translation_server.translators or user_id not in translation_server.translators[guild_id]:
-        await interaction.response.send_message("Please use /start first to initialize your translator! 🎯")
+        await interaction.response.send_message("Please use /start first to initialize your translator! 🎯", ephemeral=True)
         return
 
     translator = translation_server.translators[guild_id][user_id]
