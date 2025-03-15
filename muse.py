@@ -288,13 +288,15 @@ async def start(interaction: discord.Interaction):
             f"📝 Language Codes: 'en' (English), 'es' (Spanish), 'fr' (French), 'de' (German)\n"
             f"Example: /texttr 'Hello World' en es\n"
             f"Use /list to see all supported language codes\n"
-            f"JOIN OUR SERVER TO LEARN MORE: https://discord.gg/VMpBsbhrff\n"
+            f"JOIN OUR SERVER TO LEARN MORE: https://discord.gg/VMpBsbhrff\n",
+            ephemeral=True  # This makes the message only visible to the command user
         )
         print(f"🔥 New user connected: {interaction.user.display_name}")
     else:
         await interaction.response.send_message(
             f"Your translator is already running! Ready to translate! 🚀\n"
-            f"Use /translate for voice or /texttr for text translation!"
+            f"Use /translate for voice or /texttr for text translation!",
+            ephemeral=True  # This makes the message only visible to the command user
         )
 @tree.command(name="setchannel", description="Set the channel for translations")
 async def set_channel(interaction: discord.Interaction, channel_id: str):
@@ -568,13 +570,20 @@ async def on_ready():
     print("✨ Bot is ready to go!")
 
 if 'HOSTING' in os.environ:
+    # Install dependencies when deploying to cloud
     system('pip install -r requirements.txt')
 
 if __name__ == "__main__":
     try:
-        # For Railway deployment
+        # For cloud deployment
         port = int(os.getenv('PORT', 5000))
-        threading.Thread(target=lambda: app.run(host='0.0.0.0', port=port), daemon=True).start()
+        threading.Thread(
+            target=lambda: app.run(
+                host='0.0.0.0',  # Allow external connections
+                port=port
+            ),
+            daemon=True
+        ).start()
         client.run(TOKEN)
     except Exception as e:
         print(f"Startup Status: {e}")
