@@ -284,7 +284,8 @@ async def start(interaction: discord.Interaction):
             f"4. /hide or /show - Toggle original text visibility\n"
             f"5. /stop - End translation session\n"
             f"6. /premium - Unlock premium features through KoFi\n"
-            f"7. /status - Check your subscription status\n\n"
+            f"7. /status - Check your subscription status\n"
+            f"7. /invite - See the bot's invite link and add to your server today!\n\n"
             f"📝 Language Codes: 'en' (English), 'es' (Spanish), 'fr' (French), 'de' (German)\n"
             f"Example: /texttr 'Hello World' en es\n"
             f"Use /list to see all supported language codes\n"
@@ -442,7 +443,34 @@ async def premium(interaction: discord.Interaction):
         style=discord.ButtonStyle.link
     ))
     
-    await interaction.response.send_message(embed=embed, view=view)
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+    
+tree.command(name="premium", description="Get premium access through Ko-fi")
+async def premium(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🌟 Get Premium Access - Just $1/month!",
+        description=(
+            "**Premium Features**\n"
+            "• Unlimited character translation\n"
+            "• 5 minute voice translations\n"
+            "• Priority support\n\n"
+            "How to Get Premium:\n"
+            "1. Click the Ko-fi button below\n"
+            f"2. Include your Discord ID ({interaction.user.id}) in the message\n"
+            "3. Set up monthly donation of $1\n"
+            "4. Get instant premium access!"
+        ),
+        color=0x29abe0  # Ko-fi blue
+    )
+    
+    view = discord.ui.View()
+    view.add_item(discord.ui.Button(
+        label="Subscribe on Ko-fi",
+        url="https://ko-fi.com/muse/tiers",  # Replace with your Ko-fi tiers page
+        style=discord.ButtonStyle.link
+    ))
+    
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 @app.route('/webhook/kofi', methods=['POST'])
 def handle_kofi_donation():
@@ -457,91 +485,76 @@ def handle_kofi_donation():
 def run_flask():
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-@tree.command(
-    name="list", 
-    description="View or search languages. Use: /list [display_language] [search_term]"
-)
-async def list_languages(
-    interaction: discord.Interaction, 
-    display_language: str = "en",
-    search: str = None
-):
-    languages = {
-        'af': 'Afrikaans', 'sq': 'Albanian', 'am': 'Amharic', 'ar': 'Arabic',
-        'hy': 'Armenian', 'az': 'Azerbaijani', 'eu': 'Basque', 'be': 'Belarusian',
-        'bn': 'Bengali', 'bs': 'Bosnian', 'bg': 'Bulgarian', 'ca': 'Catalan',
-        'ceb': 'Cebuano', 'zh': 'Chinese', 'co': 'Corsican', 'hr': 'Croatian',
-        'cs': 'Czech', 'da': 'Danish', 'nl': 'Dutch', 'en': 'English',
-        'eo': 'Esperanto', 'et': 'Estonian', 'fi': 'Finnish', 'fr': 'French',
-        'fy': 'Frisian', 'gl': 'Galician', 'ka': 'Georgian', 'de': 'German',
-        'el': 'Greek', 'gu': 'Gujarati', 'ht': 'Haitian Creole', 'ha': 'Hausa',
-        'haw': 'Hawaiian', 'he': 'Hebrew', 'hi': 'Hindi', 'hmn': 'Hmong',
-        'hu': 'Hungarian', 'is': 'Icelandic', 'ig': 'Igbo', 'id': 'Indonesian',
-        'ga': 'Irish', 'it': 'Italian', 'ja': 'Japanese', 'jv': 'Javanese',
-        'kn': 'Kannada', 'kk': 'Kazakh', 'km': 'Khmer', 'ko': 'Korean',
-        'ku': 'Kurdish', 'ky': 'Kyrgyz', 'lo': 'Lao', 'la': 'Latin',
-        'lv': 'Latvian', 'lt': 'Lithuanian', 'lb': 'Luxembourgish',
-        'mk': 'Macedonian', 'mg': 'Malagasy', 'ms': 'Malay', 'ml': 'Malayalam',
-        'mt': 'Maltese', 'mi': 'Maori', 'mr': 'Marathi', 'mn': 'Mongolian',
-        'my': 'Myanmar', 'ne': 'Nepali', 'no': 'Norwegian', 'ny': 'Nyanja',
-        'or': 'Odia', 'ps': 'Pashto', 'fa': 'Persian', 'pl': 'Polish',
-        'pt': 'Portuguese', 'pa': 'Punjabi', 'ro': 'Romanian', 'ru': 'Russian',
-        'sm': 'Samoan', 'gd': 'Scots Gaelic', 'sr': 'Serbian', 'st': 'Sesotho',
-        'sn': 'Shona', 'sd': 'Sindhi', 'si': 'Sinhala', 'sk': 'Slovak',
-        'sl': 'Slovenian', 'so': 'Somali', 'es': 'Spanish', 'su': 'Sundanese',
-        'sw': 'Swahili', 'sv': 'Swedish', 'tl': 'Tagalog', 'tg': 'Tajik',
-        'ta': 'Tamil', 'tt': 'Tatar', 'te': 'Telugu', 'th': 'Thai',
-        'tr': 'Turkish', 'tk': 'Turkmen', 'uk': 'Ukrainian', 'ur': 'Urdu',
-        'ug': 'Uyghur', 'uz': 'Uzbek', 'vi': 'Vietnamese', 'cy': 'Welsh',
-        'xh': 'Xhosa', 'yi': 'Yiddish', 'yo': 'Yoruba', 'zu': 'Zulu'
-    }
+
+@tree.command(name="list", description="List all available languages for translation")
+async def list_languages(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="Available Languages for Translation",
+        description="Here are all the languages you can use with the translator:",
+        color=discord.Color.blue()
+    )
     
-    await interaction.response.defer()
+    # Sort languages alphabetically by their full names
+    sorted_languages = sorted(languages.items(), key=lambda x: x[1])
     
-    try:
-        translator = GoogleTranslator(source='en', target=display_language)
-        header = translator.translate("Available Languages")
+    # Group languages by first letter
+    current_letter = None
+    current_field = ""
+    
+    for code, name in sorted_languages:
+        first_letter = name[0].upper()
         
-        filtered_languages = {}
-        if search:
-            search_lower = search.lower()
-            for code, name in languages.items():
-                if (search_lower in name.lower() or 
-                    search_lower in code.lower()):
-                    filtered_languages[code] = name
-        else:
-            filtered_languages = languages
+        # If we encounter a new letter, create a new field
+        if first_letter != current_letter:
+            if current_field:  # Add the previous field if it exists
+                embed.add_field(
+                    name=f"{current_letter}",
+                    value=current_field,
+                    inline=False
+                )
+            current_letter = first_letter
+            current_field = ""
             
-        if not filtered_languages:
-            await interaction.followup.send(f"No languages found matching: '{search}'")
-            return
-            
-        formatted_list = []
-        for code, name in sorted(filtered_languages.items(), key=lambda x: x[1]):
-            translated_name = translator.translate(name)
-            formatted_list.append(f"`{code}` → {translated_name}")
-        
-        if search:
-            search_info = translator.translate(f"Search results for: {search}")
-            header = f"{header}\n{search_info}"
-        
-        chunks = []
-        current_chunk = f"🌎 **{header}:**\n"
-        
-        for entry in formatted_list:
-            if len(current_chunk + entry + "\n") > 1900:
-                chunks.append(current_chunk)
-                current_chunk = entry + "\n"
-            else:
-                current_chunk += entry + "\n"
-        chunks.append(current_chunk)
-        
-        await interaction.followup.send(chunks[0])
-        for chunk in chunks[1:]:
-            await interaction.channel.send(chunk)
-            
-    except Exception as e:
-        await interaction.followup.send(f"Please use a valid language code (e.g., 'en', 'es', 'fr')")
+        # Get flag emoji, default to 🌐 if not found
+        flag = flag_mapping.get(code, '🌐')
+        # Add language entry
+        current_field += f"{flag} `{code}` - {name}\n"
+    
+    # Add the last field
+    if current_field:
+        embed.add_field(
+            name=f"{current_letter}",
+            value=current_field,
+            inline=False
+        )
+    
+    embed.set_footer(text="Usage example: /texttr text:Hello source_lang:en target_lang:es")
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+@tree.command(name="invite", description="Get the bot's invite link")
+async def invite(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🤖 Invite Muse to Your Server!",
+        description="Click the link below to add me to your Discord server:",
+        color=0x7289da  # Discord blue color
+    )
+    
+    embed.add_field(
+        name="🔗 Invite Link",
+        value="[Click Here to Invite](https://discord.com/api/oauth2/authorize?client_id=1323041248835272724&permissions=292403422272&scope=bot)",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="✨ Features",
+        value="• Real-time voice translation\n• Text translation\n• Multiple language support\n• Custom channel settings",
+        inline=False
+    )
+    
+    embed.set_footer(text="Thanks for sharing Muse! 💖")
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 @tree.command(name="status", description="Check your subscription status")
 async def check_status(interaction: discord.Interaction):
     user_id = interaction.user.id
@@ -558,7 +571,7 @@ async def check_status(interaction: discord.Interaction):
         color=0x2ecc71
     )
     
-    await interaction.response.send_message(embed=embed)   
+    await interaction.response.send_message(embed=embed, ephermal=True)   
 @client.event
 async def on_ready():
     print("🚀 Bot is starting up...")
