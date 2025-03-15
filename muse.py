@@ -571,7 +571,7 @@ async def check_status(interaction: discord.Interaction):
         color=0x2ecc71
     )
     
-    await interaction.response.send_message(embed=embed, ephermal=True)   
+    await interaction.response.send_message(embed=embed, ephemeral=True)  
 @client.event
 async def on_ready():
     print("🚀 Bot is starting up...")
