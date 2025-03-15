@@ -285,7 +285,7 @@ async def start(interaction: discord.Interaction):
             f"5. /stop - End translation session\n"
             f"6. /premium - Unlock premium features through KoFi\n"
             f"7. /status - Check your subscription status\n"
-            f"7. /invite - See the bot's invite link and add to your server today!\n\n"
+            f"8. /invite - See the bot's invite link and add to your server today!\n\n"
             f"📝 Language Codes: 'en' (English), 'es' (Spanish), 'fr' (French), 'de' (German)\n"
             f"Example: /texttr 'Hello World' en es\n"
             f"Use /list to see all supported language codes\n"
