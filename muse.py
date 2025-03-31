@@ -17,6 +17,8 @@ import os
 from os import system
 from paypalrestsdk import Payment
 import stripe
+from datetime import datetime, timedelta
+
 # Language name mapping
 languages = {
     'af': 'Afrikaans', 'sq': 'Albanian', 'am': 'Amharic', 'ar': 'Arabic',
@@ -112,7 +114,38 @@ tree = app_commands.CommandTree(client)
 
 # Global session tracking
 hidden_sessions = set()
-
+class UserUsage:
+    def __init__(self):
+        self.daily_usage = {}  # {user_id: {'usage': seconds, 'last_reset': datetime}}
+        
+    def add_usage(self, user_id: int, seconds: int) -> None:
+        current_time = datetime.now()
+        
+        # Initialize or reset if it's a new day
+        if (user_id not in self.daily_usage or 
+            current_time.date() > self.daily_usage[user_id]['last_reset'].date()):
+            self.daily_usage[user_id] = {
+                'usage': 0,
+                'last_reset': current_time
+            }
+            
+        self.daily_usage[user_id]['usage'] += seconds
+        
+    def get_remaining_time(self, user_id: int, is_premium: bool) -> int:
+        if is_premium:
+            return float('inf')  # Unlimited for premium users
+            
+        current_time = datetime.now()
+        
+        # If no usage today or it's a new day
+        if (user_id not in self.daily_usage or 
+            current_time.date() > self.daily_usage[user_id]['last_reset'].date()):
+            return 1800  # 30 minutes in seconds
+            
+        used_time = self.daily_usage[user_id]['usage']
+        remaining = max(1800 - used_time, 0)  # 30 minutes minus usage
+        return remaining
+usage_tracker = UserUsage()
 class UserSession:
     def __init__(self, user_id):
         self.user_id = user_id
@@ -179,6 +212,8 @@ class LiveVoiceTranslator:
                     await interaction.channel.send(f"{username}: {translated}")
                 else:
                     await interaction.channel.send(f"{username}: {text}\n{username} (Translated): {translated}")
+                if not interaction.user.id in tier_handler.premium_users:
+                    usage_tracker.add_usage(interaction.user.id, session.record_seconds)
         except sr.UnknownValueError:
             pass
 
@@ -315,27 +350,81 @@ async def set_channel(interaction: discord.Interaction, channel_id: str):
 async def translate(interaction: discord.Interaction, source_lang: str, target_lang: str):
     user_id = interaction.user.id
     guild_id = interaction.guild_id
+
+    # Check if command is used in a guild
+    if not interaction.guild:
+        embed = discord.Embed(
+            title="❌ Server Only Command",
+            description="This command can only be used if I'm invited to the server!\n"
+            "🔗 Use `/invite` to get the proper invite link",
+            color=0xFF0000
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    # Check if bot has basic permissions
+    try:
+        permissions = interaction.channel.permissions_for(interaction.guild.me)
+        if not permissions.send_messages or not permissions.view_channel:
+            embed = discord.Embed(
+                title="❌ Permission Error",
+                description=(
+                    "I don't have the required permissions to work in this channel.\n\n"
+                    "**Required Permissions:**\n"
+                    "• View Channel\n"
+                    "• Send Messages\n\n"
+                    "🔗 Quick Fix: Have a server admin use `/invite` to get the proper invite link"
+                ),
+                color=0xFF0000
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+    except AttributeError:
+        embed = discord.Embed(
+            title="❌ Channel Error",
+            description="I cannot access this channel properly. Please try in a different channel or contact server admin.",
+            color=0xFF0000
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
     
+    # Check if user is premium
+    is_premium = user_id in tier_handler.premium_users
+    
+    # Check remaining time
+    remaining_time = usage_tracker.get_remaining_time(user_id, is_premium)
+    
+    if remaining_time <= 0 and not is_premium:
+        await interaction.response.send_message(
+            "❌ You've reached your daily translation limit (30 minutes)!\n"
+            "Use /premium to get unlimited translation time! ✨",
+            ephemeral=True
+        )
+        return
+    
+    if source_lang not in languages or target_lang not in languages:
+        await interaction.response.send_message(
+            "❌ Invalid language code! Use /list to see available languages.",
+            ephemeral=True
+        )
+        return
     # Enhanced tier handling
     tier_info = {
         "free": {
-            "voice_limit": 30,
             "color": 0x95a5a6,
             "icon": "🆓",
-            "features": ["Basic Translation"]
+            "features": ["30 minutes daily voice translation", "Basic Translation"]
         },
         "premium": {
-            "voice_limit": 120,
             "color": 0xf1c40f,
             "icon": "✨",
-            "features": ["Extended Translation", "Priority Processing", "Advanced Features"]
+            "features": ["Unlimited voice translation", "Priority Processing", "Advanced Features"]
         }
     }
     
     # Determine user's tier
-    user_tier = "premium" if user_id in tier_handler.premium_users else "free"
+    user_tier = "premium" if is_premium else "free"
     tier_data = tier_info[user_tier]
-    limits = tier_handler.get_limits(user_id)
 
     if guild_id not in translation_server.translators or user_id not in translation_server.translators[guild_id]:
         await interaction.response.send_message("Please use /start first to initialize your translator! 🎯", ephemeral=True)
@@ -345,7 +434,6 @@ async def translate(interaction: discord.Interaction, source_lang: str, target_l
     if user_id in translator.sessions:
         await interaction.response.send_message("You already have an active translation session!")
         return
-
 
     # Get proper language names
     source_name = languages.get(source_lang, source_lang)
@@ -366,9 +454,11 @@ async def translate(interaction: discord.Interaction, source_lang: str, target_l
         inline=False
     )
     
+    # Update time display based on tier
+    time_display = "Unlimited" if is_premium else f"{remaining_time // 60:.1f} minutes remaining today"
     embed.add_field(
         name="Session Info",
-        value=f"Tier: {tier_data['icon']} {user_tier.title()}\nTime Limit: ⏱️ {tier_data['voice_limit']} seconds per clip",
+        value=f"Tier: {tier_data['icon']} {user_tier.title()}\nTime: ⏱️ {time_display}",
         inline=False
     )
     
