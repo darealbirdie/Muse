@@ -99,6 +99,7 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 NGROK_TOKEN = os.getenv('NGROK_TOKEN')
 tier_handler = TierHandler()
+tier_handler.premium_users.add(1192196672437096520) 
 def cleanup():
     ngrok.kill()
 
