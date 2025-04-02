@@ -471,7 +471,7 @@ async def translate(interaction: discord.Interaction, source_lang: str, target_l
     
     embed.set_footer(text="🎤 Speak now to begin translation!")
 
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
     await translator.live_translate(interaction, user_id, source_lang, target_lang)
 
 @tree.command(name="hide", description="Hide original speech")
