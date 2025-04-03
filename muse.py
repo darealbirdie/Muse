@@ -84,11 +84,11 @@ class TierHandler:
         self.tiers = {
             'free': {
                 'text_limit': 100,    # 100 characters per translation
-                'voice_limit': 30     # 30 minutes of voice translation
+                'voice_limit': 30     # 30 minutes voice translation
             },
             'premium': {
-                'text_limit': str('Unlimited'),  # Unlimited characters
-                'voice_limit': str('Unlimited')  # Unlimited minutes voice translation
+                'text_limit': float('inf'),  # Unlimited characters
+                'voice_limit': float('inf')           # infinite voice translation
             }
         }
     
