@@ -7,3 +7,10 @@ PyAudio==0.2.13
 python-dotenv==1.0.0
 paypalrestsdk==2.0.1
 stripe==7.11.0
+discord.py[voice]>=2.0.0
+PyNaCl
+simpleobsws-1.0.0
+websockets==11.0.3
+tkinter
+asyncio==3.4.3
+langdetect==1.0.9
