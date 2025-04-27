@@ -495,8 +495,6 @@ async def stop_translation(interaction: discord.Interaction):
     user_id = interaction.user.id
     guild_id = interaction.guild_id
     
-    await interaction.response.defer()
-     
     if (guild_id in translation_server.translators and 
         user_id in translation_server.translators[guild_id] and 
         user_id in translation_server.translators[guild_id][user_id].sessions):
@@ -509,9 +507,9 @@ async def stop_translation(interaction: discord.Interaction):
         # Cleanup user's ngrok tunnel
         translation_server.cleanup_user(user_id)
         
-        await interaction.followup.send("Translation session ended and connection closed! 🛑", ephemeral=True)
+        await interaction.response.send_message("Translation session ended and connection closed! 🛑", ephemeral=True)
     else:
-        await interaction.followup.send("No active translation session found!", ephemeral=True)
+        await interaction.response.send_message("No active translation session found!", ephemeral=True)
 
 @tree.context_menu(name="Read Message")
 async def translate_message_context(interaction: discord.Interaction, message: discord.Message):
