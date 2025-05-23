@@ -34,7 +34,7 @@ languages = {
     'af': 'Afrikaans', 'sq': 'Albanian', 'am': 'Amharic', 'ar': 'Arabic',
     'hy': 'Armenian', 'az': 'Azerbaijani', 'eu': 'Basque', 'be': 'Belarusian',
     'bn': 'Bengali', 'bs': 'Bosnian', 'bg': 'Bulgarian', 'ca': 'Catalan',
-    'ceb': 'Cebuano', 'ny': 'Chichewa', 'zh': 'Chinese', 'co': 'Corsican',
+    'ceb': 'Cebuano', 'ny': 'Chichewa', 'zh-CN': 'Chinese', 'zh-TW': 'Chinese (Traditional)', 'co': 'Corsican',
     'hr': 'Croatian', 'cs': 'Czech', 'da': 'Danish', 'nl': 'Dutch',
     'en': 'English', 'eo': 'Esperanto', 'et': 'Estonian', 'tl': 'Filipino',
     'fi': 'Finnish', 'fr': 'French', 'fy': 'Frisian', 'gl': 'Galician',
@@ -63,7 +63,7 @@ flag_mapping = {
     'af': '🇿🇦', 'sq': '🇦🇱', 'am': '🇪🇹', 'ar': '🇸🇦',
     'hy': '🇦🇲', 'az': '🇦🇿', 'eu': '🇪🇸', 'be': '🇧🇾',
     'bn': '🇧🇩', 'bs': '🇧🇦', 'bg': '🇧🇬', 'ca': '🇪🇸',
-    'ceb': '🇵🇭', 'ny': '🇲🇼', 'zh': '🇨🇳', 'co': '🇫🇷',
+    'ceb': '🇵🇭', 'ny': '🇲🇼', 'zh-CN': '🇨🇳', 'zh-TW': '🇹🇼','co': '🇫🇷',
     'hr': '🇭🇷', 'cs': '🇨🇿', 'da': '🇩🇰', 'nl': '🇳🇱',
     'en': '🇬🇧', 'eo': '🌍', 'et': '🇪🇪', 'tl': '🇵🇭',
     'fi': '🇫🇮', 'fr': '🇫🇷', 'fy': '🇳🇱', 'gl': '🇪🇸',
@@ -230,7 +230,7 @@ translation_server = TranslationServer()
 # Create a reverse mapping from language names to codes
 language_names_to_codes = {name.lower(): code for code, name in languages.items()}
 
-# Function to get language code from name or code
+# Add this function to replace the existing get_language_code function
 def get_language_code(lang_input):
     """Convert language name or code to a valid language code"""
     lang_input = lang_input.lower().strip()
@@ -238,7 +238,11 @@ def get_language_code(lang_input):
     # If it's already a valid code, return it
     if lang_input in languages:
         return lang_input
-        
+    
+    # Handle special cases for Chinese
+    if lang_input in ['chinese', 'zh', 'zh-cn', 'mandarin']:
+        return 'zh-CN'
+    
     # If it's a language name, convert to code
     if lang_input in language_names_to_codes:
         return language_names_to_codes[lang_input]
@@ -246,6 +250,11 @@ def get_language_code(lang_input):
     # Try partial matching for language names
     for name, code in language_names_to_codes.items():
         if lang_input in name:
+            return code
+    
+    # Try matching against language codes with special characters
+    for code, name in languages.items():
+        if lang_input == code.lower() or lang_input == name.lower():
             return code
             
     # Not found
@@ -1392,7 +1401,148 @@ async def stop_translation(interaction: discord.Interaction):
         await interaction.response.send_message("Translation session ended! 🛑", ephemeral=True)
     else:
         await interaction.response.send_message("No active translation session found!", ephemeral=True)
-
+@tree.command(name="dmtr", description="Translate and send a message to another user")
+async def dm_translate(
+    interaction: discord.Interaction,
+    user: discord.Member,
+    text: str,
+    source_lang: str,
+    target_lang: str
+):
+    try:
+        # Get user ID
+        sender_id = interaction.user.id
+        
+        # Convert language inputs to codes
+        source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
+        target_code = get_language_code(target_lang)
+        
+        # Validate language codes
+        if source_lang.lower() != "auto" and not source_code:
+            await interaction.response.send_message(
+                f"❌ Invalid source language: '{source_lang}'\nUse /list to see available languages or use 'auto' for automatic detection.",
+                ephemeral=True
+            )
+            return
+            
+        if not target_code:
+            await interaction.response.send_message(
+                f"❌ Invalid target language: '{target_lang}'\nUse /list to see available languages.",
+                ephemeral=True
+            )
+            return
+        
+        # Get user's tier limits
+        limits = tier_handler.get_limits(sender_id)
+        
+        # Check text length against limits
+        if len(text) > limits['text_limit']:
+            await interaction.response.send_message(
+                f"🔒 Text too long! Free tier limit: {limits['text_limit']} characters\n"
+                f"Use /premium to get unlimited translation!",
+                ephemeral=True
+            )
+            return
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        # Detect language if set to auto
+        if source_code == "auto":
+            try:
+                detected_lang = detect(text)
+                source_code = detected_lang
+                logger.info(f"Detected language: {detected_lang}")
+            except Exception as e:
+                logger.error(f"Language detection error: {e}")
+                source_code = "en"  # Default to English if detection fails
+        
+        # Skip translation if detected language matches target
+        if source_code == target_code:
+            translated_text = text
+            detected_message = " (same as target language)"
+        else:
+            # Translate the text
+            translator = GoogleTranslator(source=source_code, target=target_code)
+            translated_text = translator.translate(text)
+            detected_message = ""
+        
+        # Get language names and flags
+        source_name = languages.get(source_code, source_code)
+        target_name = languages.get(target_code, target_code)
+        source_flag = flag_mapping.get(source_code, '🌐')
+        target_flag = flag_mapping.get(target_code, '🌐')
+        
+        # Create embed for the recipient
+        recipient_embed = discord.Embed(
+            title=f"Message from {interaction.user.display_name}",
+            color=0x3498db
+        )
+        
+        # Add source language field
+        source_field_name = f"{source_flag} Original ({source_name})"
+        if source_lang.lower() == "auto":
+            source_field_name += f" (Detected{detected_message})"
+            
+        recipient_embed.add_field(
+            name=source_field_name,
+            value=text,
+            inline=False
+        )
+        
+        # Add target language field
+        recipient_embed.add_field(
+            name=f"{target_flag} Translation ({target_name})",
+            value=translated_text,
+            inline=False
+        )
+        
+        # Try to send the DM
+        try:
+            # Create a DM channel with the user
+            dm_channel = await user.create_dm()
+            
+            # Send the message
+            await dm_channel.send(embed=recipient_embed)
+            
+            # Confirm to the sender
+            sender_embed = discord.Embed(
+                title=f"Message sent to {user.display_name}",
+                description="Your message has been translated and delivered!",
+                color=0x2ecc71
+            )
+            
+            sender_embed.add_field(
+                name=f"{source_flag} Original ({source_name})",
+                value=text,
+                inline=False
+            )
+            
+            sender_embed.add_field(
+                name=f"{target_flag} Translation ({target_name})",
+                value=translated_text,
+                inline=False
+            )
+            
+            await interaction.followup.send(embed=sender_embed, ephemeral=True)
+            
+        except discord.Forbidden:
+            await interaction.followup.send(
+                f"❌ I couldn't send a DM to {user.display_name}. They might have DMs disabled or haven't added me as a friend.",
+                ephemeral=True
+            )
+        
+    except Exception as e:
+        logger.error(f"DM translation error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                f"❌ An error occurred: {str(e)}",
+                ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                f"❌ An error occurred: {str(e)}",
+                ephemeral=True
+            )
 @tree.context_menu(name="Read Message")
 async def translate_message_context(interaction: discord.Interaction, message: discord.Message):
     try:
