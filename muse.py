@@ -2478,10 +2478,14 @@ async def translate_message_context(interaction: discord.Interaction, message: d
             ephemeral=True
         )
 @tree.command(name="read", description="Translate a message by ID")
+@app_commands.describe(
+    message_id="The ID of the message you want to translate (right-click message → Copy Message ID)",
+    target_lang="Target language to translate to (type to search)"
+)
 async def translate_by_id(
     interaction: discord.Interaction,
-    target_lang: str,
-    message_id: str
+    message_id: str,
+    target_lang: str
 ):
     try:
         # Check if command is used in a guild
@@ -2611,7 +2615,10 @@ async def translate_by_id(
             f"❌ An error occurred: {str(e)}",
             ephemeral=True
         )
-        
+
+# Add autocomplete to the read command
+translate_by_id.autocomplete('target_lang')(language_autocomplete)
+
 @tree.command(name="premium", description="Get premium access through Ko-fi")
 async def premium(interaction: discord.Interaction):
     embed = discord.Embed(
