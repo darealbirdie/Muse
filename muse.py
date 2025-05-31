@@ -87,7 +87,45 @@ flag_mapping = {
     'uz': '🇺🇿', 'vi': '🇻🇳', 'cy': '🇬🇧', 'xh': '🇿🇦',
     'yi': '🇮🇱', 'yo': '🇳🇬', 'zu': '🇿🇦'
 }
+# Add these functions after flag_mapping and before class TierHandler:
+
+async def language_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    # Filter languages based on what user is typing
+    current_lower = current.lower()
     
+    # Search both language codes and names
+    matches = []
+    for code, name in languages.items():
+        # Match by code or name
+        if (current_lower in code.lower() or 
+            current_lower in name.lower()):
+            # Show both code and name in the choice
+            matches.append(app_commands.Choice(name=f"{name} ({code})", value=code))
+    
+    # Limit to 25 choices (Discord's limit)
+    return matches[:25]
+
+async def source_language_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    current_lower = current.lower()
+    matches = []
+    
+    # Always show auto-detect first if it matches
+    if not current or "auto" in current_lower:
+        matches.append(app_commands.Choice(name="🔍 Auto-detect language", value="auto"))
+    
+    # Then add language matches
+    for code, name in languages.items():
+        if (current_lower in code.lower() or 
+            current_lower in name.lower()):
+            matches.append(app_commands.Choice(name=f"{name} ({code})", value=code))
+    
+    return matches[:25]
 class TierHandler:
     def __init__(self):
         self.premium_users = set()
@@ -370,10 +408,15 @@ async def set_channel(interaction: discord.Interaction, channel_id: str):
     except ValueError:
         await interaction.response.send_message("Please provide a valid channel ID! 🔢")
 @tree.command(name="texttr", description="Translate text between languages")
+@app_commands.describe(
+    text="Text to translate",
+    source_lang="Source language (type to search)",
+    target_lang="Target language (type to search)"
+)
 async def text_translate(
-    interaction: discord.Interaction, 
-    text: str, 
-    source_lang: str, 
+    interaction: discord.Interaction,
+    text: str,
+    source_lang: str,
     target_lang: str
 ):
     user_id = interaction.user.id
@@ -404,11 +447,14 @@ async def text_translate(
             f"Use /premium to get unlimited translation!"
         )
         return
-    guild_id = interaction.guild_id
     
-    if guild_id not in translation_server.translators or user_id not in translation_server.translators[guild_id]:
-        await interaction.response.send_message("Please use /start first to initialize your translator! 🎯")
-        return
+    # Handle both guild and user contexts for User-Installable Apps
+    if interaction.guild:
+        guild_id = interaction.guild_id
+        if guild_id not in translation_server.translators or user_id not in translation_server.translators[guild_id]:
+            await interaction.response.send_message("Please use /start first to initialize your translator! 🎯")
+            return
+    # If no guild (DM/user context), skip the server check
         
     try:
         translator = GoogleTranslator(source=source_code, target=target_code)
@@ -449,13 +495,29 @@ async def text_translate(
                 inline=False
             )
         
+        # Add context indicator
+        if interaction.guild:
+            embed.set_footer(text=f"Server: {interaction.guild.name}")
+        else:
+            embed.set_footer(text="User Mode: DM Translation")
+        
         await interaction.response.send_message(embed=embed)
     except Exception as e:
         await interaction.response.send_message(
             f"❌ Translation failed: {str(e)}\n"
             f"Please check your language codes (e.g., 'en' for English, 'es' for Spanish)"
         )
+
+# Add autocomplete to the command
+text_translate.autocomplete('source_lang')(source_language_autocomplete)
+text_translate.autocomplete('target_lang')(language_autocomplete)
+
 @tree.command(name="voice", description="Translate text and convert to speech")
+@app_commands.describe(
+    text="Text to translate and convert to speech",
+    source_lang="Source language (type to search)",
+    target_lang="Target language (type to search)"
+)
 async def translate_and_speak(
     interaction: discord.Interaction,
     text: str,
@@ -463,16 +525,13 @@ async def translate_and_speak(
     target_lang: str
 ):
     try:
-        # Check if command is used in a guild
-        if not interaction.guild:
-            embed = discord.Embed(
-                title="❌ Server Only Command",
-                description="This command can only be used if I'm invited to the server!\n"
-                "🔗 Use `/invite` to get the proper invite link",
-                color=0xFF0000
-            )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            return
+        # Handle both contexts
+        if interaction.guild:
+            # Server context - existing logic
+            pass
+        else:
+            # User context (DM) - just create audio file, no voice channel
+            pass
 
         # Convert language inputs to codes
         source_code = get_language_code(source_lang)
@@ -545,6 +604,12 @@ async def translate_and_speak(
             value=translated_text,
             inline=False
         )
+        
+        # Add context info
+        if interaction.guild:
+            embed.set_footer(text=f"Server: {interaction.guild.name}")
+        else:
+            embed.set_footer(text="User Context: Audio file generated")
             
         # Send the embed as ephemeral
         await interaction.followup.send(
@@ -552,10 +617,17 @@ async def translate_and_speak(
             ephemeral=True
         )
 
-        # Send the audio file publicly in the channel
-        await interaction.channel.send(
-            file=discord.File(mp3_fp, filename='translated_speech.mp3')
-        )
+        # Send the audio file
+        if interaction.guild:
+            # In server - send to channel
+            await interaction.channel.send(
+                file=discord.File(mp3_fp, filename='translated_speech.mp3')
+            )
+        else:
+            # In DM - send directly
+            await interaction.followup.send(
+                file=discord.File(mp3_fp, filename='translated_speech.mp3')
+            )
         
         # Close the BytesIO buffer
         mp3_fp.close()
@@ -572,11 +644,19 @@ async def translate_and_speak(
                 ephemeral=True
             )
 
+# Add autocomplete
+translate_and_speak.autocomplete('source_lang')(source_language_autocomplete)
+translate_and_speak.autocomplete('target_lang')(language_autocomplete)
+
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('muse')
 
 @tree.command(name="voicechat", description="Translate voice chat in real-time")
+@app_commands.describe(
+    source_lang="Source language (type to search, or 'auto' for detection)",
+    target_lang="Target language (type to search)"
+)
 async def voice_chat_translate(
     interaction: discord.Interaction, 
     source_lang: str,
@@ -936,8 +1016,677 @@ async def voice_chat_translate(
                 f"❌ Error starting voice translation: {str(e)}",
                 ephemeral=True
             )
+
+# Add autocomplete to the command
+voice_chat_translate.autocomplete('source_lang')(source_language_autocomplete)
+voice_chat_translate.autocomplete('target_lang')(language_autocomplete)
+
+
+@tree.command(name="voicechat2", description="Enhanced bidirectional voice chat translation between two languages")
+@app_commands.describe(
+    language1="First language to translate from (type to search)",
+    language2="Second language to translate from (type to search)",
+)
+async def voice_chat_translate_bidirectional_v2(
+    interaction: discord.Interaction, 
+    language1: str,
+    language2: str
+):
+    # Check if command is used in a guild
+    if not interaction.guild:
+        embed = discord.Embed(
+            title="❌ Server Only Command",
+            description="This command can only be used if I'm invited to the server!",
+            color=0xFF0000
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+        
+    # Check if user is in a voice channel
+    if not interaction.user.voice:
+        await interaction.response.send_message(
+            "❌ You need to be in a voice channel to use this command!",
+            ephemeral=True
+        )
+        return
+        
+    # Convert language inputs to codes - support both codes and names
+    lang1_code = "auto" if language1.lower() == "auto" else get_language_code(language1)
+    lang2_code = "auto" if language2.lower() == "auto" else get_language_code(language2)
+    
+    # Validate language codes (at least one must not be auto)
+    if language1.lower() != "auto" and not lang1_code:
+        await interaction.response.send_message(
+            f"❌ Invalid language: '{language1}'\nUse /list to see available languages or use 'auto' for automatic detection.",
+            ephemeral=True
+        )
+        return
+        
+    if language2.lower() != "auto" and not lang2_code:
+        await interaction.response.send_message(
+            f"❌ Invalid language: '{language2}'\nUse /list to see available languages or use 'auto' for automatic detection.",
+            ephemeral=True
+        )
+        return
+    
+    # Don't allow both languages to be auto
+    if lang1_code == "auto" and lang2_code == "auto":
+        await interaction.response.send_message(
+            "❌ At least one language must be specified (not 'auto'). Example: `/voicechat2 auto english`",
+            ephemeral=True
+        )
+        return
+        
+    # Get user's tier limits
+    user_id = interaction.user.id
+    limits = tier_handler.get_limits(user_id)
+    
+    voice_channel = interaction.user.voice.channel
+    
+    # Define the Enhanced Bidirectional TranslationSink class for voicechat2
+    class EnhancedBidirectionalTranslationSink(BasicSink):
+        def __init__(self, *, language1, language2, text_channel, client_instance):
+            self.event = asyncio.Event()
+            super().__init__(self.event)
+            self.language1 = language1  # Can be "auto"
+            self.language2 = language2  # Can be "auto"
+            self.text_channel = text_channel
+            self.client_instance = client_instance
+            self.user_buffers = {}
+            self.user_detected_languages = {}  # Track detected languages per user
+            self.processing_queue = queue.Queue()
+            self.is_running = True
+            self.error_count = 0
+            self.last_successful_processing = time.time()
+            self.processing_thread = threading.Thread(target=self._process_audio, daemon=True)
+            self.processing_thread.start()
+            logger.info("EnhancedBidirectionalTranslationSink initialized")
+            
+        def wants_opus(self) -> bool:
+            return False
+            
+        def write(self, user, data):
+            try:
+                # Skip processing if we're getting too many errors
+                if self.error_count > 50:
+                    return
+                    
+                user_id = user.id if hasattr(user, 'id') else str(user)
+                
+                # Enhanced validation
+                if not hasattr(data, 'pcm'):
+                    return
+                    
+                pcm_data = data.pcm
+                if not pcm_data or len(pcm_data) < 50:
+                    return
+                    
+                # Skip silence or invalid data
+                if pcm_data == b'\x00' * len(pcm_data):
+                    return
+                    
+                # Check for reasonable PCM data size (not too big, not too small)
+                if len(pcm_data) > 10000:  # Skip unusually large chunks
+                    return
+                    
+                if user_id not in self.user_buffers:
+                    self.user_buffers[user_id] = []
+                    self.user_detected_languages[user_id] = None
+                    logger.info(f"New user buffer created for user {user_id}")
+                
+                self.user_buffers[user_id].append(pcm_data)
+                
+                # Process audio every 3-4 seconds for more stable chunks
+                if len(self.user_buffers[user_id]) >= 150:  # Increased threshold
+                    logger.info(f"Processing audio buffer for user {user_id}")
+                    audio_buffer = b''.join(self.user_buffers[user_id])
+                    self.user_buffers[user_id] = []
+                    
+                    # Only process if we have substantial audio data
+                    if len(audio_buffer) > 8000:  # Increased minimum size
+                        self.processing_queue.put((user_id, audio_buffer))
+                        self.last_successful_processing = time.time()
+                        
+            except Exception as e:
+                self.error_count += 1
+                if self.error_count % 10 == 0:  # Log every 10th error to avoid spam
+                    logger.warning(f"Audio write errors: {self.error_count}")
+                return
+        
+        def _process_audio(self):
+            logger.info("Enhanced bidirectional audio processing thread started")
+            consecutive_failures = 0
+            
+            while self.is_running:
+                try:
+                    # Check if we should continue processing
+                    if time.time() - self.last_successful_processing > 300:  # 5 minutes
+                        logger.warning("No successful audio processing in 5 minutes")
+                        
+                    user_id, audio_buffer = self.processing_queue.get(timeout=1.0)
+                    logger.info(f"Got audio data from queue for user {user_id} ({len(audio_buffer)} bytes)")
+                    
+                    # Validate audio buffer
+                    if len(audio_buffer) < 8000:
+                        logger.debug("Audio buffer too small, skipping")
+                        continue
+                    
+                    # Reset consecutive failures on successful queue get
+                    consecutive_failures = 0
+                    
+                    # Create temporary file with better error handling
+                    try:
+                        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+                            temp_filename = temp_file.name
+                            
+                        # Write WAV file with error handling
+                        with wave.open(temp_filename, 'wb') as wf:
+                            wf.setnchannels(2)
+                            wf.setsampwidth(2)
+                            wf.setframerate(48000)
+                            wf.writeframes(audio_buffer)
+                        
+                        # Verify the file was created successfully
+                        if os.path.getsize(temp_filename) > 1000:  # At least 1KB
+                            logger.info(f"Created WAV file: {temp_filename} ({os.path.getsize(temp_filename)} bytes)")
+                            
+                            # Process in separate thread with timeout
+                            processing_thread = threading.Thread(
+                                target=self._transcribe_and_translate_enhanced,
+                                args=(temp_filename, user_id),
+                                daemon=True
+                            )
+                            processing_thread.start()
+                        else:
+                            logger.warning("WAV file too small, skipping")
+                            try:
+                                os.unlink(temp_filename)
+                            except:
+                                pass
+                                
+                    except Exception as file_error:
+                        logger.error(f"Error creating audio file: {file_error}")
+                        try:
+                            os.unlink(temp_filename)
+                        except:
+                            pass
+                            
+                except queue.Empty:
+                    # Normal timeout, continue
+                    continue
+                except Exception as e:
+                    consecutive_failures += 1
+                    logger.error(f"Error in audio processing loop (consecutive: {consecutive_failures}): {e}")
+                    
+                    # If too many consecutive failures, take a break
+                    if consecutive_failures > 10:
+                        logger.error("Too many consecutive failures, pausing audio processing")
+                        time.sleep(5)
+                        consecutive_failures = 0
+        
+        def _determine_target_language_enhanced(self, detected_lang, user_id):
+            """Enhanced target language determination with strict language pair logic"""
+            
+            # If both languages are specified (not auto), use strict bidirectional logic
+            if self.language1 != "auto" and self.language2 != "auto":
+                # If detected language matches language1, translate to language2
+                if detected_lang == self.language1:
+                    logger.info(f"Detected {detected_lang} matches language1 ({self.language1}), translating to language2 ({self.language2})")
+                    return self.language2
+                # If detected language matches language2, translate to language1
+                elif detected_lang == self.language2:
+                    logger.info(f"Detected {detected_lang} matches language2 ({self.language2}), translating to language1 ({self.language1})")
+                    return self.language1
+                else:
+                    # If detected language doesn't match either specified language,
+                    # assume it's closest to language1 and translate to language2
+                    logger.info(f"Detected {detected_lang} doesn't match either specified language, defaulting to translate to language2 ({self.language2})")
+                    return self.language2
+            
+            # If language1 is auto, translate to language2
+            elif self.language1 == "auto" and self.language2 != "auto":
+                logger.info(f"Language1 is auto, translating detected {detected_lang} to language2 ({self.language2})")
+                return self.language2
+            
+            # If language2 is auto, translate to language1
+            elif self.language2 == "auto" and self.language1 != "auto":
+                logger.info(f"Language2 is auto, translating detected {detected_lang} to language1 ({self.language1})")
+                return self.language1
+            
+            # Fallback (shouldn't happen due to validation)
+            logger.warning("Unexpected language configuration, defaulting to English")
+            return "en"
+        
+        async def _send_translation(self, user_id, original_text, translated_text, detected_lang, target_lang):
+            try:
+                # Check permissions first
+                permissions = self.text_channel.permissions_for(self.text_channel.guild.me)
+                if not permissions.send_messages or not permissions.embed_links:
+                    logger.error("Missing permissions to send messages or embed links")
+                    return
+                
+                guild = self.text_channel.guild
+                try:
+                    member = await guild.fetch_member(user_id)
+                except discord.NotFound:
+                    logger.error(f"Member {user_id} not found in guild")
+                    return
+                
+                if not member:
+                    return
+                    
+                username = member.display_name
+                logger.info(f"Sending enhanced translation for user {username}")
+                
+                # Get language names and flags
+                source_name = languages.get(detected_lang, detected_lang)
+                target_name = languages.get(target_lang, target_lang)
+                source_flag = flag_mapping.get(detected_lang, '🌐')
+                target_flag = flag_mapping.get(target_lang, '🌐')
+                
+                # Create embed with enhanced styling
+                embed = discord.Embed(
+                    title=f"🚀 Enhanced Voice Translation: {username}",
+                    color=0x9b59b6  # Purple color to distinguish from other versions
+                )
+                
+                if user_id not in hidden_sessions:
+                    embed.add_field(
+                        name=f"{source_flag} Detected ({source_name})",
+                        value=original_text[:1024],
+                        inline=False
+                    )
+                
+                embed.add_field(
+                    name=f"{target_flag} Translation ({target_name})",
+                    value=translated_text[:1024],
+                    inline=False
+                )
+                
+                # Add language pair info in footer
+                lang1_display = "Auto-detect" if self.language1 == "auto" else languages.get(self.language1, self.language1)
+                lang2_display = "Auto-detect" if self.language2 == "auto" else languages.get(self.language2, self.language2)
+                embed.set_footer(text=f"Enhanced V2 | Language pair: {lang1_display} ↔ {lang2_display}")
+                
+                await self.text_channel.send(embed=embed)
+                logger.info("Enhanced translation sent successfully")
+                
+            except discord.Forbidden as e:
+                logger.error(f"Permission error sending translation: {e}")
+            except discord.HTTPException as e:
+                logger.error(f"HTTP error sending translation: {e}")
+            except Exception as e:
+                logger.error(f"Unexpected error sending translation: {e}")
+        
+        def _transcribe_and_translate_enhanced(self, filename, user_id):
+            try:
+                logger.info(f"Enhanced transcription for user {user_id}")
+                
+                recognizer = sr.Recognizer()
+                recognizer.energy_threshold = 300
+                recognizer.dynamic_energy_threshold = True
+                
+                with sr.AudioFile(filename) as source:
+                    recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                    audio = recognizer.record(source)
+                    
+                    try:
+                        # Enhanced speech recognition with language prioritization
+                        text = None
+                        detected_lang = None
+                        
+                        # If we have specific languages (not auto), try them in order
+                        if self.language1 != "auto" and self.language2 != "auto":
+                            # Try language1 first
+                            try:
+                                text = recognizer.recognize_google(audio, language=self.language1)
+                                detected_lang = self.language1
+                                logger.info(f"Successfully recognized as {self.language1}: {text}")
+                            except sr.UnknownValueError:
+                                # Try language2 if language1 failed
+                                try:
+                                    text = recognizer.recognize_google(audio, language=self.language2)
+                                    detected_lang = self.language2
+                                    logger.info(f"Successfully recognized as {self.language2}: {text}")
+                                except sr.UnknownValueError:
+                                    # If both specific languages fail, try auto-detection as fallback
+                                    try:
+                                        text = recognizer.recognize_google(audio)
+                                        detected_lang = detect(text)
+                                        logger.info(f"Fallback auto-detection: {detected_lang} - {text}")
+                                    except:
+                                        logger.info("Could not recognize speech in any language")
+                                        return
+                        
+                        # If one language is auto, use the other as primary
+                        elif self.language1 == "auto":
+                            try:
+                                text = recognizer.recognize_google(audio, language=self.language2)
+                                detected_lang = self.language2
+                                logger.info(f"Recognized as specified language {self.language2}: {text}")
+                            except sr.UnknownValueError:
+                                try:
+                                    text = recognizer.recognize_google(audio)
+                                    detected_lang = detect(text)
+                                    logger.info(f"Auto-detection fallback: {detected_lang} - {text}")
+                                except:
+                                    return
+                                    
+                        elif self.language2 == "auto":
+                            try:
+                                text = recognizer.recognize_google(audio, language=self.language1)
+                                detected_lang = self.language1
+                                logger.info(f"Recognized as specified language {self.language1}: {text}")
+                            except sr.UnknownValueError:
+                                try:
+                                    text = recognizer.recognize_google(audio)
+                                    detected_lang = detect(text)
+                                    logger.info(f"Auto-detection fallback: {detected_lang} - {text}")
+                                except:
+                                    return
+                        
+                        if not text or len(text.strip()) < 2:
+                            return
+                        
+                        # Store detected language for this user
+                        self.user_detected_languages[user_id] = detected_lang
+                        
+                        # Determine target language using enhanced logic
+                        target_lang = self._determine_target_language_enhanced(detected_lang, user_id)
+                        logger.info(f"Target language determined: {target_lang}")
+                        
+                        # Skip if same language
+                        if detected_lang == target_lang:
+                            logger.info("Source and target languages are the same, skipping translation")
+                            return
+                        
+                        # Translate with enhanced error handling
+                        try:
+                            translator = GoogleTranslator(source=detected_lang, target=target_lang)
+                            translated = translator.translate(text)
+                            logger.info(f"Translated text: {translated}")
+                            
+                            if translated and len(translated.strip()) > 0:
+                                asyncio.run_coroutine_threadsafe(
+                                    self._send_translation(user_id, text, translated, detected_lang, target_lang),
+                                    self.client_instance.loop
+                                )
+                            
+                        except Exception as translate_error:
+                            logger.error(f"Translation error: {translate_error}")
+                            
+                    except sr.RequestError as e:
+                        logger.error(f"Speech recognition service error: {e}")
+                    except Exception as recognition_error:
+                        logger.error(f"Speech recognition error: {recognition_error}")
+            
+            except Exception as e:
+                logger.error(f"Error in enhanced transcription process: {e}")
+            finally:
+                try:
+                    if os.path.exists(filename):
+                        os.unlink(filename)
+                except Exception as cleanup_error:
+                    logger.debug(f"Error cleaning up temp file: {cleanup_error}")
+        
+        def cleanup(self):
+            logger.info("Cleaning up EnhancedBidirectionalTranslationSink")
+            self.is_running = False
+            
+            # Give the processing thread time to finish
+            if hasattr(self, 'processing_thread') and self.processing_thread.is_alive():
+                self.processing_thread.join(timeout=3.0)
+                
+            # Clear any remaining buffers
+            self.user_buffers.clear()
+            self.user_detected_languages.clear()
+            
+            # Clear the processing queue
+            while not self.processing_queue.empty():
+                try:
+                    self.processing_queue.get_nowait()
+                except:
+                    break
+                    
+        # Add sink event listeners
+        @BasicSink.listener()
+        def on_voice_member_speaking_start(self, member):
+            logger.info(f"Member started speaking: {member.display_name}")
+            
+        @BasicSink.listener()
+        def on_voice_member_speaking_stop(self, member):
+            logger.info(f"Member stopped speaking: {member.display_name}")
+    
+    # Connect to the voice channel
+    try:
+        await interaction.response.defer(ephemeral=True)
+        logger.info(f"Connecting to voice channel: {voice_channel.name}")
+        
+        # Check if we're already connected to a voice channel in this guild
+        if interaction.guild.voice_client:
+            # If we're in a different channel, move to the new one
+            if interaction.guild.voice_client.channel != voice_channel:
+                logger.info(f"Moving to different voice channel: {voice_channel.name}")
+                await interaction.guild.voice_client.move_to(voice_channel)
+                
+            # If the existing client is not a VoiceRecvClient, disconnect and reconnect
+            if not isinstance(interaction.guild.voice_client, voice_recv.VoiceRecvClient):
+                logger.info("Existing client is not a VoiceRecvClient, reconnecting")
+                await interaction.guild.voice_client.disconnect()
+                voice_client = await voice_channel.connect(cls=voice_recv.VoiceRecvClient, self_deaf=False)
+            else:
+                voice_client = interaction.guild.voice_client
+        else:
+            # Connect to voice channel with the correct class parameter
+            logger.info(f"Connecting to voice channel with VoiceRecvClient: {voice_channel.name}")
+            voice_client = await voice_channel.connect(cls=voice_recv.VoiceRecvClient, self_deaf=False)
+            
+        # Wait a moment to ensure connection is established
+        await asyncio.sleep(2)
+            
+        # Check if connection was successful
+        if not voice_client.is_connected():
+            logger.error("Voice client not connected after connection attempt")
+            await interaction.followup.send(
+                "❌ Failed to connect to voice channel. Please try again.",
+                ephemeral=True
+            )
+            return
+            
+        logger.info(f"Voice client connected: {voice_client.is_connected()}")
+        
+        # Create our enhanced sink
+        logger.info("Creating EnhancedBidirectionalTranslationSink")
+        sink = EnhancedBidirectionalTranslationSink(
+            language1=lang1_code,
+            language2=lang2_code,
+            text_channel=interaction.channel,
+            client_instance=client
+        )
+        logger.info("Successfully created EnhancedBidirectionalTranslationSink")
+        
+        # Start listening with explicit error handling
+        try:
+            logger.info("Starting to listen")
+            
+            # Check if already listening
+            if voice_client.is_listening():
+                logger.info("Already listening, stopping first")
+                voice_client.stop_listening()
+                await asyncio.sleep(1)
+            
+            # Start listening
+            voice_client.listen(sink)
+            logger.info("Successfully started listening")
+            
+            # Create display names for the embed
+            lang1_display = "Auto-detect" if lang1_code == "auto" else languages.get(lang1_code, lang1_code)
+            lang2_display = "Auto-detect" if lang2_code == "auto" else languages.get(lang2_code, lang2_code)
+            lang1_flag = '🔍' if lang1_code == "auto" else flag_mapping.get(lang1_code, '🌐')
+            lang2_flag = '🔍' if lang2_code == "auto" else flag_mapping.get(lang2_code, '🌐')
+            
+            # Check if user is premium
+            is_premium = user_id in tier_handler.premium_users
+            
+            # Create embed with enhanced styling
+            embed = discord.Embed(
+                title="🚀 Enhanced Voice Chat Translation V2 Started",
+                description=(
+                    f"Now translating between {lang1_flag} **{lang1_display}** ↔ {lang2_flag} **{lang2_display}**\n\n"
+                    f"🎯 **Enhanced Features:**\n"
+                    f"• Prioritizes your specified languages\n"
+                    f"• Intelligent language detection\n"
+                    f"• Better audio processing\n"
+                    f"• Reduced false detections\n"
+                    f"• Multiple people can speak different languages!\n\n"
+                    f"Use `/stop` to end the translation session."
+                ),
+                color=0x9b59b6  # Purple for enhanced V2
+            )
+            
+            # Add examples based on the language pair
+            if lang1_code != "auto" and lang2_code != "auto":
+                embed.add_field(
+                    name="📝 How it works",
+                    value=(
+                        f"• Speak in {lang1_display} → Translates to {lang2_display}\n"
+                        f"• Speak in {lang2_display} → Translates to {lang1_display}\n"
+                        f"• Other languages → Translates to {lang2_display} (default)"
+                    ),
+                    inline=False
+                )
+            elif lang1_code == "auto":
+                embed.add_field(
+                    name="📝 How it works",
+                    value=f"• Speak in any language → Translates to {lang2_display}",
+                    inline=False
+                )
+            else:  # lang2_code == "auto"
+                embed.add_field(
+                    name="📝 How it works", 
+                    value=f"• Speak in any language → Translates to {lang1_display}",
+                    inline=False
+                )
+            
+            # Add tier information
+            if is_premium:
+                embed.add_field(
+                    name="⭐ Premium Active",
+                    value="Unlimited translation time",
+                    inline=True
+                )
+            else:
+                embed.add_field(
+                    name="🆓 Free Tier",
+                    value="30 minutes daily limit",
+                    inline=True
+                )
+            
+            # Add version info
+            embed.add_field(
+                name="🔧 Version",
+                value="Enhanced V2",
+                inline=True
+            )
+            
+            embed.set_footer(text="Bot will automatically leave when everyone exits the voice channel")
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+            # Store the voice client and sink for later cleanup
+            if interaction.guild_id not in voice_translation_sessions:
+                voice_translation_sessions[interaction.guild_id] = {}
+                
+            voice_translation_sessions[interaction.guild_id] = {
+                'voice_client': voice_client,
+                'sink': sink,
+                'channel': voice_channel,
+                'type': 'enhanced_v2',  # Mark as enhanced V2
+                'languages': [lang1_code, lang2_code]
+            }
+            
+            # Start a task to check if users leave the voice channel
+            client.loop.create_task(check_voice_channel_enhanced(voice_client, voice_channel))
+                
+        except Exception as e:
+            logger.error(f"Error starting listening: {e}")
+            await interaction.followup.send(
+                f"❌ Error starting listening: {str(e)}",
+                ephemeral=True
+            )
+            
+    except Exception as e:
+        logger.error(f"Error connecting to voice: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                f"❌ Error starting voice translation: {str(e)}",
+                ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                f"❌ Error starting voice translation: {str(e)}",
+                ephemeral=True
+            )
+voice_chat_translate_bidirectional_v2.autocomplete('language1')(source_language_autocomplete)
+voice_chat_translate_bidirectional_v2.autocomplete('language2')(source_language_autocomplete)
+
+# Enhanced voice channel checking function
+async def check_voice_channel_enhanced(voice_client, voice_channel):
+    """Enhanced voice channel monitoring with better error handling"""
+    if not voice_client:
+        return
+        
+    consecutive_empty_checks = 0
+    error_count = 0
+    
+    while voice_client.is_connected():
+        try:
+            # Refresh the voice channel object to get current members
+            updated_channel = voice_client.guild.get_channel(voice_channel.id)
+            if not updated_channel:
+                logger.warning("Voice channel no longer exists, disconnecting")
+                break
+                
+            # Count human members (excluding bots)
+            human_members = [member for member in updated_channel.members if not member.bot]
+            member_count = len(human_members)
+            
+            if member_count == 0:
+                consecutive_empty_checks += 1
+                # Wait longer before disconnecting to avoid false positives
+                if consecutive_empty_checks >= 4:  # 20 seconds of being alone
+                    logger.info(f"🔇 Enhanced V2 disconnecting from {voice_channel.name} - everyone left")
+                    await voice_client.disconnect()
+                    break
+            else:
+                consecutive_empty_checks = 0  # Reset counter when people are present
+                error_count = 0  # Reset error counter on successful check
+            
+            # Check every 5 seconds
+            await asyncio.sleep(5)
+            
+        except Exception as e:
+            error_count += 1
+            logger.error(f"Error in enhanced voice channel check (count: {error_count}): {e}")
+            
+            # If too many errors, disconnect to prevent hanging
+            if error_count > 5:
+                logger.error("Too many voice channel check errors, disconnecting")
+                try:
+                    await voice_client.disconnect()
+                except:
+                    pass
+                break
+                
+            await asyncio.sleep(5)
+           
 @tree.command(name="speak", description="Translate text and play speech in voice channel")
-async def translate_and_speak(
+@app_commands.describe(
+    text="Text to translate and play in voice channel",
+    source_lang="Source language (type to search)",
+    target_lang="Target language (type to search)"
+)
+async def translate_and_speak_voice(
     interaction: discord.Interaction,
     text: str,
     source_lang: str,
@@ -1040,6 +1789,8 @@ async def translate_and_speak(
             value=translated_text,
             inline=False
         )
+        
+        embed.set_footer(text=f"Server: {interaction.guild.name}")
             
         # Send the embed as ephemeral
         await interaction.followup.send(
@@ -1087,8 +1838,7 @@ async def translate_and_speak(
                         pass
                     return
                 
-                # Create FFmpeg audio source with explicit executable path
-                # Try with default path first
+                # Create FFmpeg audio source
                 try:
                     audio_source = discord.FFmpegPCMAudio(temp_filename)
                 except Exception as e1:
@@ -1159,6 +1909,11 @@ async def translate_and_speak(
                 ephemeral=True
             )
 
+# Add autocomplete
+translate_and_speak_voice.autocomplete('source_lang')(source_language_autocomplete)
+translate_and_speak_voice.autocomplete('target_lang')(language_autocomplete)
+
+
 # Add this function to check if users leave the voice channel
 async def check_voice_channel(voice_client, voice_channel):
     """Check if users leave the voice channel and disconnect the bot if it's alone"""
@@ -1189,7 +1944,51 @@ async def cleanup_after_playback(filename, voice_client):
 # Dictionary to track users with auto-translation enabled
 auto_translate_users = {}  # Format: {user_id: {'source': source_code, 'target': target_code}}
 
+# Autocomplete functions for autotranslate (add these after the language dictionaries)
+async def language_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    # Filter languages based on what user is typing
+    current_lower = current.lower()
+    
+    # Search both language codes and names
+    matches = []
+    for code, name in languages.items():
+        # Match by code or name
+        if (current_lower in code.lower() or 
+            current_lower in name.lower()):
+            # Show both code and name in the choice
+            matches.append(app_commands.Choice(name=f"{name} ({code})", value=code))
+    
+    # Limit to 25 choices (Discord's limit)
+    return matches[:25]
+
+async def source_language_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    current_lower = current.lower()
+    matches = []
+    
+    # Always show auto-detect first if it matches
+    if not current or "auto" in current_lower:
+        matches.append(app_commands.Choice(name="🔍 Auto-detect language", value="auto"))
+    
+    # Then add language matches
+    for code, name in languages.items():
+        if (current_lower in code.lower() or 
+            current_lower in name.lower()):
+            matches.append(app_commands.Choice(name=f"{name} ({code})", value=code))
+    
+    return matches[:25]
+
+# Complete autotranslate command with autocomplete
 @tree.command(name="autotranslate", description="Automatically translate all your messages")
+@app_commands.describe(
+    source_lang="Source language (type to search, or 'auto' for detection)",
+    target_lang="Target language (type to search)"
+)
 async def auto_translate(
     interaction: discord.Interaction,
     source_lang: str,
@@ -1238,6 +2037,11 @@ async def auto_translate(
         ephemeral=True
     )
 
+# Add autocomplete to the command
+auto_translate.autocomplete('source_lang')(source_language_autocomplete)
+auto_translate.autocomplete('target_lang')(language_autocomplete)
+
+# Event handler for auto-translation
 @client.event
 async def on_message(message):
     # Ignore messages from bots to prevent loops
@@ -1904,19 +2708,20 @@ async def invite(interaction: discord.Interaction):
     
     embed.add_field(
         name="🔗 Invite Link",
-        value="[Click Here to Invite](https://discord.com/api/oauth2/authorize?client_id=1323041248835272724&permissions=292403422272&scope=bot)",
+        value="[Click Here to Invite](https://discord.com/api/oauth2/authorize?client_id=1323041248835272724&permissions=292403422272&scope=bot+applications.commands)",
         inline=False
     )
     
     embed.add_field(
         name="✨ Features",
-        value="• Real-time voice translation\n• Text translation\n• Multiple language support\n• Custom channel settings",
+        value="• Real-time voice translation\n• Text translation\n• Multiple language support\n• Custom channel settings\n• Works in DMs too!",
         inline=False
     )
     
     embed.set_footer(text="Thanks for sharing Muse! 💖")
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
 @tree.command(name="status", description="Check your subscription status")
 async def check_status(interaction: discord.Interaction):
     user_id = interaction.user.id
@@ -1934,6 +2739,112 @@ async def check_status(interaction: discord.Interaction):
     )
     
     await interaction.response.send_message(embed=embed, ephemeral=True)  
+@tree.command(name="help", description="Show all available commands")
+async def help_command(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🤖 Muse Translator - Command List",
+        description="Here are all available commands:",
+        color=0x3498db
+    )
+    
+    # Check if we're in server or user context
+    is_server = interaction.guild is not None
+    
+    # Text Translation Commands
+    embed.add_field(
+        name="📝 Text Translation",
+        value=(
+            "`/texttr [text] [source_lang] [target_lang]` - Translate text\n"
+            "`/read [target_lang] [message_id]` - Translate message by ID\n"
+            "`/dmtr [user] [text] [source_lang] [target_lang]` - Send translated DM" + 
+            (" (server only)" if not is_server else "")
+        ),
+        inline=False
+    )
+    
+    # Voice Commands
+    voice_commands = (
+        "`/voice [text] [source_lang] [target_lang]` - Text to speech\n"
+        "`/speak [text] [source_lang] [target_lang]` - Play speech in voice channel" +
+        (" (server only)" if not is_server else "") + "\n"
+        "`/voicechat [source_lang] [target_lang]` - Real-time voice translation" +
+        (" (server only)" if not is_server else "")
+    )
+    
+    embed.add_field(
+        name="🎤 Voice Commands",
+        value=voice_commands,
+        inline=False
+    )
+    
+    # Auto Translation (server only)
+    if is_server:
+        embed.add_field(
+            name="🔄 Auto Translation (Server Only)",
+            value="`/autotranslate [source_lang] [target_lang]` - Auto-translate your messages",
+            inline=False
+        )
+    
+    # Setup & Control Commands
+    setup_commands = "`/start` - Initialize translator\n"
+    if is_server:
+        setup_commands += "`/setchannel [channel_id]` - Set translation channel\n"
+    setup_commands += "`/stop` - Stop active translation sessions"
+    
+    embed.add_field(
+        name="⚙️ Setup & Control",
+        value=setup_commands,
+        inline=False
+    )
+    
+    # Settings Commands
+    embed.add_field(
+        name="🎛️ Settings",
+        value=(
+            "`/hide` - Hide original text in translations\n"
+            "`/show` - Show original text in translations"
+        ),
+        inline=False
+    )
+    
+    # Information Commands
+    embed.add_field(
+        name="ℹ️ Information",
+        value=(
+            "`/list` - Show all supported languages\n"
+            "`/status` - Check your subscription status\n"
+            "`/premium` - Get premium access info\n"
+            "`/invite` - Get bot invite links\n"
+            "`/help` - Show this command list"
+        ),
+        inline=False
+    )
+    
+    # Context Menu Commands
+    embed.add_field(
+        name="📱 Context Menu",
+        value="`Right-click message` → `Apps` → `Read Message` - Translate any message",
+        inline=False
+    )
+    
+    # Add usage tips
+    embed.add_field(
+        name="💡 Usage Tips",
+        value=(
+            "• Use `auto` as source language for automatic detection\n"
+            "• Language codes: `en`, `es`, `fr` or names: `English`, `Spanish`, `French`\n"
+            "• Example: `/texttr text:'Hello' source_lang:en target_lang:es`"
+        ),
+        inline=False
+    )
+    
+    # Add context-specific footer
+    if is_server:
+        embed.set_footer(text=f"Server Mode: {interaction.guild.name} | All features available")
+    else:
+        embed.set_footer(text="User Mode: Perfect for DMs | Some features are server-only")
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 @client.event
 async def on_ready():
     print("🚀 Bot is starting up...")
