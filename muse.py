@@ -299,6 +299,8 @@ def get_language_code(lang_input):
     return None
 
 @tree.command(name="start", description="Start your personal translation bot")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def start(interaction: discord.Interaction):
     user_id = interaction.user.id
     guild_id = interaction.guild_id
@@ -408,6 +410,8 @@ async def set_channel(interaction: discord.Interaction, channel_id: str):
     except ValueError:
         await interaction.response.send_message("Please provide a valid channel ID! 🔢")
 @tree.command(name="texttr", description="Translate text between languages")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(
     text="Text to translate",
     source_lang="Source language (type to search)",
@@ -513,6 +517,8 @@ text_translate.autocomplete('source_lang')(source_language_autocomplete)
 text_translate.autocomplete('target_lang')(language_autocomplete)
 
 @tree.command(name="voice", description="Translate text and convert to speech")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(
     text="Text to translate and convert to speech",
     source_lang="Source language (type to search)",
@@ -2130,12 +2136,16 @@ async def on_message(message):
     return
 
 @tree.command(name="hide", description="Hide original speech")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def hide_speech(interaction: discord.Interaction):
     user_id = interaction.user.id
     hidden_sessions.add(user_id)
     await interaction.response.send_message("Original speech will be hidden! 🙈", ephemeral=True)
 
 @tree.command(name="show", description="Show original speech")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def show_speech(interaction: discord.Interaction):
     user_id = interaction.user.id
     hidden_sessions.discard(user_id)
@@ -2620,6 +2630,8 @@ async def translate_by_id(
 translate_by_id.autocomplete('target_lang')(language_autocomplete)
 
 @tree.command(name="premium", description="Get premium access through Ko-fi")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def premium(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🌟 Get Premium Access - Just $1/month!",
@@ -2660,6 +2672,8 @@ def run_flask():
     app.run(host='0.0.0.0', port=port)
 
 @tree.command(name="list", description="List all available languages for translation")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def list_languages(interaction: discord.Interaction):
     embed = discord.Embed(
         title="Available Languages for Translation",
@@ -2706,6 +2720,8 @@ async def list_languages(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @tree.command(name="invite", description="Get the bot's invite link")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def invite(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🤖 Invite Muse to Your Server!",
@@ -2730,6 +2746,8 @@ async def invite(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @tree.command(name="status", description="Check your subscription status")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def check_status(interaction: discord.Interaction):
     user_id = interaction.user.id
     tier = "Premium" if user_id in tier_handler.premium_users else "Free"
