@@ -2357,137 +2357,9 @@ async def dm_translate(
                 f"❌ An error occurred: {str(e)}",
                 ephemeral=True
             )
-@tree.context_menu(name="Read Message")
-async def translate_message_context(interaction: discord.Interaction, message: discord.Message):
-    try:
-        message_to_translate = message
-        
-        # Check if command is used in a guild
-        if not interaction.guild:
-            embed = discord.Embed(
-                title="❌ Server Only Command",
-                description="This command can only be used if I'm invited to the server!\n"
-                "🔗 Use `/invite` to get the proper invite link",
-                color=0xFF0000
-            )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            return
-
-        # Check bot permissions
-        permissions = interaction.channel.permissions_for(interaction.guild.me)
-        if not permissions.read_message_history:
-            embed = discord.Embed(
-                title="❌ Permission Error",
-                description=(
-                    "I don't have permission to read message history in this channel.\n\n"
-                    "**Required Permission:**\n"
-                    "• Read Message History\n\n"
-                    "🔗 Ask a server admin to fix my permissions"
-                ),
-                color=0xFF0000
-            )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            return
-
-        # Create a modal for language selection
-        class LanguageModal(discord.ui.Modal, title="Select Target Language"):
-            target_lang = discord.ui.TextInput(
-                label="Target Language Code or Name",
-                placeholder="Enter language code or name (e.g., es, Spanish)...",
-                max_length=20
-            )
-
-            async def on_submit(self, interaction: discord.Interaction):
-                target_lang_input = self.target_lang.value.lower()
-                
-                # Convert language input to code
-                target_lang = get_language_code(target_lang_input)
-                
-                # Validate target language
-                if not target_lang:
-                    await interaction.response.send_message(
-                        f"❌ Invalid target language: '{target_lang_input}'\nUse /list to see available languages.",
-                        ephemeral=True
-                    )
-                    return
-
-                # Get user's tier limits
-                user_id = interaction.user.id
-                limits = tier_handler.get_limits(user_id)
-                
-                # Check message length against limits
-                if len(message_to_translate.content) > limits['text_limit']:
-                    await interaction.response.send_message(
-                        f"🔒 Message too long! Free tier limit: {limits['text_limit']} characters\n"
-                        f"Use /premium to get unlimited translation!",
-                        ephemeral=True
-                    )
-                    return
-                
-                # Detect the source language
-                try:
-                    source_lang = detect(message_to_translate.content)
-                except:
-                    await interaction.response.send_message(
-                        "❌ Could not detect the message language.",
-                        ephemeral=True
-                    )
-                    return
-                
-                # Don't translate if source and target are the same
-                if source_lang == target_lang:
-                    await interaction.response.send_message(
-                        "Message is already in the target language! 🎯",
-                        ephemeral=True
-                    )
-                    return
-                
-                # Create translator and translate
-                translator = GoogleTranslator(source=source_lang, target=target_lang)
-                translated = translator.translate(message_to_translate.content)
-                
-                # Get proper language names and flags
-                source_name = languages.get(source_lang, source_lang)
-                target_name = languages.get(target_lang, target_lang)
-                source_flag = flag_mapping.get(source_lang, '🌐')
-                target_flag = flag_mapping.get(target_lang, '🌐')
-                
-                # Create embed
-                embed = discord.Embed(
-                    title="Message Translation",
-                    color=0x3498db
-                )
-                
-                embed.add_field(
-                    name=f"{source_flag} Original ({source_name})",
-                    value=message_to_translate.content,
-                    inline=False
-                )
-                
-                embed.add_field(
-                    name=f"{target_flag} Translation ({target_name})",
-                    value=translated,
-                    inline=False
-                )
-                
-                embed.set_footer(text=f"Message from: {message_to_translate.author.display_name}")
-                
-                await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        # Show the language selection modal
-        await interaction.response.send_modal(LanguageModal())
-        
-    except discord.Forbidden:
-        await interaction.response.send_message(
-            "❌ I don't have permission to read messages in this channel.",
-            ephemeral=True
-        )
-    except Exception as e:
-        await interaction.response.send_message(
-            f"❌ An error occurred: {str(e)}",
-            ephemeral=True
-        )
 @tree.command(name="read", description="Translate a message by ID")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(
     message_id="The ID of the message you want to translate (right-click message → Copy Message ID)",
     target_lang="Target language to translate to (type to search)"
@@ -2498,17 +2370,6 @@ async def translate_by_id(
     target_lang: str
 ):
     try:
-        # Check if command is used in a guild
-        if not interaction.guild:
-            embed = discord.Embed(
-                title="❌ Server Only Command",
-                description="This command can only be used if I'm invited to the server!\n"
-                "🔗 Use `/invite` to get the proper invite link",
-                color=0xFF0000
-            )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            return
-
         # Try to get message from ID
         try:
             message_to_translate = await interaction.channel.fetch_message(int(message_id))
@@ -2524,22 +2385,37 @@ async def translate_by_id(
                 ephemeral=True
             )
             return
-
-        # Check bot permissions
-        permissions = interaction.channel.permissions_for(interaction.guild.me)
-        if not permissions.read_message_history:
-            embed = discord.Embed(
-                title="❌ Permission Error",
-                description=(
-                    "I don't have permission to read message history in this channel.\n\n"
-                    "**Required Permission:**\n"
-                    "• Read Message History\n\n"
-                    "🔗 Ask a server admin to fix my permissions"
-                ),
-                color=0xFF0000
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "❌ I don't have permission to read messages in this channel.",
+                ephemeral=True
             )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
+
+        # Check if message has content to translate
+        if not message_to_translate.content or not message_to_translate.content.strip():
+            await interaction.response.send_message(
+                "❌ This message has no text content to translate!",
+                ephemeral=True
+            )
+            return
+
+        # Check bot permissions (only for guild channels)
+        if interaction.guild:
+            permissions = interaction.channel.permissions_for(interaction.guild.me)
+            if not permissions.read_message_history:
+                embed = discord.Embed(
+                    title="❌ Permission Error",
+                    description=(
+                        "I don't have permission to read message history in this channel.\n\n"
+                        "**Required Permission:**\n"
+                        "• Read Message History\n\n"
+                        "🔗 Ask a server admin to fix my permissions"
+                    ),
+                    color=0xFF0000
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
 
         # Get user's tier limits
         user_id = interaction.user.id
@@ -2570,7 +2446,7 @@ async def translate_by_id(
             source_lang = detect(message_to_translate.content)
         except:
             await interaction.response.send_message(
-                "❌ Could not detect the message language.",
+                "❌ Could not detect the message language. The text might be too short or contain unsupported characters.",
                 ephemeral=True
             )
             return
@@ -2584,8 +2460,15 @@ async def translate_by_id(
             return
             
         # Create translator and translate
-        translator = GoogleTranslator(source=source_lang, target=target_code)
-        translated = translator.translate(message_to_translate.content)
+        try:
+            translator = GoogleTranslator(source=source_lang, target=target_code)
+            translated = translator.translate(message_to_translate.content)
+        except Exception as e:
+            await interaction.response.send_message(
+                f"❌ Translation failed: {str(e)}\nPlease try again or contact support.",
+                ephemeral=True
+            )
+            return
         
         # Get proper language names and flags
         source_name = languages.get(source_lang, source_lang)
@@ -2611,9 +2494,170 @@ async def translate_by_id(
             inline=False
         )
         
-        embed.set_footer(text=f"Message from: {message_to_translate.author.display_name}")
+        # Add context-appropriate footer
+        if interaction.guild:
+            embed.set_footer(text=f"Message from: {message_to_translate.author.display_name}")
+        else:
+            embed.set_footer(text=f"📱 DM Translation • From: {message_to_translate.author.display_name}")
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+    except Exception as e:
+        logger.error(f"Read command error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                f"❌ An unexpected error occurred: {str(e)}",
+                ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                f"❌ An unexpected error occurred: {str(e)}",
+                ephemeral=True
+            )
+
+# Add autocomplete to the read command
+translate_by_id.autocomplete('target_lang')(language_autocomplete)
+
+@tree.context_menu(name="Read Message")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+async def translate_message_context(interaction: discord.Interaction, message: discord.Message):
+    try:
+        # Check if message has content to translate
+        if not message.content or not message.content.strip():
+            await interaction.response.send_message(
+                "❌ This message has no text content to translate!",
+                ephemeral=True
+            )
+            return
+
+        # Check bot permissions (only for guild channels)
+        if interaction.guild:
+            permissions = interaction.channel.permissions_for(interaction.guild.me)
+            if not permissions.read_message_history:
+                embed = discord.Embed(
+                    title="❌ Permission Error",
+                    description=(
+                        "I don't have permission to read message history in this channel.\n\n"
+                        "**Required Permission:**\n"
+                        "• Read Message History\n\n"
+                        "🔗 Ask a server admin to fix my permissions"
+                    ),
+                    color=0xFF0000
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+
+        # Get user's tier limits
+        user_id = interaction.user.id
+        limits = tier_handler.get_limits(user_id)
+        
+        # Check message length against limits
+        if len(message.content) > limits['text_limit']:
+            await interaction.response.send_message(
+                f"🔒 Message too long! Free tier limit: {limits['text_limit']} characters\n"
+                f"Use /premium to get unlimited translation!",
+                ephemeral=True
+            )
+            return
+
+        # Create a modal for language selection
+        class LanguageModal(discord.ui.Modal, title="Select Target Language"):
+            target_lang = discord.ui.TextInput(
+                label="Target Language Code or Name",
+                placeholder="Enter language code or name (e.g., es, Spanish, français)...",
+                max_length=30,
+                required=True
+            )
+
+            def __init__(self, message_to_translate):
+                super().__init__()
+                self.message_to_translate = message_to_translate
+
+            async def on_submit(self, modal_interaction: discord.Interaction):
+                target_lang_input = self.target_lang.value.strip()
+                
+                # Convert language input to code
+                target_code = get_language_code(target_lang_input)
+                
+                # Validate target language
+                if not target_code:
+                    await modal_interaction.response.send_message(
+                        f"❌ Invalid target language: '{target_lang_input}'\nUse /list to see available languages.",
+                        ephemeral=True
+                    )
+                    return
+                
+                # Detect the source language
+                try:
+                    source_lang = detect(self.message_to_translate.content)
+                except:
+                    await modal_interaction.response.send_message(
+                        "❌ Could not detect the message language. The text might be too short or contain unsupported characters.",
+                        ephemeral=True
+                    )
+                    return
+                
+                # Don't translate if source and target are the same
+                if source_lang == target_code:
+                    await modal_interaction.response.send_message(
+                        "Message is already in the target language! 🎯",
+                        ephemeral=True
+                    )
+                    return
+                
+                # Create translator and translate
+                try:
+                    translator = GoogleTranslator(source=source_lang, target=target_code)
+                    translated = translator.translate(self.message_to_translate.content)
+                except Exception as e:
+                    await modal_interaction.response.send_message(
+                        f"❌ Translation failed: {str(e)}\nPlease try again or contact support.",
+                        ephemeral=True
+                    )
+                    return
+                
+                # Get proper language names and flags
+                source_name = languages.get(source_lang, source_lang)
+                target_name = languages.get(target_code, target_code)
+                source_flag = flag_mapping.get(source_lang, '🌐')
+                target_flag = flag_mapping.get(target_code, '🌐')
+                
+                # Create embed
+                embed = discord.Embed(
+                    title="Message Translation",
+                    color=0x3498db
+                )
+                
+                embed.add_field(
+                    name=f"{source_flag} Original ({source_name})",
+                    value=self.message_to_translate.content,
+                    inline=False
+                )
+                
+                embed.add_field(
+                    name=f"{target_flag} Translation ({target_name})",
+                    value=translated,
+                    inline=False
+                )
+                
+                # Add context-appropriate footer
+                if modal_interaction.guild:
+                    embed.set_footer(text=f"Message from: {self.message_to_translate.author.display_name}")
+                else:
+                    embed.set_footer(text=f"📱 DM Translation • From: {self.message_to_translate.author.display_name}")
+                
+                await modal_interaction.response.send_message(embed=embed, ephemeral=True)
+
+            async def on_error(self, modal_interaction: discord.Interaction, error: Exception):
+                logger.error(f"Context menu modal error: {error}")
+                await modal_interaction.response.send_message(
+                    "❌ An error occurred while processing your request. Please try again.",
+                    ephemeral=True
+                )
+
+        # Show the language selection modal
+        await interaction.response.send_modal(LanguageModal(message))
         
     except discord.Forbidden:
         await interaction.response.send_message(
@@ -2621,10 +2665,13 @@ async def translate_by_id(
             ephemeral=True
         )
     except Exception as e:
-        await interaction.response.send_message(
-            f"❌ An error occurred: {str(e)}",
-            ephemeral=True
-        )
+        logger.error(f"Context menu error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                f"❌ An unexpected error occurred: {str(e)}",
+                ephemeral=True
+            )
+
 
 # Add autocomplete to the read command
 translate_by_id.autocomplete('target_lang')(language_autocomplete)
