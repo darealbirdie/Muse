@@ -1,0 +1,14 @@
+{
+    "muse": {
+        "server_url": "ws://localhost:8765",
+        "user_id": "",
+        "channel_id": "",
+        "source_lang": "en",
+        "target_lang": "es"
+    },
+    "obs": {
+        "host": "localhost",
+        "port": 4455,
+        "password": ""
+    }
+}
