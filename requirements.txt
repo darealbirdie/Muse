@@ -13,4 +13,8 @@ simpleobsws-1.0.0
 websockets==11.0.3
 tkinter
 asyncio==3.4.3
+<<<<<<< HEAD
 langdetect==1.0.9
+=======
+langdetect==1.0.9
+>>>>>>> 8cb2224a06ea476519007e91777e55e915b74ae8

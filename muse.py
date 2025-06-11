@@ -3678,4 +3678,8 @@ if __name__ == "__main__":
         ).start()
         client.run(TOKEN)
     except Exception as e:
+<<<<<<< HEAD
         print(f"Startup Status: {e}")
+=======
+        print(f"Startup Status: {e}")
+>>>>>>> 8cb2224a06ea476519007e91777e55e915b74ae8
