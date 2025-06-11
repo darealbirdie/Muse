@@ -2982,7 +2982,7 @@ translate_by_id.autocomplete('target_lang')(language_autocomplete)
 async def translation_stats(interaction: discord.Interaction):
     user_id = interaction.user.id
     
-    # Get user and stats from database
+    # Get user and stats using your database methods
     user = await db.get_or_create_user(user_id, interaction.user.display_name)
     stats = await db.get_user_stats(user_id)
     daily_usage = await db.get_daily_usage(user_id)
@@ -2994,14 +2994,14 @@ async def translation_stats(interaction: discord.Interaction):
         color=0x2ecc71 if is_premium else 0x3498db
     )
     
-    # Overall Statistics
+    # Overall Statistics - USE CORRECT FIELD NAMES
     embed.add_field(
         name="🏆 All-Time Stats",
         value=(
             f"**Total Translations:** {stats['total_translations']:,}\n"
-            f"**Characters Translated:** {stats['total_characters']:,}\n"
-            f"**Voice Minutes Used:** {stats['total_voice_seconds'] // 60:,}\n"
-            f"**Member Since:** {user['created_at'][:10] if user['created_at'] else 'Today'}"
+            f"**Monthly Characters:** {stats['monthly_chars']:,}\n"  # Changed from 'total_characters'
+            f"**Monthly Voice Minutes:** {stats['monthly_voice'] // 60:,}\n"
+            f"**Member Since:** {stats['member_since'][:10] if stats['member_since'] else 'Today'}"
         ),
         inline=False
     )
@@ -3012,55 +3012,10 @@ async def translation_stats(interaction: discord.Interaction):
         name="📅 Today's Usage",
         value=(
             f"**Translations:** {daily_usage['translations']:,}\n"
-            f"**Characters:** {daily_usage['text_chars']:,}\n"
             f"**Voice Minutes:** {voice_minutes_today}/{'∞' if is_premium else '30'}"
         ),
         inline=True
     )
-    
-    # Most Used Languages
-    if stats['favorite_languages']:
-        fav_langs = []
-        for lang_code, count in stats['favorite_languages'].items():
-            lang_name = languages.get(lang_code, lang_code)
-            flag = flag_mapping.get(lang_code, '🌐')
-            fav_langs.append(f"{flag} {lang_name}: {count}")
-        
-        embed.add_field(
-            name="🌍 Most Used Languages",
-            value="\n".join(fav_langs[:5]),  # Top 5
-            inline=True
-        )
-    
-    # Translation Types Breakdown
-    if stats['translation_types']:
-        type_breakdown = []
-        for trans_type, count in stats['translation_types'].items():
-            type_breakdown.append(f"**{trans_type.title()}:** {count}")
-        
-        embed.add_field(
-            name="📝 Translation Types",
-            value="\n".join(type_breakdown),
-            inline=False
-        )
-    
-    # Achievements/Milestones
-    achievements = []
-    if stats['total_translations'] >= 100:
-        achievements.append("🏅 Century Club (100+ translations)")
-    if stats['total_translations'] >= 1000:
-        achievements.append("🏆 Translation Master (1000+ translations)")
-    if stats['total_characters'] >= 10000:
-        achievements.append("📚 Word Wizard (10k+ characters)")
-    if len(stats.get('languages_used', [])) >= 10:
-        achievements.append("🌍 Polyglot (10+ languages used)")
-    
-    if achievements:
-        embed.add_field(
-            name="🎖️ Achievements",
-            value="\n".join(achievements),
-            inline=False
-        )
     
     # Account Status
     status_text = "⭐ Premium Member" if is_premium else "🆓 Free User"
@@ -3070,8 +3025,24 @@ async def translation_stats(interaction: discord.Interaction):
     embed.add_field(
         name="👤 Account Status",
         value=status_text,
-        inline=False
+        inline=True
     )
+    
+    # Achievements/Milestones
+    achievements = []
+    if stats['total_translations'] >= 100:
+        achievements.append("🏅 Century Club (100+ translations)")
+    if stats['total_translations'] >= 1000:
+        achievements.append("🏆 Translation Master (1000+ translations)")
+    if stats['monthly_chars'] >= 10000:  # Changed from 'total_characters'
+        achievements.append("📚 Word Wizard (10k+ characters this month)")
+    
+    if achievements:
+        embed.add_field(
+            name="🎖️ Achievements",
+            value="\n".join(achievements),
+            inline=False
+        )
     
     # Add context footer
     if interaction.guild:
@@ -3080,6 +3051,7 @@ async def translation_stats(interaction: discord.Interaction):
         embed.set_footer(text="📱 User Mode Statistics")
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 # Update the Ko-fi webhook handler to work with database
 @app.route('/webhook/kofi', methods=['POST'])
