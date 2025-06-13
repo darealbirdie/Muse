@@ -295,6 +295,16 @@ class Database:
                         (value, guild_id)
                     )
             await db.commit()
+    # Add this method to your Database class (after the other methods)
+async def get_premium_users(self):
+    """Get list of premium user IDs"""
+    async with aiosqlite.connect(self.db_path) as db:
+        async with db.execute(
+            "SELECT user_id FROM users WHERE is_premium = TRUE"
+        ) as cursor:
+            results = await cursor.fetchall()
+            return [row[0] for row in results]
+
 
 # Global database instance
 db = Database()

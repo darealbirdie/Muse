@@ -30,6 +30,8 @@ import tempfile
 import threading
 import queue
 from database import db
+from feedback_db import feedback_db
+
 # Language name mapping
 languages = {
     'af': 'Afrikaans', 'sq': 'Albanian', 'am': 'Amharic', 'ar': 'Arabic',
@@ -3625,18 +3627,167 @@ async def help_command(interaction: discord.Interaction):
         embed.set_footer(text="User Mode: Perfect for DMs | Some features are server-only")
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
+@tree.command(name="feedback", description="Leave feedback for the bot (1-5 stars)")
+@app_commands.describe(
+    rating="Rate the bot from 1-5 stars",
+    message="Optional feedback message"
+)
+async def submit_feedback(
+    interaction: discord.Interaction,
+    rating: int,
+    message: str = None
+):
+    # Validate rating
+    if rating < 1 or rating > 5:
+        await interaction.response.send_message(
+            "❌ Rating must be between 1 and 5 stars!",
+            ephemeral=True
+        )
+        return
+    
+    try:
+        # Add feedback to database
+        await feedback_db.add_feedback(
+            user_id=interaction.user.id,
+            username=interaction.user.display_name,
+            rating=rating,
+            message=message
+        )
+        
+        # Create response
+        stars = "⭐" * rating
+        response = f"✅ Thank you for your feedback!\n{stars} **{rating}/5 stars**"
+        
+        if message:
+            response += f"\n💬 Message: \"{message}\""
+        
+        await interaction.response.send_message(response, ephemeral=True)
+        
+        # Send notification to a specific channel (optional)
+        # Replace FEEDBACK_CHANNEL_ID with your channel ID
+        FEEDBACK_CHANNEL_ID = 1234567890123456789  # Replace with your channel ID
+        feedback_channel = client.get_channel(FEEDBACK_CHANNEL_ID)
+        
+        if feedback_channel:
+            embed = discord.Embed(
+                title="📝 New Feedback Received!",
+                color=0x00ff00 if rating >= 4 else 0xff9900 if rating == 3 else 0xff0000
+            )
+            embed.add_field(name="User", value=interaction.user.display_name, inline=True)
+            embed.add_field(name="Rating", value=f"{stars} {rating}/5", inline=True)
+            embed.add_field(name="Server", value=interaction.guild.name if interaction.guild else "DM", inline=True)
+            
+            if message:
+                embed.add_field(name="Message", value=message, inline=False)
+            
+            await feedback_channel.send(embed=embed)
+        
+    except Exception as e:
+        await interaction.response.send_message(
+            f"❌ Error saving feedback: {str(e)}",
+            ephemeral=True
+        )
+
+@tree.command(name="reviews", description="View recent feedback and ratings")
+async def view_reviews(interaction: discord.Interaction):
+    try:
+        # Get statistics
+        stats = await feedback_db.get_stats()
+        
+        # Get recent feedback
+        recent_feedback = await feedback_db.get_all_feedback(limit=10)
+        
+        # Create embed
+        embed = discord.Embed(
+            title="📊 Bot Reviews & Feedback",
+            color=0x3498db
+        )
+        
+        # Add statistics
+        if stats["total"] > 0:
+            embed.add_field(
+                name="⭐ Overall Rating",
+                value=f"**{stats['avg_rating']}/5.0** stars\nFrom {stats['total']} reviews",
+                inline=True
+            )
+            
+            # Rating breakdown
+            rating_breakdown = (
+                f"5⭐: {stats['five_star']}\n"
+                f"4⭐: {stats['four_star']}\n"
+                f"3⭐: {stats['three_star']}\n"
+                f"2⭐: {stats['two_star']}\n"
+                f"1⭐: {stats['one_star']}"
+            )
+            
+            embed.add_field(
+                name="📈 Rating Breakdown",
+                value=rating_breakdown,
+                inline=True
+            )
+        else:
+            embed.add_field(
+                name="📝 No Reviews Yet",
+                value="Be the first to leave feedback with `/feedback`!",
+                inline=False
+            )
+        
+        # Add recent reviews
+        if recent_feedback:
+            recent_text = ""
+            for feedback in recent_feedback[:5]:  # Show top 5
+                stars = "⭐" * feedback["rating"]
+                date = feedback["created_at"][:10]  # Just the date
+                
+                if feedback["message"]:
+                    message_preview = feedback["message"][:50] + "..." if len(feedback["message"]) > 50 else feedback["message"]
+                    recent_text += f"{stars} **{feedback['username']}** ({date})\n*\"{message_preview}\"*\n\n"
+                else:
+                    recent_text += f"{stars} **{feedback['username']}** ({date})\n\n"
+            
+            embed.add_field(
+                name="💬 Recent Reviews",
+                value=recent_text[:1024],  # Discord field limit
+                inline=False
+            )
+        
+        embed.set_footer(text="Leave your own review with /feedback [rating] [message]")
+        
+        await interaction.response.send_message(embed=embed)
+        
+    except Exception as e:
+        await interaction.response.send_message(
+            f"❌ Error loading reviews: {str(e)}",
+            ephemeral=True
+        )
 @client.event
 async def on_ready():
     print("🚀 Bot is starting up...")
     
-    # Initialize database using your existing class
-    await db.init_db()
-    print("✅ Database initialized")
+    # Initialize feedback database
+    try:
+        await feedback_db.initialize()
+        print("✅ Feedback database initialized!")
+    except Exception as e:
+        print(f"❌ Feedback database error: {e}")
     
-    # Load premium users from database
-    premium_users = await get_premium_users_from_db()
-    tier_handler.premium_users.update(premium_users)
-    print(f"✅ Loaded {len(premium_users)} premium users")
+    # Initialize main database - use the correct method name
+    try:
+        await db.init_db()  # Changed from db.initialize() to db.init_db()
+        print("✅ Main database initialized!")
+    except Exception as e:
+        print(f"❌ Database initialization failed: {e}")
+    
+    # Load premium users - we'll create this method
+    try:
+        premium_users = await db.get_premium_users()
+        tier_handler.premium_users.update(premium_users)
+        print(f"✅ Loaded {len(premium_users)} premium users")
+    except Exception as e:
+        print(f"❌ Error loading premium users: {e}")
+        # Fallback to hardcoded premium user
+        tier_handler.premium_users.add(1192196672437096520)
+        print("✅ Loaded hardcoded premium users")
     
     try:
         synced = await tree.sync()
@@ -3678,8 +3829,4 @@ if __name__ == "__main__":
         ).start()
         client.run(TOKEN)
     except Exception as e:
-<<<<<<< HEAD
         print(f"Startup Status: {e}")
-=======
-        print(f"Startup Status: {e}")
->>>>>>> 8cb2224a06ea476519007e91777e55e915b74ae8
