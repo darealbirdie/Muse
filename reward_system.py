@@ -789,6 +789,31 @@ def has_enhanced_voice_access(user_id: int, reward_db_instance, tier_handler) ->
     return reward_db_instance.has_active_reward(user_id, 'beta_feature') and \
            any(r['id'] == 'enhanced_voice_beta' for r in reward_db_instance.get_active_rewards(user_id))
 
+# Add this method to your RewardDatabase class:
+
+def increment_stat(self, user_id: int, stat_name: str, amount: int = 1) -> bool:
+    """Increment a user statistic"""
+    try:
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            
+            # For now, we'll just update session count since that's what we have
+            if stat_name in ['text_translations', 'total_translations']:
+                cursor.execute('''
+                    UPDATE user_stats
+                    SET total_sessions = total_sessions + ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ?
+                ''', (amount, user_id))
+            
+            conn.commit()
+            return True
+            
+    except Exception as e:
+        logger.error(f"Error incrementing stat {stat_name}: {e}")
+        return False
+
+
 # Global reward database instance (to be imported by main bot file)
 reward_db = RewardDatabase()
 
