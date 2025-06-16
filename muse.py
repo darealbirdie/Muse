@@ -578,7 +578,7 @@ async def text_translate(
     await track_command_usage(interaction)
     user_id = interaction.user.id
     limits = get_effective_limits(user_id, tier_handler, reward_db)
-
+    
     # Convert language inputs to codes
     source_code = get_language_code(source_lang)
     target_code = get_language_code(target_lang)
@@ -606,12 +606,12 @@ async def text_translate(
             ephemeral=True
         )
         return
-
+    
     # Handle both guild and user contexts for User-Installable Apps
     if interaction.guild:
         guild_id = interaction.guild_id
         if guild_id not in translation_server.translators or user_id not in translation_server.translators[guild_id]:
-            await interaction.response.send_message("Please use /start first to initialize your translator! 🎯")
+            await interaction.response.send_message("Please use /start first to initialize your translator! 🎯", ephemeral=True)
             return
     # If no guild (DM/user context), skip the server check
         
@@ -632,12 +632,12 @@ async def text_translate(
             target_lang=target_code,
             translation_type="text"
         )
-
-        # ADD THIS TRACKING LINE:
+        
+        # Track translation for achievements
         achievement_db.track_translation(
-            user_id, 
-            source_code, 
-            target_code, 
+            user_id,
+            source_code,
+            target_code,
             user_id in tier_handler.premium_users
         )
         
@@ -645,6 +645,26 @@ async def text_translate(
         new_achievements = achievement_db.check_achievements(user_id)
         if new_achievements:
             await send_achievement_notification(client, user_id, new_achievements)
+        
+        # CALCULATE POINTS AWARDED
+        base_points = 1  # Base points for text translation
+        length_bonus = min(len(text) // 50, 5)  # 1 extra point per 50 characters, max 5 bonus
+        is_premium = user_id in tier_handler.premium_users
+        premium_multiplier = 2 if is_premium else 1
+        
+        points_awarded = (base_points + length_bonus) * premium_multiplier
+        
+        # Award points to user
+        points_success = False
+        try:
+            safe_db_operation(reward_db.add_points, user_id, points_awarded, "Text translation")
+            safe_db_operation(reward_db.increment_stat, user_id, 'text_translations')
+            safe_db_operation(reward_db.increment_stat, user_id, 'total_translations')
+            points_success = True
+            logger.info(f"Successfully awarded {points_awarded} points to user {user_id}")
+        except Exception as e:
+            logger.error(f"Error awarding points to user {user_id}: {e}")
+            points_success = False
         
         # Get proper language names and flags
         source_name = languages.get(source_code, source_code)
@@ -660,7 +680,7 @@ async def text_translate(
         # Create embed with appropriate fields based on hidden status
         embed = discord.Embed(
             title="Text Translation",
-            color=0x2ecc71 if user['is_premium'] else 0x3498db
+            color=0x2ecc71 if user.get('is_premium', False) else 0x3498db
         )
         
         if interaction.user.id in hidden_sessions:
@@ -684,24 +704,40 @@ async def text_translate(
                 inline=False
             )
         
+        # ALWAYS show points field regardless of hidden status
+        if points_awarded > 0:
+            points_display = f"+{points_awarded}"  
+            embed.add_field(
+                name="💎",
+                value=points_display,
+                inline=True
+            )
+               
         # Add context indicator and character count for free users
         if interaction.guild:
-            if user['is_premium']:
+            if user.get('is_premium', False):
                 embed.set_footer(text=f"Server: {interaction.guild.name} • Premium User")
             else:
                 embed.set_footer(text=f"Characters: {len(text)}/150 • Server: {interaction.guild.name} • /premium for unlimited")
         else:
-            if user['is_premium']:
+            if user.get('is_premium', False):
                 embed.set_footer(text="User Mode: DM Translation • Premium User")
             else:
                 embed.set_footer(text=f"Characters: {len(text)}/150 • User Mode: DM Translation • /premium for unlimited")
         
         await interaction.response.send_message(embed=embed)
+        
     except Exception as e:
         await interaction.response.send_message(
             f"❌ Translation failed: {str(e)}\n"
-            f"Please check your language codes (e.g., 'en' for English, 'es' for Spanish)"
+            f"Please check your language codes (e.g., 'en' for English, 'es' for Spanish)",
+            ephemeral=True
         )
+
+# Add autocomplete to the command
+text_translate.autocomplete('source_lang')(source_language_autocomplete)
+text_translate.autocomplete('target_lang')(language_autocomplete)
+
 
 # Add autocomplete to the command
 text_translate.autocomplete('source_lang')(source_language_autocomplete)
