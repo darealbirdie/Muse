@@ -1,4 +1,4 @@
-discord.py==2.3.2
+discord.py[voice]==2.3.2
 Flask==3.0.0
 deep-translator==1.11.4
 pyngrok==7.0.3
@@ -7,14 +7,8 @@ PyAudio==0.2.13
 python-dotenv==1.0.0
 paypalrestsdk==2.0.1
 stripe==7.11.0
-discord.py[voice]>=2.0.0
 PyNaCl
-simpleobsws-1.0.0
+langdetect==1.0.9
 websockets==11.0.3
-tkinter
-asyncio==3.4.3
-<<<<<<< HEAD
-langdetect==1.0.9
-=======
-langdetect==1.0.9
->>>>>>> 8cb2224a06ea476519007e91777e55e915b74ae8
+gTTS==2.4.0
+
