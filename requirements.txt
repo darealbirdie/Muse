@@ -3,7 +3,6 @@ Flask==3.0.0
 deep-translator==1.11.4
 pyngrok==7.0.3
 SpeechRecognition==3.10.1
-PyAudio==0.2.13
 python-dotenv==1.0.0
 paypalrestsdk==2.0.1
 stripe==7.11.0
@@ -11,4 +10,5 @@ PyNaCl
 langdetect==1.0.9
 websockets==11.0.3
 gTTS==2.4.0
+
 
