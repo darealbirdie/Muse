@@ -8,7 +8,6 @@ from pyngrok import ngrok
 import time
 import speech_recognition as sr
 import wave
-import pyaudio
 import asyncio
 import atexit
 from typing import Dict, Optional
@@ -331,46 +330,6 @@ class UserUsage:
         remaining = max(1800 - used_time, 0)  # 30 minutes minus usage
         return remaining
 usage_tracker = UserUsage()
-class UserSession:
-    def __init__(self, user_id):
-        self.user_id = user_id
-        limits = tier_handler.get_limits(user_id)
-        self.record_seconds = limits['voice_limit']
-        self.frames = []
-        self.active = True
-        self.stream = None
-        self.pyaudio = None
-        self.recognizer = sr.Recognizer()
-        self.chunk = 1024
-        self.format = pyaudio.paInt16
-        self.channels = 1
-        self.rate = 44100
-        self.record_seconds = 5
-
-    def _audio_callback(self, in_data, frame_count, time_info, status):
-        if self.active:
-            self.frames.append(in_data)
-        return (None, pyaudio.paContinue)
-
-    def start_stream(self):
-        self.pyaudio = pyaudio.PyAudio()
-        self.stream = self.pyaudio.open(
-            format=self.format,
-            channels=self.channels,
-            rate=self.rate,
-            input=True,
-            frames_per_buffer=self.chunk,
-            stream_callback=self._audio_callback
-        )
-        self.stream.start_stream()
-
-    def stop_stream(self):
-        if self.stream:
-            self.stream.stop_stream()
-            self.stream.close()
-        if self.pyaudio:
-            self.pyaudio.terminate()
-        self.active = False
 
 class TranslationServer:
     def __init__(self):
