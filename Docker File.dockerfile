@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 FROM python:3.9-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y \
@@ -22,4 +22,4 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 CMD ["python", "muse.py"]
->>>>>>> 8cb2224a06ea476519007e91777e55e915b74ae8
+
