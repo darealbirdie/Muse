@@ -2,7 +2,7 @@ discord.py[voice]==2.3.2
 Flask==3.0.0
 deep-translator==1.11.4
 pyngrok==7.0.3
-SpeechRecognition==3.8.1
+SpeechRecognition==3.10.1
 python-dotenv==1.0.0
 paypalrestsdk==2.0.0rc2
 stripe==7.11.0
