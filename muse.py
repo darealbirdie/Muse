@@ -3836,35 +3836,40 @@ def handle_kofi_donation():
         
         # Extract Discord ID from message
         try:
-            # Look for Discord ID (18-19 digits) in the message
             import re
             id_match = re.search(r'\b(\d{17,19})\b', message)
             if id_match:
                 user_id = int(id_match.group(1))
             else:
-                # Fallback: try to parse entire message as ID
                 user_id = int(message)
         except ValueError:
             logger.error(f"Invalid Discord ID in Ko-fi message: {message}")
             return jsonify({'status': 'error', 'message': 'Invalid Discord ID format'})
         
-        # Handle Subscriptions (Premium Access)
-        if donation_type == 'Subscription' or (donation_type == 'Donation' and amount >= 10.00):
-            tier_handler.premium_users.add(user_id)
-            safe_db_operation(reward_db.add_points, user_id, 100, "Premium subscription bonus")
-            logger.info(f"Premium access granted to user {user_id}")
+        # 🌟 PREMIUM ACCESS: Only Ko-fi Subscriptions of $1+
+        if donation_type == 'Subscription' and amount >= 1.00:
+            # Calculate premium days based on amount
+            if amount >= 12.00:  # Annual subscription
+                premium_days = 365
+            elif amount >= 6.00:  # 6-month subscription  
+                premium_days = 180
+            elif amount >= 3.00:  # 3-month subscription
+                premium_days = 90
+            else:  # Monthly subscription ($1+)
+                premium_days = 30
             
-            # Send premium confirmation
+            # Process premium in background
             asyncio.run_coroutine_threadsafe(
-                send_premium_notification(user_id, amount),
+                process_kofi_premium(user_id, premium_days, data),
                 client.loop
             )
             
-            return jsonify({'status': 'success', 'message': 'Premium access granted'})
+            logger.info(f"Premium subscription processed for user {user_id}: {premium_days} days")
+            return jsonify({'status': 'success', 'message': f'Premium subscription activated for {premium_days} days'})
         
-        # Handle One-Time Point Purchases
+        # 💎 POINTS ONLY: One-time donations (no premium access)
         elif donation_type == 'Donation' and amount >= 1.00:
-            # Point conversion rates
+            # Point conversion rates for one-time purchases
             point_packages = {
                 1.00: 50,    # $1 = 50 points
                 2.00: 110,   # $2 = 110 points (10% bonus)
@@ -3872,15 +3877,14 @@ def handle_kofi_donation():
                 10.00: 650,  # $10 = 650 points (30% bonus)
             }
             
-            # Find the best package for the amount
-            points_to_award = 0
+            # Calculate points
             if amount in point_packages:
                 points_to_award = point_packages[amount]
             else:
-                # Calculate points for custom amounts (base rate: $1 = 50 points)
-                points_to_award = int(amount * 50)
+                # Custom amount calculation
+                points_to_award = int(amount * 50)  # Base: $1 = 50 points
                 
-                # Add bonus for larger amounts
+                # Bonus for larger amounts
                 if amount >= 10:
                     points_to_award = int(points_to_award * 1.3)  # 30% bonus
                 elif amount >= 5:
@@ -3888,16 +3892,16 @@ def handle_kofi_donation():
                 elif amount >= 2:
                     points_to_award = int(points_to_award * 1.1)  # 10% bonus
             
-            # Award the points
-            safe_db_operation(reward_db.add_points, user_id, points_to_award, f"Ko-fi purchase (${amount})")
-            logger.info(f"Awarded {points_to_award} points to user {user_id} for ${amount} donation")
+            # Award points only (no premium)
+            safe_db_operation(reward_db.add_points, user_id, points_to_award, f"Ko-fi donation (${amount})")
             
-            # Send points confirmation
+            # Send points notification
             asyncio.run_coroutine_threadsafe(
-                send_points_notification(user_id, points_to_award, amount),
+                send_points_only_notification(user_id, points_to_award, amount),
                 client.loop
             )
             
+            logger.info(f"Awarded {points_to_award} points to user {user_id} for ${amount} donation (no premium)")
             return jsonify({'status': 'success', 'message': f'{points_to_award} points awarded'})
         
         else:
@@ -3907,80 +3911,7 @@ def handle_kofi_donation():
         logger.error(f"Ko-fi webhook error: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
 
-# Add these notification functions
-async def send_premium_notification(user_id: int, amount: float):
-    try:
-        user = await client.fetch_user(user_id)
-        if user:
-            embed = discord.Embed(
-                title="⭐ Premium Activated!",
-                description=f"Thank you for your ${amount:.2f} subscription!",
-                color=0x2ecc71
-            )
-            embed.add_field(
-                name="✨ Premium Features",
-                value="• Unlimited translations\n• Extended voice time\n• 100 bonus points",
-                inline=False
-            )
-            await user.send(embed=embed)
-    except Exception as e:
-        logger.error(f"Failed to send premium notification: {e}")
-
-async def send_points_notification(user_id: int, points: int, amount: float):
-    try:
-        user = await client.fetch_user(user_id)
-        if user:
-            embed = discord.Embed(
-                title="💎 Points Purchased!",
-                description=f"Thank you for your ${amount:.2f} purchase!",
-                color=0x3498db
-            )
-            embed.add_field(
-                name="💰 Points Awarded",
-                value=f"**{points:,} points** added to your account!",
-                inline=False
-            )
-            embed.add_field(
-                name="🎯 Use Your Points",
-                value="Use `/shop` to see what you can buy!",
-                inline=False
-            )
-            await user.send(embed=embed)
-    except Exception as e:
-        logger.error(f"Failed to send points notification: {e}")
-
-@app.route('/webhook/reward-purchase', methods=['POST'])
-def handle_reward_purchase():
-    """Handle reward purchases from external systems"""
-    try:
-        data = request.json
-        user_id = data.get('user_id')
-        reward_type = data.get('reward_type')
-        duration_hours = data.get('duration_hours', 24)
-        
-        if not user_id or not reward_type:
-            return jsonify({'status': 'error', 'message': 'Missing required fields'})
-        
-        # Grant the reward
-        success = safe_db_operation(
-            reward_db.grant_reward, 
-            user_id, 
-            reward_type, 
-            duration_hours
-        )
-        
-        if success:
-            logger.info(f"Reward {reward_type} granted to user {user_id} for {duration_hours}h")
-            return jsonify({'status': 'success'})
-        else:
-            return jsonify({'status': 'error', 'message': 'Failed to grant reward'})
-            
-    except Exception as e:
-        logger.error(f"Reward purchase webhook error: {e}")
-        return jsonify({'status': 'error', 'message': str(e)})
-
-
-# Add this new function
+# Keep your existing process_kofi_premium function as-is
 async def process_kofi_premium(user_id: int, days: int, kofi_data):
     """Process Ko-fi premium in background"""
     try:
@@ -3990,7 +3921,7 @@ async def process_kofi_premium(user_id: int, days: int, kofi_data):
         # Create user if doesn't exist
         await db.get_or_create_user(user_id, f"Ko-fi User {user_id}")
         
-        # Add premium to database (use the correct method name)
+        # Add premium to database
         await db.update_user_premium(user_id, True, expires_at)
         
         # Add to memory for immediate effect
@@ -4000,34 +3931,115 @@ async def process_kofi_premium(user_id: int, days: int, kofi_data):
         try:
             user = await client.fetch_user(user_id)
             embed = discord.Embed(
-                title="🌟 Premium Activated via Ko-fi!",
+                title="🌟 Premium Subscription Activated!",
                 description=(
-                    f"Thank you for your ${kofi_data['amount']} donation!\n\n"
+                    f"Thank you for your ${kofi_data['amount']} subscription!\n\n"
                     f"**Premium Duration:** {days} days\n"
                     f"**Expires:** {expires_at.strftime('%B %d, %Y')}\n\n"
                     f"✨ All premium features are now active!"
                 ),
-                color=0x29abe0  # Ko-fi blue
+                color=0x29abe0
+            )
+            embed.add_field(
+                name="⭐ Premium Features",
+                value="• Unlimited character translation\n• Extended voice translation\n• Priority support",
+                inline=False
             )
             await user.send(embed=embed)
-            print(f"✅ Notified user {user_id} about premium activation")
+            print(f"✅ Notified user {user_id} about premium subscription")
         except Exception as notify_error:
             print(f"⚠️ Couldn't notify user {user_id}: {notify_error}")
-            # Premium still granted, just couldn't send DM
         
         print(f"✅ Successfully granted {days} days premium to user {user_id}")
         
     except Exception as e:
         print(f"❌ Error processing Ko-fi premium for user {user_id}: {e}")
 
-@tree.command(name="buypoints", description="Purchase points with Ko-fi")
+# Add this new notification function for points-only purchases
+async def send_points_only_notification(user_id: int, points: int, amount: float):
+    try:
+        user = await client.fetch_user(user_id)
+        if user:
+            embed = discord.Embed(
+                title="💎 Points Purchased!",
+                description=f"Thank you for your ${amount:.2f} donation!",
+                color=0x3498db
+            )
+            embed.add_field(
+                name="💰 Points Awarded",
+                value=f"**{points:,} points** added to your account!",
+                inline=False
+            )
+            embed.add_field(
+                name="⭐ Want Premium Access?",
+                value="Set up a **$1/month subscription** on Ko-fi for unlimited features!",
+                inline=False
+            )
+            embed.add_field(
+                name="🎯 Use Your Points",
+                value="Use `/shop` to see what you can buy with points!",
+                inline=False
+            )
+            await user.send(embed=embed)
+    except Exception as e:
+        logger.error(f"Failed to send points notification: {e}")
+
+@tree.command(name="premium", description="Get premium access through Ko-fi subscription")
+async def premium(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    is_premium = user_id in tier_handler.premium_users
+    
+    if is_premium:
+        embed = discord.Embed(
+            title="⭐ Premium Active!",
+            description="Your premium subscription is active!",
+            color=0x2ecc71
+        )
+        embed.add_field(
+            name="✨ Active Features",
+            value="• Unlimited character translation\n• Extended voice translation\n• Priority support",
+            inline=False
+        )
+    else:
+        embed = discord.Embed(
+            title="🌟 Get Premium Access - $1/month Subscription",
+            description=(
+                "**Premium Features (Subscription Only)**\n"
+                "• Unlimited character translation\n"
+                "• Extended voice translation time\n"
+                "• Priority support\n\n"
+                "**How to Subscribe:**\n"
+                f"1. Click the Ko-fi button below\n"
+                f"2. **Set up monthly subscription** for $1+\n"
+                f"3. Include your Discord ID: `{user_id}`\n"
+                f"4. Premium activates instantly!"
+            ),
+            color=0x29abe0
+        )
+        
+        embed.add_field(
+            name="💡 Important",
+            value="**Only subscriptions grant premium access**\nOne-time donations only give points!",
+            inline=False
+        )
+    
+    view = discord.ui.View()
+    view.add_item(discord.ui.Button(
+        label="⭐ Subscribe on Ko-fi",
+        url="https://ko-fi.com/yourusername",  # Replace with your Ko-fi URL
+        style=discord.ButtonStyle.link
+    ))
+    
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+@tree.command(name="buypoints", description="Purchase points with one-time Ko-fi donation")
 async def buy_points(interaction: discord.Interaction):
     user_id = interaction.user.id
     
     embed = discord.Embed(
-        title="💎 Buy Points with Ko-fi",
-        description="Purchase points to unlock premium features and rewards!",
-        color=0x29abe0
+        title="💎 Buy Points (One-Time Purchase)",
+        description="Purchase points for special features and rewards!",
+        color=0x3498db
     )
     
     embed.add_field(
@@ -4036,80 +4048,34 @@ async def buy_points(interaction: discord.Interaction):
             "💵 **$1** = 50 points\n"
             "💵 **$2** = 110 points *(10% bonus)*\n"
             "💵 **$5** = 300 points *(20% bonus)*\n"
-            "💵 **$10** = 650 points *(30% bonus)*\n"
-            "💵 **Custom amounts** = 50 points per $1"
+            "💵 **$10** = 650 points *(30% bonus)*"
         ),
         inline=False
     )
     
     embed.add_field(
-        name="🔥 Premium Subscription",
-        value="💵 **$10+** = Premium access + bonus points",
+        name="⚠️ Points vs Premium",
+        value=(
+            "**Points:** One-time purchases, buy specific features\n"
+            "**Premium:** $1/month subscription, unlimited everything"
+        ),
         inline=False
     )
     
     embed.add_field(
-        name="📝 How to Purchase",
+        name="📝 How to Purchase Points",
         value=(
             f"1. Click the Ko-fi button below\n"
-            f"2. **Include your Discord ID:** `{user_id}`\n"
-            f"3. Choose your amount and donate\n"
-            f"4. Points are added instantly!"
+            f"2. Make a **one-time donation** (not subscription)\n"
+            f"3. Include your Discord ID: `{user_id}`\n"
+            f"4. Points added instantly!"
         ),
         inline=False
     )
     
-    embed.add_field(
-        name="💡 Pro Tip",
-        value=f"Copy this ID: `{user_id}`",
-        inline=False
-    )
-    
     view = discord.ui.View()
     view.add_item(discord.ui.Button(
-        label="☕ Buy Points on Ko-fi",
-        url="https://ko-fi.com/yourusername",  # Replace with your Ko-fi URL
-        style=discord.ButtonStyle.link
-    ))
-    
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-@tree.command(name="premium", description="Get premium access or buy points")
-async def premium(interaction: discord.Interaction):
-    user_id = interaction.user.id
-    is_premium = user_id in tier_handler.premium_users
-    
-    if is_premium:
-        embed = discord.Embed(
-            title="⭐ Premium Active!",
-            description="You already have premium access!",
-            color=0x2ecc71
-        )
-        embed.add_field(
-            name="💎 Want More Points?",
-            value="Use `/buypoints` to purchase additional points!",
-            inline=False
-        )
-    else:
-        embed = discord.Embed(
-            title="⭐ Get Premium Access",
-            description="Choose your option:",
-            color=0x29abe0
-        )
-        embed.add_field(
-            name="🔥 Premium Subscription",
-            value="$10+ = Unlimited features + bonus points",
-            inline=False
-        )
-        embed.add_field(
-            name="💎 Just Buy Points",
-            value="$1+ = Points only (use `/buypoints`)",
-            inline=False
-        )
-    
-    view = discord.ui.View()
-    view.add_item(discord.ui.Button(
-        label="⭐ Get Premium",
+        label="💎 Buy Points on Ko-fi",
         url="https://ko-fi.com/yourusername",
         style=discord.ButtonStyle.link
     ))
