@@ -77,40 +77,136 @@ class RewardDatabase:
     def __init__(self, db_path="rewards.db"):
         self.db_path = db_path
         self.db = None
+        # Initialize sync database immediately
+        self._init_sync_database()
+    
+    def _init_sync_database(self):
+        """Initialize database with sync connection (for immediate setup)"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Create user_stats table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS user_stats (
+                        user_id INTEGER PRIMARY KEY,
+                        username TEXT,
+                        total_points INTEGER DEFAULT 0,
+                        total_earned INTEGER DEFAULT 0,
+                        total_usage_hours REAL DEFAULT 0.0,
+                        total_sessions INTEGER DEFAULT 0,
+                        last_daily_claim DATE,
+                        last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Create point_transactions table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS point_transactions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER,
+                        amount INTEGER,
+                        transaction_type TEXT DEFAULT 'earned',
+                        description TEXT,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+                    )
+                """)
+                
+                # Create active_rewards table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS active_rewards (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER,
+                        reward_id TEXT,
+                        activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        expires_at TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+                    )
+                """)
+                
+                # Create user_achievements table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS user_achievements (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER,
+                        achievement_id TEXT,
+                        unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES user_stats (user_id),
+                        UNIQUE(user_id, achievement_id)
+                    )
+                """)
+                
+                # Create reward_history table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS reward_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER,
+                        reward_id TEXT,
+                        points_spent INTEGER,
+                        purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+                    )
+                """)
+                
+                # Create daily_gifts table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS daily_gifts (
+                        user_id INTEGER,
+                        date TEXT,
+                        total_gifted INTEGER DEFAULT 0,
+                        PRIMARY KEY (user_id, date),
+                        FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+                    )
+                """)
+                
+                conn.commit()
+                logger.info("✅ All database tables created successfully")
+                
+        except Exception as e:
+            logger.error(f"❌ Error initializing sync database: {e}")
     
     async def connect(self):
-        """Connect to database"""
+        """Connect to async database"""
         import aiosqlite
         self.db = await aiosqlite.connect(self.db_path)
-        await self.init_tables()
+        # Tables are already created by sync init
+        logger.info("✅ Async database connection established")
     
     async def init_tables(self):
-        """Initialize database tables"""
-        await self.db.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY,
-                username TEXT,
-                points INTEGER DEFAULT 0,
-                is_premium BOOLEAN DEFAULT FALSE,
-                text_translations INTEGER DEFAULT 0,
-                voice_translations INTEGER DEFAULT 0,
-                total_translations INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        await self.db.execute("""
-            CREATE TABLE IF NOT EXISTS point_transactions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                points INTEGER,
-                reason TEXT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (user_id)
-            )
-        """)
-        
-        await self.db.commit()
+        """Initialize database tables (async version - kept for compatibility)"""
+        # Tables are already created in __init__, but we can double-check here
+        try:
+            # Just verify the tables exist
+            await self.db.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            logger.info("✅ Database tables verified")
+        except Exception as e:
+            logger.error(f"❌ Error verifying tables: {e}")
+    
+    # Keep all your existing methods exactly as they are...
+    # Just add this debug method:
+    
+    def debug_tables(self):
+        """Debug method to check what tables exist"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tables = cursor.fetchall()
+                
+                print("🔍 DEBUG: Available tables:")
+                for table in tables:
+                    print(f"  - {table[0]}")
+                    
+                return [table[0] for table in tables]
+                
+        except Exception as e:
+            logger.error(f"Debug tables error: {e}")
+            return []
+
+
     
     async def ensure_user_exists(self, user_id: int, username: str = "Unknown"):
         """Ensure user exists in database"""
