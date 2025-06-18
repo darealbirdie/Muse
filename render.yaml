@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: muse-translator
-    env: docker
-    dockerfilePath: ./Dockerfile
-    plan: free
-    envVars:
-      - key: PORT
-        value: 5000
