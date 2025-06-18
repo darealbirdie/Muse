@@ -103,32 +103,46 @@ class Database:
             await db.commit()
             logger.info("Database initialized successfully")
     
-    # User management methods
-    async def get_or_create_user(self, user_id: int, username: str = None):
-        """Get user or create if doesn't exist"""
-        async with aiosqlite.connect(self.db_path) as db:
-            # Try to get existing user
-            async with db.execute(
-                "SELECT * FROM users WHERE user_id = ?", (user_id,)
-            ) as cursor:
-                user = await cursor.fetchone()
+async def get_or_create_user(self, user_id: int, username: str = None):
+    """Get user or create if doesn't exist"""
+    async with aiosqlite.connect(self.db_path) as db:
+        # Try to get existing user
+        cursor = await db.execute(
+            "SELECT user_id, username, is_premium, premium_expires, created_at, last_active, total_translations, preferred_source_lang, preferred_target_lang FROM users WHERE user_id = ?", 
+            (user_id,)
+        )
+        user = await cursor.fetchone()
+        await cursor.close()
+        
+        if user:
+            # Update last active and username if provided
+            await db.execute(
+                "UPDATE users SET last_active = ?, username = COALESCE(?, username) WHERE user_id = ?",
+                (datetime.now(), username, user_id)
+            )
+            await db.commit()
             
-            if user:
-                # Update last active and username if provided
-                await db.execute(
-                    "UPDATE users SET last_active = ?, username = COALESCE(?, username) WHERE user_id = ?",
-                    (datetime.now(), username, user_id)
-                )
-                await db.commit()
-                return dict(zip([col[0] for col in cursor.description], user))
-            else:
-                # Create new user
-                await db.execute(
-                    "INSERT INTO users (user_id, username) VALUES (?, ?)",
-                    (user_id, username)
-                )
-                await db.commit()
-                return await self.get_or_create_user(user_id, username)
+            # Return user data as dict
+            return {
+                "user_id": user[0],
+                "username": user[1],
+                "is_premium": user[2],
+                "premium_expires": user[3],
+                "created_at": user[4],
+                "last_active": user[5],
+                "total_translations": user[6],
+                "preferred_source_lang": user[7],
+                "preferred_target_lang": user[8]
+            }
+        else:
+            # Create new user
+            await db.execute(
+                "INSERT INTO users (user_id, username) VALUES (?, ?)",
+                (user_id, username)
+            )
+            await db.commit()
+            return await self.get_or_create_user(user_id, username)
+
     
     async def update_user_premium(self, user_id: int, is_premium: bool, expires_at: datetime = None):
         """Update user premium status"""
