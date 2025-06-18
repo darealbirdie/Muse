@@ -14,7 +14,7 @@ from typing import Dict, Optional
 from dotenv import load_dotenv
 import os
 from os import system
-import paypalrestsdk
+from paypalrestsdk import Payment
 import stripe
 from datetime import datetime, timedelta
 from langdetect import detect  
