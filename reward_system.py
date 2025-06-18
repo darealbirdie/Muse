@@ -74,91 +74,92 @@ RANK_BADGES = {
 }
 
 class RewardDatabase:
-    def __init__(self, db_path: str = "muse_rewards.db"):
+    def __init__(self, db_path="rewards.db"):
         self.db_path = db_path
-        self.init_database()
+        self.db = None
     
-    def init_database(self):
-        """Initialize all database tables"""
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                
-                # User stats table
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS user_stats (
-                        user_id INTEGER PRIMARY KEY,
-                        username TEXT,
-                        total_points INTEGER DEFAULT 0,
-                        total_earned INTEGER DEFAULT 0,
-                        total_usage_hours REAL DEFAULT 0.0,
-                        total_sessions INTEGER DEFAULT 0,
-                        last_daily_claim TEXT,
-                        last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                # Active rewards table
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS active_rewards (
-                        user_id INTEGER,
-                        reward_id TEXT,
-                        activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        expires_at TIMESTAMP,
-                        PRIMARY KEY (user_id, reward_id)
-                    )
-                ''')
-                
-                # Reward purchase history
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS reward_history (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER,
-                        reward_id TEXT,
-                        points_spent INTEGER,
-                        purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                # Point transactions table
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS point_transactions (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER,
-                        amount INTEGER,
-                        transaction_type TEXT,
-                        description TEXT,
-                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                # Daily gift tracking
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS daily_gifts (
-                        user_id INTEGER,
-                        date TEXT,
-                        total_gifted INTEGER DEFAULT 0,
-                        PRIMARY KEY (user_id, date)
-                    )
-                ''')
-                
-                # User achievements
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS user_achievements (
-                        user_id INTEGER,
-                        achievement_id TEXT,
-                        unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        PRIMARY KEY (user_id, achievement_id)
-                    )
-                ''')
-                
-                conn.commit()
-                logger.info("✅ Reward database tables initialized")
-                
-        except Exception as e:
-            logger.error(f"❌ Reward database initialization failed: {e}")
+    async def connect(self):
+        """Connect to database"""
+        import aiosqlite
+        self.db = await aiosqlite.connect(self.db_path)
+        await self.init_tables()
+    
+    async def init_tables(self):
+        """Initialize database tables"""
+        await self.db.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                points INTEGER DEFAULT 0,
+                is_premium BOOLEAN DEFAULT FALSE,
+                text_translations INTEGER DEFAULT 0,
+                voice_translations INTEGER DEFAULT 0,
+                total_translations INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        await self.db.execute("""
+            CREATE TABLE IF NOT EXISTS point_transactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                points INTEGER,
+                reason TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (user_id)
+            )
+        """)
+        
+        await self.db.commit()
+    
+    async def ensure_user_exists(self, user_id: int, username: str = "Unknown"):
+        """Ensure user exists in database"""
+        await self.db.execute(
+            "INSERT OR IGNORE INTO users (user_id, username) VALUES (?, ?)",
+            (user_id, username)
+        )
+        await self.db.commit()
+    
+    async def add_points(self, user_id: int, points: int, reason: str = ""):
+        """Add points to user"""
+        await self.ensure_user_exists(user_id)
+        
+        await self.db.execute(
+            "UPDATE users SET points = points + ? WHERE user_id = ?",
+            (points, user_id)
+        )
+        
+        await self.db.execute(
+            "INSERT INTO point_transactions (user_id, points, reason) VALUES (?, ?, ?)",
+            (user_id, points, reason)
+        )
+        
+        await self.db.commit()
+        return True
+    
+    async def increment_stat(self, user_id: int, stat_name: str, amount: int = 1):
+        """Increment user statistic"""
+        await self.ensure_user_exists(user_id)
+        
+        await self.db.execute(
+            f"UPDATE users SET {stat_name} = COALESCE({stat_name}, 0) + ? WHERE user_id = ?",
+            (amount, user_id)
+        )
+        await self.db.commit()
+        return True
+    
+    async def get_user(self, user_id: int):
+        """Get user data"""
+        cursor = await self.db.execute(
+            "SELECT * FROM users WHERE user_id = ?",
+            (user_id,)
+        )
+        result = await cursor.fetchone()
+        
+        if result:
+            return dict(result)
+        return None
+
     
     def get_or_create_user(self, user_id: int, username: str) -> Dict:
         """Get user data or create new user"""
