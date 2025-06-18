@@ -142,7 +142,6 @@ async def source_language_autocomplete(
             matches.append(app_commands.Choice(name=f"{name} ({code})", value=code))
     
     return matches[:25]
-# Update the TierHandler class in your main file
 class TierHandler:
     def __init__(self):
         self.premium_users = set()
@@ -157,37 +156,85 @@ class TierHandler:
             }
         }
     
-    async def get_limits(self, user_id: int):
-        """Get user limits using your existing database"""
-        user = await db.get_or_create_user(user_id)
-        return self.tiers['premium'] if user['is_premium'] else self.tiers['free']
-        return get_enhanced_user_limits(user_id, base_limits, is_premium, reward_db)
+    def get_limits(self, user_id: int):
+        """Get user limits (synchronous version for immediate use)"""
+        return self.tiers['premium'] if user_id in self.premium_users else self.tiers['free']
+    
+    async def get_limits_async(self, user_id: int):
+        """Get user limits using database (async version)"""
+        try:
+            user = await db.get_or_create_user(user_id)
+            if user and user.get('is_premium', False):
+                return self.tiers['premium']
+            else:
+                return self.tiers['free']
+        except Exception as e:
+            logger.error(f"Error getting async limits for {user_id}: {e}")
+            # Fallback to memory-based check
+            return self.get_limits(user_id)
+    
     async def check_usage_limits(self, user_id: int, text_chars: int = 0, voice_seconds: int = 0):
-        """Check if user can perform action within limits using your database"""
-        user = await db.get_or_create_user(user_id)
-        if user['is_premium']:
-            return True, "Premium user - unlimited"
-        
-        limits = self.tiers['free']
-        
-        # Check text limit (per translation, not daily)
-        if text_chars > limits['text_limit']:
-            return False, f"Text too long! Free tier limit: {limits['text_limit']} characters per translation"
-        
-        # Check voice limit (daily) using your database structure
-        if voice_seconds > 0:
-            daily_usage = await db.get_daily_usage(user_id)
-            if (daily_usage['voice_seconds'] + voice_seconds) > limits['voice_limit']:
-                remaining_minutes = max(0, (limits['voice_limit'] - daily_usage['voice_seconds']) // 60)
-                return False, f"Daily voice limit exceeded! You have {remaining_minutes} minutes remaining today"
-    # NEW: Method to check if user has temporary premium from rewards
+        """Check if user can perform action within limits"""
+        try:
+            # First check memory-based premium status
+            if user_id in self.premium_users:
+                return True, "Premium user - unlimited"
+            
+            # Try to get user from database
+            try:
+                user = await db.get_or_create_user(user_id)
+                if user and user.get('is_premium', False):
+                    # Add to memory for faster future checks
+                    self.premium_users.add(user_id)
+                    return True, "Premium user - unlimited"
+            except Exception as db_error:
+                logger.error(f"Database error in usage check: {db_error}")
+                # Continue with free tier checks
+            
+            # Free tier limits
+            limits = self.tiers['free']
+            
+            # Check text limit (per translation, not daily)
+            if text_chars > limits['text_limit']:
+                return False, f"Text too long! Free tier limit: {limits['text_limit']} characters per translation"
+            
+            # Check voice limit (daily) using database
+            if voice_seconds > 0:
+                try:
+                    daily_usage = await db.get_daily_usage(user_id)
+                    if daily_usage and (daily_usage.get('voice_seconds', 0) + voice_seconds) > limits['voice_limit']:
+                        remaining_minutes = max(0, (limits['voice_limit'] - daily_usage.get('voice_seconds', 0)) // 60)
+                        return False, f"Daily voice limit exceeded! You have {remaining_minutes} minutes remaining today"
+                except Exception as voice_error:
+                    logger.error(f"Error checking voice usage: {voice_error}")
+                    # Allow voice on database error (don't block user)
+                    pass
+            
+            # Check for temporary premium from rewards
+            try:
+                if self.has_temp_premium(user_id, reward_db):
+                    return True, "Temporary premium active"
+            except Exception as temp_error:
+                logger.error(f"Error checking temp premium: {temp_error}")
+            
+            return True, "Within limits"
+            
+        except Exception as e:
+            logger.error(f"Error in check_usage_limits for {user_id}: {e}")
+            # On any error, allow the action (don't block users due to bugs)
+            return True, "Limits check bypassed due to error"
+    
     def has_temp_premium(self, user_id: int, reward_db):
-        return reward_db.has_active_reward(user_id, 'temp_premium')
-        
-        return True, "Within limits"
+        """Check if user has temporary premium from rewards"""
+        try:
+            return reward_db.has_active_reward(user_id, 'temp_premium')
+        except Exception as e:
+            logger.error(f"Error checking temp premium: {e}")
+            return False
 
 # Update tier_handler instance
 tier_handler = TierHandler()
+
 
 # Load environment variables
 load_dotenv()
@@ -534,86 +581,127 @@ async def text_translate(
     source_lang: str,
     target_lang: str
 ):
-    await track_command_usage(interaction)
-    user_id = interaction.user.id
-    limits = get_effective_limits(user_id, tier_handler, reward_db)
-    
-    # Convert language inputs to codes
-    source_code = get_language_code(source_lang)
-    target_code = get_language_code(target_lang)
-    
-    # Validate language codes
-    if not source_code:
-        await interaction.response.send_message(
-            f"❌ Invalid source language: '{source_lang}'\nUse /list to see available languages.",
-            ephemeral=True
-        )
-        return
-        
-    if not target_code:
-        await interaction.response.send_message(
-            f"❌ Invalid target language: '{target_lang}'\nUse /list to see available languages.",
-            ephemeral=True
-        )
-        return
-    
-    # Check usage limits
-    can_translate, limit_message = await tier_handler.check_usage_limits(user_id, text_chars=len(text))
-    if not can_translate:
-        await interaction.response.send_message(
-            f"🔒 {limit_message}\n💡 Use `/premium` to get unlimited translation!",
-            ephemeral=True
-        )
-        return
-    
-    # Handle both guild and user contexts for User-Installable Apps
-    if interaction.guild:
-        guild_id = interaction.guild_id
-        if guild_id not in translation_server.translators or user_id not in translation_server.translators[guild_id]:
-            await interaction.response.send_message("Please use /start first to initialize your translator! 🎯", ephemeral=True)
-            return
-    # If no guild (DM/user context), skip the server check
-        
     try:
-        translator = GoogleTranslator(source=source_code, target=target_code)
-        translated = translator.translate(text)
+        # Track command usage safely
+        try:
+            await track_command_usage(interaction)
+        except Exception as e:
+            logger.error(f"Failed to track command usage: {e}")
         
-        # Track usage in database
-        await db.track_usage(user_id, text_chars=len(text))
+        user_id = interaction.user.id
+        username = interaction.user.display_name
         
-        # Save translation to history
-        await db.save_translation(
-            user_id=user_id,
-            guild_id=interaction.guild_id,
-            original_text=text,
-            translated_text=translated,
-            source_lang=source_code,
-            target_lang=target_code,
-            translation_type="text"
-        )
+        # Convert language inputs to codes
+        source_code = get_language_code(source_lang)
+        target_code = get_language_code(target_lang)
         
-        # Track translation for achievements
-        achievement_db.track_translation(
-            user_id,
-            source_code,
-            target_code,
-            user_id in tier_handler.premium_users
-        )
+        # Validate language codes
+        if not source_code:
+            await interaction.response.send_message(
+                f"❌ Invalid source language: '{source_lang}'\nUse /list to see available languages.",
+                ephemeral=True
+            )
+            return
+            
+        if not target_code:
+            await interaction.response.send_message(
+                f"❌ Invalid target language: '{target_lang}'\nUse /list to see available languages.",
+                ephemeral=True
+            )
+            return
         
-        # Check for new achievements and notify
-        new_achievements = achievement_db.check_achievements(user_id)
-        if new_achievements:
-            await send_achievement_notification(client, user_id, new_achievements)
-        
-        # CALCULATE POINTS AWARDED
-        base_points = 1  # Base points for text translation
-        length_bonus = min(len(text) // 50, 5)  # 1 extra point per 50 characters, max 5 bonus
+        # Check if user is premium (memory first, then database)
         is_premium = user_id in tier_handler.premium_users
-        premium_multiplier = 2 if is_premium else 1
+        if not is_premium:
+            try:
+                user_data = await db.get_or_create_user(user_id, username)
+                if user_data and user_data.get('is_premium', False):
+                    is_premium = True
+                    tier_handler.premium_users.add(user_id)  # Cache for future
+            except Exception as e:
+                logger.error(f"Failed to check premium status from database: {e}")
         
+        # Get limits based on premium status
+        if is_premium:
+            text_limit = float('inf')
+        else:
+            text_limit = 150  # Free tier limit
+        
+        # Check text length
+        if len(text) > text_limit:
+            await interaction.response.send_message(
+                f"🔒 Text too long! Free tier limit: {text_limit} characters\n"
+                f"💡 Use `/premium` to get unlimited translation!",
+                ephemeral=True
+            )
+            return
+        
+        # Handle guild context check
+        if interaction.guild:
+            guild_id = interaction.guild_id
+            if (guild_id not in translation_server.translators or 
+                user_id not in translation_server.translators[guild_id]):
+                await interaction.response.send_message(
+                    "Please use /start first to initialize your translator! 🎯", 
+                    ephemeral=True
+                )
+                return
+        
+        # Perform translation
+        try:
+            translator = GoogleTranslator(source=source_code, target=target_code)
+            translated = translator.translate(text)
+        except Exception as e:
+            await interaction.response.send_message(
+                f"❌ Translation failed: {str(e)}\n"
+                f"Please check your language codes and try again.",
+                ephemeral=True
+            )
+            return
+        
+        # Database operations (non-blocking - don't fail if these fail)
+        try:
+            await db.track_usage(user_id, text_chars=len(text))
+        except Exception as e:
+            logger.error(f"Failed to track usage: {e}")
+        
+        try:
+            await db.save_translation(
+                user_id=user_id,
+                guild_id=interaction.guild_id,
+                original_text=text,
+                translated_text=translated,
+                source_lang=source_code,
+                target_lang=target_code,
+                translation_type="text"
+            )
+        except Exception as e:
+            logger.error(f"Failed to save translation: {e}")
+        
+        # Achievement tracking (non-blocking)
+        try:
+            achievement_db.track_translation(
+                user_id,
+                source_code,
+                target_code,
+                is_premium
+            )
+            
+            new_achievements = achievement_db.check_achievements(user_id)
+            if new_achievements:
+                asyncio.create_task(
+                    send_achievement_notification(client, user_id, new_achievements)
+                )
+        except Exception as e:
+            logger.error(f"Failed to track achievements: {e}")
+        
+        # Calculate points awarded
+        base_points = 1
+        length_bonus = min(len(text) // 50, 5)  # 1 extra point per 50 chars, max 5
+        premium_multiplier = 2 if is_premium else 1
         points_awarded = (base_points + length_bonus) * premium_multiplier
         
-        # Award points to user
+        # Award points (non-blocking)
         points_success = False
         try:
             safe_db_operation(reward_db.add_points, user_id, points_awarded, "Text translation")
@@ -623,84 +711,116 @@ async def text_translate(
             logger.info(f"Successfully awarded {points_awarded} points to user {user_id}")
         except Exception as e:
             logger.error(f"Error awarding points to user {user_id}: {e}")
-            points_success = False
         
-        # Get proper language names and flags
+        # Get language display info
         source_name = languages.get(source_code, source_code)
         target_name = languages.get(target_code, target_code)
         source_flag = flag_mapping.get(source_code, '🌐')
         target_flag = flag_mapping.get(target_code, '🌐')
         
-        username = interaction.user.display_name
-        
-        # Get user for premium status
-        user = await db.get_or_create_user(user_id, username)
-        
-        # Create embed with appropriate fields based on hidden status
+        # Create embed
         embed = discord.Embed(
             title="Text Translation",
-            color=0x2ecc71 if user.get('is_premium', False) else 0x3498db
+            color=0x2ecc71 if is_premium else 0x3498db
         )
         
-        if interaction.user.id in hidden_sessions:
+        # Add translation fields based on hidden status
+        if user_id in hidden_sessions:
             # Only show translation in hidden mode
             embed.add_field(
                 name=f"{target_flag} Translation ({target_name})",
-                value=translated,
+                value=translated[:1024],  # Discord field limit
                 inline=False
             )
         else:
             # Show both original and translation
             embed.add_field(
                 name=f"{source_flag} Original ({source_name})",
-                value=text,
+                value=text[:1024],  # Discord field limit
                 inline=False
             )
             
             embed.add_field(
                 name=f"{target_flag} Translation ({target_name})",
-                value=translated,
+                value=translated[:1024],  # Discord field limit
                 inline=False
             )
         
-        # ALWAYS show points field regardless of hidden status
-        if points_awarded > 0:
-            points_display = f"+{points_awarded}"  
-            embed.add_field(
-                name="💎",
-                value=points_display,
-                inline=True
-            )
-               
-        # Add context indicator and character count for free users
+        
+        # Add points field if successfully awarded
+        # Add points field with debugging
+        # Add points field with debugging
+        if points_success and points_awarded > 0:
+            try:
+                print(f"🔍 DEBUG: About to display points")
+                print(f"🔍 points_awarded type: {type(points_awarded)}")
+                print(f"🔍 points_awarded value: {points_awarded}")
+                print(f"🔍 Current embed field count: {len(embed.fields)}")
+        
+        # Convert to safe string
+                points_str = str(int(points_awarded))
+                print(f"🔍 points_str: {points_str}")
+        
+        # Try to add field
+                embed.add_field(
+                    name="💎",
+                    value=f"+{points_str}",
+                    inline=True
+                )
+                print(f"✅ Successfully added points field")
+        
+            except Exception as e:
+                print(f"❌ Points display error: {e}")
+                print(f"❌ Error type: {type(e)}")
+                # Don't let points display break the whole command
+                pass
+
+
+        
+        # Add footer with context info
         if interaction.guild:
-            if user.get('is_premium', False):
+            if is_premium:
                 embed.set_footer(text=f"Server: {interaction.guild.name} • Premium User")
             else:
-                embed.set_footer(text=f"Characters: {len(text)}/150 • Server: {interaction.guild.name} • /premium for unlimited")
+                embed.set_footer(
+                    text=f"Characters: {len(text)}/{text_limit} • Server: {interaction.guild.name} • /premium for unlimited"
+                )
         else:
-            if user.get('is_premium', False):
+            if is_premium:
                 embed.set_footer(text="User Mode: DM Translation • Premium User")
             else:
-                embed.set_footer(text=f"Characters: {len(text)}/150 • User Mode: DM Translation • /premium for unlimited")
+                embed.set_footer(
+                    text=f"Characters: {len(text)}/{text_limit} • User Mode: DM Translation • /premium for unlimited"
+                )
         
+        # Send the response
         await interaction.response.send_message(embed=embed)
         
     except Exception as e:
-        await interaction.response.send_message(
-            f"❌ Translation failed: {str(e)}\n"
-            f"Please check your language codes (e.g., 'en' for English, 'es' for Spanish)",
-            ephemeral=True
-        )
+        logger.error(f"Unexpected error in text_translate: {e}")
+        
+        # Send error response if we haven't responded yet
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                f"❌ An unexpected error occurred. Please try again.\n"
+                f"If the problem persists, contact support.",
+                ephemeral=True
+            )
+        else:
+            # If we already responded, send a followup
+            try:
+                await interaction.followup.send(
+                    f"❌ An error occurred during processing: {str(e)}",
+                    ephemeral=True
+                )
+            except:
+                pass  # Can't send followup either, just log
 
 # Add autocomplete to the command
 text_translate.autocomplete('source_lang')(source_language_autocomplete)
 text_translate.autocomplete('target_lang')(language_autocomplete)
 
 
-# Add autocomplete to the command
-text_translate.autocomplete('source_lang')(source_language_autocomplete)
-text_translate.autocomplete('target_lang')(language_autocomplete)
 
 @tree.command(name="voice", description="Translate text and convert to speech")
 @app_commands.allowed_installs(guilds=True, users=True)
