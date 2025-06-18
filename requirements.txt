@@ -4,7 +4,7 @@ deep-translator==1.11.4
 pyngrok==7.0.3
 SpeechRecognition==3.10.1
 python-dotenv==1.0.0
-paypalrestsdk==2.0.1
+paypalrestsdk==2.0.0rc2
 stripe==7.11.0
 PyNaCl
 langdetect==1.0.9
