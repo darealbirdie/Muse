@@ -175,6 +175,12 @@ class RewardDatabase:
         # Tables are already created by sync init
         logger.info("✅ Async database connection established")
     
+    async def initialize_database(self):
+        """Initialize database (alias for init_tables for compatibility)"""
+        await self.init_tables()
+        logger.info("✅ Database initialized via initialize_database method")
+
+
     async def init_tables(self):
         """Initialize database tables (async version - kept for compatibility)"""
         # Tables are already created in __init__, but we can double-check here
@@ -205,9 +211,8 @@ class RewardDatabase:
         except Exception as e:
             logger.error(f"Debug tables error: {e}")
             return []
+            
 
-
-    
     async def ensure_user_exists(self, user_id: int, username: str = "Unknown"):
         """Ensure user exists in database"""
         await self.db.execute(
