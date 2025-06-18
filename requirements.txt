@@ -1,4 +1,5 @@
 discord.py[voice]==2.3.2
+discord.voice_state
 discord-ext-voice-recv
 Flask==3.0.0
 deep-translator==1.11.4
