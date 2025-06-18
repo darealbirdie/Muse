@@ -10,7 +10,7 @@ PyNaCl
 langdetect==1.0.9
 websockets==11.0.3
 gTTS==2.4.0
-pyaudio
+
 
 
 
