@@ -711,7 +711,12 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 NGROK_TOKEN = os.getenv('NGROK_TOKEN')
 tier_handler = TierHandler()
-tier_handler.premium_users.add(1192196672437096520) 
+if hasattr(tier_handler.premium_users, 'add'):
+    # It's a set
+    tier_handler.premium_users.add(1192196672437096520)
+else:
+    # It's a dict, so use dict assignment
+    tier_handler.premium_users[1192196672437096520] = True
 # Session tracking for commands and usage
 user_sessions = {}  # Track user sessions for point awarding
 
