@@ -44,6 +44,20 @@ from reward_system import (
 
 YOUR_ADMIN_ID = 1192196672437096520
 YOUR_SERVER_ID = 1332522833326375022
+# Tier colors for embeds
+TIER_COLORS = {
+    'free': 0x95a5a6,
+    'basic': 0xcd7f32,
+    'premium': 0xc0c0c0,
+    'pro': 0xffd700
+}
+
+TIER_EMOJIS = {
+    'free': '🆓',
+    'basic': '🥉',
+    'premium': '🥈',
+    'pro': '🥇'
+}
 
 # Language name mapping
 languages = {
@@ -144,140 +158,205 @@ async def source_language_autocomplete(
     return matches[:25]
 class TierHandler:
     def __init__(self):
-        self.basic_users = set()      # $1/month
-        self.premium_users = set()    # $3/month  
-        self.pro_users = set()        # $5/month
+        # Memory-based tier tracking (for immediate access)
+        self.basic_users = {}      # {user_id: expiration_datetime} - $1/month
+        self.premium_users = {}    # {user_id: expiration_datetime} - $3/month  
+        self.pro_users = {}        # {user_id: expiration_datetime} - $5/month
+        
+        # Legacy set-based tracking (for compatibility)
+        self.basic_users_set = set()
+        self.premium_users_set = set()
+        self.pro_users_set = set()
         
         self.tiers = {
             'free': {
                 'text_limit': 50,         # 50 characters per translation
-                'voice_limit': 1800,       # 5 minutes total voice time (in seconds)
+                'voice_limit': 1800,      # 30 minutes total voice time (in seconds)
+                'daily_points_min': 5,
+                'daily_points_max': 10,
                 'features': ['basic_translation']
             },
             'basic': {                    # $1/month
                 'text_limit': 500,        # 500 characters per translation
-                'voice_limit': 3600,      # 30 minutes total voice time
+                'voice_limit': 3600,      # 60 minutes total voice time
+                'daily_points_min': 10,
+                'daily_points_max': 15,
                 'features': ['basic_translation', 'history', 'auto_translate']
             },
             'premium': {                  # $3/month
                 'text_limit': 2000,       # 2000 characters per translation
                 'voice_limit': 7200,      # 2 hours total voice time
+                'daily_points_min': 15,
+                'daily_points_max': 20,
                 'features': ['basic_translation', 'history', 'auto_translate', 'priority_processing', 'enhanced_voice']
             },
             'pro': {                      # $5/month
                 'text_limit': float('inf'),  # Unlimited characters per translation
                 'voice_limit': float('inf'), # Unlimited voice time
+                'daily_points_min': 20,
+                'daily_points_max': 25,
                 'features': ['all_features', 'priority_support', 'beta_access', 'custom_integrations']
             }
         }
     
+    def get_user_tier(self, user_id: int) -> str:
+        """Get user's current tier (synchronous)"""
+        from datetime import datetime
+        
+        # Check Pro tier first (highest priority)
+        if user_id in self.pro_users:
+            if isinstance(self.pro_users[user_id], datetime):
+                if datetime.now() < self.pro_users[user_id]:
+                    return 'pro'
+                else:
+                    # Expired, remove
+                    del self.pro_users[user_id]
+                    self.pro_users_set.discard(user_id)
+            else:
+                return 'pro'  # Permanent pro user
+        
+        # Check legacy pro users set
+        if user_id in self.pro_users_set:
+            return 'pro'
+        
+        # Check Premium tier
+        if user_id in self.premium_users:
+            if isinstance(self.premium_users[user_id], datetime):
+                if datetime.now() < self.premium_users[user_id]:
+                    return 'premium'
+                else:
+                    # Expired, remove
+                    del self.premium_users[user_id]
+                    self.premium_users_set.discard(user_id)
+            else:
+                return 'premium'  # Permanent premium user
+        
+        # Check legacy premium users set
+        if user_id in self.premium_users_set:
+            return 'premium'
+        
+        # Check Basic tier
+        if user_id in self.basic_users:
+            if isinstance(self.basic_users[user_id], datetime):
+                if datetime.now() < self.basic_users[user_id]:
+                    return 'basic'
+                else:
+                    # Expired, remove
+                    del self.basic_users[user_id]
+                    self.basic_users_set.discard(user_id)
+            else:
+                return 'basic'  # Permanent basic user
+        
+        # Check legacy basic users set
+        if user_id in self.basic_users_set:
+            return 'basic'
+        
+        # Default to free
+        return 'free'
+    
     def get_limits(self, user_id: int):
         """Get user limits (synchronous version for immediate use)"""
-        if user_id in self.pro_users:
-            return self.tiers['pro']
-        elif user_id in self.premium_users:
-            return self.tiers['premium']
-        elif user_id in self.basic_users:
-            return self.tiers['basic']
-        else:
-            return self.tiers['free']
+        tier = self.get_user_tier(user_id)
+        return self.tiers[tier]
     
-    def get_user_tier(self, user_id: int):
-        """Get user's current tier name (synchronous)"""
-        if user_id in self.pro_users:
-            return 'pro'
-        elif user_id in self.premium_users:
-            return 'premium'
-        elif user_id in self.basic_users:
-            return 'basic'
-        else:
-            return 'free'
-    
-    async def get_limits_async(self, user_id: int):
-        """Get user limits using database (async version)"""
+    async def get_user_tier_async(self, user_id: int):
+        """Get user's current tier name (async version with database check)"""
         try:
             # First check memory-based status for speed
-            if user_id in self.pro_users:
-                return self.tiers['pro']
-            elif user_id in self.premium_users:
-                return self.tiers['premium']
-            elif user_id in self.basic_users:
-                return self.tiers['basic']
+            memory_tier = self.get_user_tier(user_id)
+            if memory_tier != 'free':
+                return memory_tier
             
             # Check database for subscription status
             try:
-                user = await db.get_or_create_user(user_id)
-                if user:
-                    # Check subscription tier from database
-                    tier = user.get('subscription_tier', 'free')
-                    
-                    if tier == 'pro':
-                        self.pro_users.add(user_id)
-                        return self.tiers['pro']
-                    elif tier == 'premium':
-                        self.premium_users.add(user_id)
-                        return self.tiers['premium']
-                    elif tier == 'basic':
-                        self.basic_users.add(user_id)
-                        return self.tiers['basic']
+                # Only check database if db is available
+                if 'db' in globals():
+                    user = await db.get_or_create_user(user_id)
+                    if user:
+                        tier = user.get('subscription_tier', 'free')
                         
+                        if tier == 'pro':
+                            self.pro_users_set.add(user_id)
+                            return 'pro'
+                        elif tier == 'premium':
+                            self.premium_users_set.add(user_id)
+                            return 'premium'
+                        elif tier == 'basic':
+                            self.basic_users_set.add(user_id)
+                            return 'basic'
             except Exception as db_error:
-                logger.error(f"Database error getting limits for {user_id}: {db_error}")
+                logger.error(f"Database error getting tier for {user_id}: {db_error}")
             
             # Check for temporary premium from rewards
             try:
                 temp_tier = await self.get_temp_tier(user_id)
                 if temp_tier and temp_tier != 'free':
-                    return self.tiers[temp_tier]
+                    return temp_tier
             except Exception as temp_error:
                 logger.error(f"Error checking temp tier: {temp_error}")
             
-            # Default to free tier
-            return self.tiers['free']
-                
-        except Exception as e:
-            logger.error(f"Error in get_limits_async for {user_id}: {e}")
-            # Fallback to memory-based check
-            return self.get_limits(user_id)
-    
-    async def get_user_tier_async(self, user_id: int):
-        """Get user's current tier name (async version with database check)"""
-        try:
-            # Check memory first
-            if user_id in self.pro_users:
-                return 'pro'
-            elif user_id in self.premium_users:
-                return 'premium'
-            elif user_id in self.basic_users:
-                return 'basic'
-            
-            # Check database
-            try:
-                user = await db.get_or_create_user(user_id)
-                if user:
-                    tier = user.get('subscription_tier', 'free')
-                    if tier in ['pro', 'premium', 'basic']:
-                        # Update memory cache
-                        if tier == 'pro':
-                            self.pro_users.add(user_id)
-                        elif tier == 'premium':
-                            self.premium_users.add(user_id)
-                        elif tier == 'basic':
-                            self.basic_users.add(user_id)
-                        return tier
-            except Exception as db_error:
-                logger.error(f"Database error getting tier for {user_id}: {db_error}")
-            
-            # Check temporary tiers
-            temp_tier = await self.get_temp_tier(user_id)
-            if temp_tier:
-                return temp_tier
-                
             return 'free'
             
         except Exception as e:
             logger.error(f"Error in get_user_tier_async for {user_id}: {e}")
             return self.get_user_tier(user_id)
+    
+    async def get_limits_async(self, user_id: int):
+        """Get user limits using database (async version)"""
+        try:
+            tier = await self.get_user_tier_async(user_id)
+            return self.tiers[tier]
+        except Exception as e:
+            logger.error(f"Error in get_limits_async for {user_id}: {e}")
+            return self.get_limits(user_id)
+    
+    async def set_user_tier(self, user_id: int, tier: str, expires_at=None):
+        """Set user's tier with optional expiration"""
+        from datetime import datetime, timedelta
+        
+        # Remove from all tier lists first
+        self.basic_users_set.discard(user_id)
+        self.premium_users_set.discard(user_id)
+        self.pro_users_set.discard(user_id)
+        
+        if user_id in self.basic_users:
+            del self.basic_users[user_id]
+        if user_id in self.premium_users:
+            del self.premium_users[user_id]
+        if user_id in self.pro_users:
+            del self.pro_users[user_id]
+        
+        # Add to appropriate tier
+        if tier == 'pro':
+            if expires_at is None:
+                expires_at = datetime.now() + timedelta(days=30)
+            self.pro_users[user_id] = expires_at
+            self.pro_users_set.add(user_id)
+        elif tier == 'premium':
+            if expires_at is None:
+                expires_at = datetime.now() + timedelta(days=30)
+            self.premium_users[user_id] = expires_at
+            self.premium_users_set.add(user_id)
+        elif tier == 'basic':
+            if expires_at is None:
+                expires_at = datetime.now() + timedelta(days=30)
+            self.basic_users[user_id] = expires_at
+            self.basic_users_set.add(user_id)
+        # 'free' tier doesn't need to be stored
+    
+    async def get_tier_expiration(self, user_id: int):
+        """Get when user's tier expires"""
+        if user_id in self.pro_users and isinstance(self.pro_users[user_id], datetime):
+            return self.pro_users[user_id]
+        elif user_id in self.premium_users and isinstance(self.premium_users[user_id], datetime):
+            return self.premium_users[user_id]
+        elif user_id in self.basic_users and isinstance(self.basic_users[user_id], datetime):
+            return self.basic_users[user_id]
+        return None
+    
+    def get_limits_for_tier(self, tier: str):
+        """Get limits for a specific tier"""
+        return self.tiers.get(tier, self.tiers['free'])
     
     async def check_usage_limits(self, user_id: int, text_chars: int = 0, voice_seconds: int = 0):
         """Check if user can perform action within limits (NO DAILY LIMITS)"""
@@ -289,28 +368,33 @@ class TierHandler:
             # Check text limit (per translation only, no daily limit)
             if text_chars > 0 and limits['text_limit'] != float('inf'):
                 if text_chars > limits['text_limit']:
-                    tier_names = {'free': 'Free', 'basic': 'Basic ($1/month)', 'premium': 'Premium ($3/month)', 'pro': 'Pro ($5/month)'}
+                    tier_names = {
+                        'free': 'Free', 
+                        'basic': 'Basic ($1/month)', 
+                        'premium': 'Premium ($3/month)', 
+                        'pro': 'Pro ($5/month)'
+                    }
                     return False, f"Text too long! {tier_names.get(current_tier, 'Current')} tier limit: {limits['text_limit']} characters per translation"
             
             # Check voice limit (total accumulated, not daily)
             if voice_seconds > 0 and limits['voice_limit'] != float('inf'):
                 try:
                     # Get total voice usage (not daily - accumulated)
-                    total_usage = await db.get_total_voice_usage(user_id)
-                    current_usage = total_usage.get('voice_seconds', 0) if total_usage else 0
-                    
-                    if (current_usage + voice_seconds) > limits['voice_limit']:
-                        remaining_minutes = max(0, (limits['voice_limit'] - current_usage) // 60)
-                        tier_names = {'free': 'Free', 'basic': 'Basic', 'premium': 'Premium', 'pro': 'Pro'}
-                        return False, f"{tier_names.get(current_tier, 'Current')} tier voice limit exceeded! You have {remaining_minutes} minutes remaining total"
+                    if 'db' in globals():
+                        total_usage = await db.get_total_voice_usage(user_id)
+                        current_usage = total_usage.get('voice_seconds', 0) if total_usage else 0
                         
+                        if (current_usage + voice_seconds) > limits['voice_limit']:
+                            remaining_minutes = max(0, (limits['voice_limit'] - current_usage) // 60)
+                            tier_names = {'free': 'Free', 'basic': 'Basic', 'premium': 'Premium', 'pro': 'Pro'}
+                            return False, f"{tier_names.get(current_tier, 'Current')} tier voice limit exceeded! You have {remaining_minutes} minutes remaining total"
                 except Exception as voice_error:
                     logger.error(f"Error checking voice usage: {voice_error}")
                     # Allow voice on database error (don't block user)
                     pass
             
             return True, f"{current_tier.title()} tier - within limits"
-                
+            
         except Exception as e:
             logger.error(f"Error in check_usage_limits for {user_id}: {e}")
             # On any error, allow the action (don't block users due to bugs)
@@ -320,22 +404,25 @@ class TierHandler:
         """Check if user has temporary tier upgrade from rewards"""
         try:
             # Check for active temporary tier rewards
-            active_rewards = await reward_db.get_active_rewards(user_id)
+            if 'reward_db' in globals():
+                active_rewards = await reward_db.get_active_rewards(user_id)
+                
+                if not active_rewards:
+                    return 'free'
+                
+                # Find highest tier from active rewards
+                tier_priority = {'pro': 4, 'premium': 3, 'basic': 2, 'free': 1}
+                highest_tier = 'free'
+                
+                for reward in active_rewards:
+                    reward_type = reward.get('reward_type', '')
+                    if reward_type in ['pro', 'premium', 'basic']:
+                        if tier_priority.get(reward_type, 0) > tier_priority.get(highest_tier, 0):
+                            highest_tier = reward_type
+                
+                return highest_tier
             
-            if not active_rewards:
-                return 'free'
-            
-            # Find highest tier from active rewards
-            tier_priority = {'pro': 4, 'premium': 3, 'basic': 2, 'free': 1}
-            highest_tier = 'free'
-            
-            for reward in active_rewards:
-                reward_type = reward.get('reward_type', '')
-                if reward_type in ['pro', 'premium', 'basic']:
-                    if tier_priority.get(reward_type, 0) > tier_priority.get(highest_tier, 0):
-                        highest_tier = reward_type
-            
-            return highest_tier
+            return 'free'
             
         except Exception as e:
             logger.error(f"Error checking temp tier for {user_id}: {e}")
@@ -345,8 +432,8 @@ class TierHandler:
         """Check if user has any temporary premium tier from rewards (legacy method)"""
         try:
             # Check for any premium-level rewards
-            return (reward_db.has_active_reward(user_id, 'basic') or 
-                   reward_db.has_active_reward(user_id, 'premium') or 
+            return (reward_db.has_active_reward(user_id, 'basic') or
+                   reward_db.has_active_reward(user_id, 'premium') or
                    reward_db.has_active_reward(user_id, 'pro'))
         except Exception as e:
             logger.error(f"Error checking temp premium: {e}")
@@ -356,20 +443,36 @@ class TierHandler:
         """Upgrade user to a new tier"""
         try:
             # Remove from all tier sets first
-            self.basic_users.discard(user_id)
-            self.premium_users.discard(user_id)
-            self.pro_users.discard(user_id)
+            self.basic_users_set.discard(user_id)
+            self.premium_users_set.discard(user_id)
+            self.pro_users_set.discard(user_id)
+            
+            if user_id in self.basic_users:
+                del self.basic_users[user_id]
+            if user_id in self.premium_users:
+                del self.premium_users[user_id]
+            if user_id in self.pro_users:
+                del self.pro_users[user_id]
             
             # Add to appropriate tier set
             if new_tier == 'basic':
-                self.basic_users.add(user_id)
+                self.basic_users_set.add(user_id)
+                if not permanent:
+                    from datetime import datetime, timedelta
+                    self.basic_users[user_id] = datetime.now() + timedelta(days=30)
             elif new_tier == 'premium':
-                self.premium_users.add(user_id)
+                self.premium_users_set.add(user_id)
+                if not permanent:
+                    from datetime import datetime, timedelta
+                    self.premium_users[user_id] = datetime.now() + timedelta(days=30)
             elif new_tier == 'pro':
-                self.pro_users.add(user_id)
+                self.pro_users_set.add(user_id)
+                if not permanent:
+                    from datetime import datetime, timedelta
+                    self.pro_users[user_id] = datetime.now() + timedelta(days=30)
             
-            # Update database if permanent
-            if permanent:
+            # Update database if permanent and available
+            if permanent and 'db' in globals():
                 await db.update_user_subscription(user_id, new_tier)
             
             logger.info(f"User {user_id} upgraded to {new_tier} tier (permanent: {permanent})")
@@ -383,12 +486,21 @@ class TierHandler:
         """Downgrade user to free tier"""
         try:
             # Remove from all premium tier sets
-            self.basic_users.discard(user_id)
-            self.premium_users.discard(user_id)
-            self.pro_users.discard(user_id)
+            self.basic_users_set.discard(user_id)
+            self.premium_users_set.discard(user_id)
+            self.pro_users_set.discard(user_id)
             
-            # Update database
-            await db.update_user_subscription(user_id, 'free')
+            # Remove from expiration tracking
+            if user_id in self.basic_users:
+                del self.basic_users[user_id]
+            if user_id in self.premium_users:
+                del self.premium_users[user_id]
+            if user_id in self.pro_users:
+                del self.pro_users[user_id]
+            
+            # Update database if available
+            if 'db' in globals():
+                await db.update_user_subscription(user_id, 'free')
             
             logger.info(f"User {user_id} downgraded to free tier: {reason}")
             return True
@@ -406,6 +518,188 @@ class TierHandler:
             'pro': {'color': 0xffd700, 'emoji': '🥇', 'name': 'Pro', 'price': '$5/month'}
         }
         return tier_info.get(tier_name, tier_info['free'])
+    
+    def add_legacy_user(self, user_id: int, tier: str):
+        """Add user to legacy tier system (for backward compatibility)"""
+        try:
+            if tier == 'basic':
+                self.basic_users_set.add(user_id)
+            elif tier == 'premium':
+                self.premium_users_set.add(user_id)
+            elif tier == 'pro':
+                self.pro_users_set.add(user_id)
+            logger.info(f"Added user {user_id} to legacy {tier} tier")
+        except Exception as e:
+            logger.error(f"Error adding legacy user {user_id} to {tier}: {e}")
+    
+    def remove_legacy_user(self, user_id: int, tier: str = None):
+        """Remove user from legacy tier system"""
+        try:
+            if tier is None or tier == 'basic':
+                self.basic_users_set.discard(user_id)
+            if tier is None or tier == 'premium':
+                self.premium_users_set.discard(user_id)
+            if tier is None or tier == 'pro':
+                self.pro_users_set.discard(user_id)
+            logger.info(f"Removed user {user_id} from legacy tier system")
+        except Exception as e:
+            logger.error(f"Error removing legacy user {user_id}: {e}")
+    
+    async def cleanup_expired_tiers(self):
+        """Clean up expired tier memberships"""
+        try:
+            from datetime import datetime
+            current_time = datetime.now()
+            expired_users = []
+            
+            # Check basic users
+            for user_id, expiry in list(self.basic_users.items()):
+                if isinstance(expiry, datetime) and current_time >= expiry:
+                    expired_users.append((user_id, 'basic'))
+                    del self.basic_users[user_id]
+                    self.basic_users_set.discard(user_id)
+            
+            # Check premium users
+            for user_id, expiry in list(self.premium_users.items()):
+                if isinstance(expiry, datetime) and current_time >= expiry:
+                    expired_users.append((user_id, 'premium'))
+                    del self.premium_users[user_id]
+                    self.premium_users_set.discard(user_id)
+            
+            # Check pro users
+            for user_id, expiry in list(self.pro_users.items()):
+                if isinstance(expiry, datetime) and current_time >= expiry:
+                    expired_users.append((user_id, 'pro'))
+                    del self.pro_users[user_id]
+                    self.pro_users_set.discard(user_id)
+            
+            if expired_users:
+                logger.info(f"Cleaned up {len(expired_users)} expired tier memberships")
+                
+            return expired_users
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up expired tiers: {e}")
+            return []
+    
+    def get_all_premium_users(self):
+        """Get all users with any premium tier (for notifications, etc.)"""
+        try:
+            all_premium = set()
+            
+            # Add from expiration tracking
+            all_premium.update(self.basic_users.keys())
+            all_premium.update(self.premium_users.keys())
+            all_premium.update(self.pro_users.keys())
+            
+            # Add from legacy sets
+            all_premium.update(self.basic_users_set)
+            all_premium.update(self.premium_users_set)
+            all_premium.update(self.pro_users_set)
+            
+            return list(all_premium)
+            
+        except Exception as e:
+            logger.error(f"Error getting all premium users: {e}")
+            return []
+    
+    def get_tier_stats(self):
+        """Get statistics about tier distribution"""
+        try:
+            stats = {
+                'basic': len(set(list(self.basic_users.keys()) + list(self.basic_users_set))),
+                'premium': len(set(list(self.premium_users.keys()) + list(self.premium_users_set))),
+                'pro': len(set(list(self.pro_users.keys()) + list(self.pro_users_set))),
+                'total_premium': 0
+            }
+            
+            stats['total_premium'] = stats['basic'] + stats['premium'] + stats['pro']
+            
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Error getting tier stats: {e}")
+            return {'basic': 0, 'premium': 0, 'pro': 0, 'total_premium': 0}
+    
+    async def migrate_legacy_users(self):
+        """Migrate users from legacy set system to new expiration system"""
+        try:
+            from datetime import datetime, timedelta
+            migrated_count = 0
+            
+            # Migrate basic users
+            for user_id in list(self.basic_users_set):
+                if user_id not in self.basic_users:
+                    # Give them 30 days from now
+                    self.basic_users[user_id] = datetime.now() + timedelta(days=30)
+                    migrated_count += 1
+            
+            # Migrate premium users
+            for user_id in list(self.premium_users_set):
+                if user_id not in self.premium_users:
+                    self.premium_users[user_id] = datetime.now() + timedelta(days=30)
+                    migrated_count += 1
+            
+            # Migrate pro users
+            for user_id in list(self.pro_users_set):
+                if user_id not in self.pro_users:
+                    self.pro_users[user_id] = datetime.now() + timedelta(days=30)
+                    migrated_count += 1
+            
+            if migrated_count > 0:
+                logger.info(f"Migrated {migrated_count} legacy users to expiration system")
+            
+            return migrated_count
+            
+        except Exception as e:
+            logger.error(f"Error migrating legacy users: {e}")
+            return 0
+    
+    def has_feature(self, user_id: int, feature: str):
+        """Check if user has access to a specific feature"""
+        try:
+            tier = self.get_user_tier(user_id)
+            tier_features = self.tiers[tier].get('features', [])
+            
+            # Pro tier has all features
+            if tier == 'pro' or 'all_features' in tier_features:
+                return True
+            
+            # Check specific feature
+            return feature in tier_features
+            
+        except Exception as e:
+            logger.error(f"Error checking feature {feature} for user {user_id}: {e}")
+            return False
+    
+    async def notify_expiring_users(self, days_before: int = 3):
+        """Get users whose subscriptions are expiring soon"""
+        try:
+            from datetime import datetime, timedelta
+            expiring_soon = []
+            warning_time = datetime.now() + timedelta(days=days_before)
+            
+            # Check all tiers for expiring users
+            for tier_name, tier_dict in [
+                ('basic', self.basic_users),
+                ('premium', self.premium_users),
+                ('pro', self.pro_users)
+            ]:
+                for user_id, expiry in tier_dict.items():
+                    if isinstance(expiry, datetime) and expiry <= warning_time:
+                        expiring_soon.append({
+                            'user_id': user_id,
+                            'tier': tier_name,
+                            'expires_at': expiry,
+                            'days_remaining': (expiry - datetime.now()).days
+                        })
+            
+            return expiring_soon
+            
+        except Exception as e:
+            logger.error(f"Error getting expiring users: {e}")
+            return []
+
 
 
 # Update tier_handler instance
@@ -740,6 +1034,7 @@ async def start(interaction: discord.Interaction):
             "`/shop` - Browse point shop\n"
             "`/profile` - View your profile\n"
             "`/leaderboard` - See top users"
+            "`/transactions` - View point transaction history\n"
         ),
         inline=False
     )
@@ -1745,6 +2040,7 @@ async def voice_chat_translate_bidirectional_v2(
     language2: str
 ):
     await track_command_usage(interaction)
+    
     # Check if command is used in a guild
     if not interaction.guild:
         embed = discord.Embed(
@@ -1764,27 +2060,26 @@ async def voice_chat_translate_bidirectional_v2(
         return
     
     # NEW: Check if user has access to Enhanced Voice V2
-    # At the start of your voicechat2 command
     user_id = interaction.user.id
-
-    # Check enhanced voice access
+    
+    # Check enhanced voice access using the new shop system
     if not has_enhanced_voice_access(user_id, reward_db, tier_handler):
         user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
         current_tier = await tier_handler.get_user_tier_async(user_id)
-    
+        
         # Create access denied embed with purchase options
         embed = discord.Embed(
             title="🚀 Enhanced Voice V2 - Beta Feature",
             description="This advanced voice translation feature is currently in beta testing!",
             color=0x9b59b6
         )
-    
+        
         embed.add_field(
             name="💎 Your Points",
             value=f"{user_data['points']:,}",
             inline=True
         )
-    
+        
         embed.add_field(
             name="🛍️ Beta Access Options",
             value=(
@@ -1792,9 +2087,9 @@ async def voice_chat_translate_bidirectional_v2(
                 "• **Beta Trial (48h):** 100 points\n"
                 "• **7-Day Access:** 300 points"
             ),
-         inline=True
+            inline=True
         )
-    
+        
         embed.add_field(
             name="⭐ Permanent Access",
             value=(
@@ -1804,18 +2099,18 @@ async def voice_chat_translate_bidirectional_v2(
             ),
             inline=True
         )
-    
+        
         embed.add_field(
             name="🧪 Enhanced Voice V2 Features",
             value=(
                 "• **Bidirectional translation** between any 2 languages\n"
-                    "• **Smart language detection** with priority matching\n"
+                "• **Smart language detection** with priority matching\n"
                 "• **Multi-speaker support** for group conversations\n"
                 "• **Improved audio processing** for better accuracy"
             ),
             inline=False
         )
-    
+        
         embed.add_field(
             name="🎯 How to Get Points",
             value=(
@@ -1826,17 +2121,89 @@ async def voice_chat_translate_bidirectional_v2(
             ),
             inline=False
         )
-    
+        
         embed.add_field(
             name="📊 Current Status",
             value=f"**Tier:** {current_tier.title()}\n**Access:** Basic voice features only",
             inline=False
-        ) 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-    return
-   
+        )
+        
+        # Add purchase buttons
+        view = discord.ui.View()
+        
+        # 1-Day Access Button
+        if user_data['points'] >= 50:
+            view.add_item(discord.ui.Button(
+                label="Buy 1-Day Access (50 points)",
+                style=discord.ButtonStyle.green,
+                custom_id="buy_enhanced_voice_1day"
+            ))
+        else:
+            view.add_item(discord.ui.Button(
+                label="1-Day Access (50 points) - Need more points",
+                style=discord.ButtonStyle.gray,
+                disabled=True
+            ))
+        
+        # Beta Trial Button
+        if user_data['points'] >= 100:
+            view.add_item(discord.ui.Button(
+                label="Buy Beta Trial (100 points)",
+                style=discord.ButtonStyle.blurple,
+                custom_id="buy_enhanced_voice_trial"
+            ))
+        else:
+            view.add_item(discord.ui.Button(
+                label="Beta Trial (100 points) - Need more points",
+                style=discord.ButtonStyle.gray,
+                disabled=True
+            ))
+        
+        # 7-Day Access Button
+        if user_data['points'] >= 300:
+            view.add_item(discord.ui.Button(
+                label="Buy 7-Day Access (300 points)",
+                style=discord.ButtonStyle.red,
+                custom_id="buy_enhanced_voice_7day"
+            ))
+        else:
+            view.add_item(discord.ui.Button(
+                label="7-Day Access (300 points) - Need more points",
+                style=discord.ButtonStyle.gray,
+                disabled=True
+            ))
+        
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        return
+    
+    # Convert language inputs to codes - support both codes and names
+    source_code = "auto" if language1.lower() == "auto" else get_language_code(language1)
+    target_code = "auto" if language2.lower() == "auto" else get_language_code(language2)
+    
+    # Validate language codes (at least one must not be auto)
+    if language1.lower() != "auto" and not source_code:
+        await interaction.response.send_message(
+            f"❌ Invalid language: '{language1}'\nUse /list to see available languages or use 'auto' for automatic detection.",
+            ephemeral=True
+        )
+        return
+        
+    if language2.lower() != "auto" and not target_code:
+        await interaction.response.send_message(
+            f"❌ Invalid language: '{language2}'\nUse /list to see available languages or use 'auto' for automatic detection.",
+            ephemeral=True
+        )
+        return
+    
+    # Don't allow both languages to be auto
+    if source_code == "auto" and target_code == "auto":
+        await interaction.response.send_message(
+            "❌ At least one language must be specified (not 'auto'). Example: `/voicechat2 auto english`",
+            ephemeral=True
+        )
+        return
+    
     # Get user's tier limits
-    user_id = interaction.user.id
     limits = tier_handler.get_limits(user_id)
     
     voice_channel = interaction.user.voice.channel
@@ -2035,7 +2402,7 @@ async def voice_chat_translate_bidirectional_v2(
                     
                 username = member.display_name
                 logger.info(f"Sending enhanced translation for user {username}")
-
+                
                 # NEW: Award enhanced points for V2 usage
                 points_awarded = 10 if user_id in tier_handler.premium_users else 5
                 reward_db.add_points(user_id, points_awarded, f"Enhanced Voice V2: {detected_lang}→{target_lang}")
@@ -2068,7 +2435,7 @@ async def voice_chat_translate_bidirectional_v2(
                 # Add language pair info in footer
                 lang1_display = "Auto-detect" if self.language1 == "auto" else languages.get(self.language1, self.language1)
                 lang2_display = "Auto-detect" if self.language2 == "auto" else languages.get(self.language2, self.language2)
-                embed.set_footer(text=f"Enhanced V2 | Language pair: {lang1_display} ↔ {lang2_display}")
+                embed.set_footer(text=f"Enhanced V2 | Language pair: {lang1_display} ↔ {lang2_display} | +{points_awarded} points")
                 
                 await self.text_channel.send(embed=embed)
                 logger.info("Enhanced translation sent successfully")
@@ -2260,8 +2627,8 @@ async def voice_chat_translate_bidirectional_v2(
         # Create our enhanced sink
         logger.info("Creating EnhancedBidirectionalTranslationSink")
         sink = EnhancedBidirectionalTranslationSink(
-            language1=lang1_code,
-            language2=lang2_code,
+            language1=source_code,
+            language2=target_code,
             text_channel=interaction.channel,
             client_instance=client
         )
@@ -2282,10 +2649,10 @@ async def voice_chat_translate_bidirectional_v2(
             logger.info("Successfully started listening")
             
             # Create display names for the embed
-            lang1_display = "Auto-detect" if lang1_code == "auto" else languages.get(lang1_code, lang1_code)
-            lang2_display = "Auto-detect" if lang2_code == "auto" else languages.get(lang2_code, lang2_code)
-            lang1_flag = '🔍' if lang1_code == "auto" else flag_mapping.get(lang1_code, '🌐')
-            lang2_flag = '🔍' if lang2_code == "auto" else flag_mapping.get(lang2_code, '🌐')
+            lang1_display = "Auto-detect" if source_code == "auto" else languages.get(source_code, source_code)
+            lang2_display = "Auto-detect" if target_code == "auto" else languages.get(target_code, target_code)
+            lang1_flag = '🔍' if source_code == "auto" else flag_mapping.get(source_code, '🌐')
+            lang2_flag = '🔍' if target_code == "auto" else flag_mapping.get(target_code, '🌐')
             
             # Check if user is premium
             is_premium = user_id in tier_handler.premium_users
@@ -2305,8 +2672,8 @@ async def voice_chat_translate_bidirectional_v2(
                 ),
                 color=0x9b59b6  # Purple for enhanced V2
             )
-
-        
+            
+            # Add enhanced rewards info
             points_per_translation = 10 if user_id in tier_handler.premium_users else 5
             embed.add_field(
                 name="💎 Enhanced Rewards",
@@ -2315,7 +2682,7 @@ async def voice_chat_translate_bidirectional_v2(
             )
             
             # Add examples based on the language pair
-            if lang1_code != "auto" and lang2_code != "auto":
+            if source_code != "auto" and target_code != "auto":
                 embed.add_field(
                     name="📝 How it works",
                     value=(
@@ -2325,13 +2692,13 @@ async def voice_chat_translate_bidirectional_v2(
                     ),
                     inline=False
                 )
-            elif lang1_code == "auto":
+            elif source_code == "auto":
                 embed.add_field(
                     name="📝 How it works",
                     value=f"• Speak in any language → Translates to {lang2_display}",
                     inline=False
                 )
-            else:  # lang2_code == "auto"
+            else:  # target_code == "auto"
                 embed.add_field(
                     name="📝 How it works", 
                     value=f"• Speak in any language → Translates to {lang1_display}",
@@ -2371,8 +2738,8 @@ async def voice_chat_translate_bidirectional_v2(
                 'voice_client': voice_client,
                 'sink': sink,
                 'channel': voice_channel,
-                'type': 'enhanced_v2',  # Mark as enhanced V2
-                'languages': [lang1_code, lang2_code]
+                'type': 'enhanced_v2',
+                                'languages': [source_code, target_code]
             }
             
             # Start a task to check if users leave the voice channel
@@ -2397,8 +2764,168 @@ async def voice_chat_translate_bidirectional_v2(
                 f"❌ Error starting voice translation: {str(e)}",
                 ephemeral=True
             )
+
+# Add autocomplete to the command
 voice_chat_translate_bidirectional_v2.autocomplete('language1')(source_language_autocomplete)
 voice_chat_translate_bidirectional_v2.autocomplete('language2')(source_language_autocomplete)
+
+# Add button interaction handler for Enhanced Voice V2 purchases
+@client.event
+async def on_interaction(interaction):
+    if interaction.type == discord.InteractionType.component:
+        custom_id = interaction.data.get('custom_id')
+        user_id = interaction.user.id
+        
+        if custom_id in ['buy_enhanced_voice_1day', 'buy_enhanced_voice_trial', 'buy_enhanced_voice_7day']:
+            user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
+            
+            # Define purchase options
+            purchase_options = {
+                'buy_enhanced_voice_1day': {'cost': 50, 'duration': 1, 'name': '1-Day Access'},
+                'buy_enhanced_voice_trial': {'cost': 100, 'duration': 2, 'name': 'Beta Trial (48h)'},
+                'buy_enhanced_voice_7day': {'cost': 300, 'duration': 7, 'name': '7-Day Access'}
+            }
+            
+            option = purchase_options[custom_id]
+            
+            # Check if user has enough points
+            if user_data['points'] < option['cost']:
+                await interaction.response.send_message(
+                    f"❌ Insufficient points! You need {option['cost']} points but only have {user_data['points']}.",
+                    ephemeral=True
+                )
+                return
+            
+            # Process the purchase
+            try:
+                # Deduct points
+                reward_db.add_points(user_id, -option['cost'], f"Purchased Enhanced Voice V2: {option['name']}")
+                
+                # Grant access
+                from datetime import datetime, timedelta
+                expiry_date = datetime.now() + timedelta(days=option['duration'])
+                
+                # Store the access in a simple way (you might want to use a proper database)
+                if not hasattr(reward_db, 'enhanced_voice_access'):
+                    reward_db.enhanced_voice_access = {}
+                
+                reward_db.enhanced_voice_access[user_id] = {
+                    'expires': expiry_date,
+                    'type': custom_id
+                }
+                
+                # Success message
+                embed = discord.Embed(
+                    title="✅ Purchase Successful!",
+                    description=f"You've successfully purchased **{option['name']}** for Enhanced Voice V2!",
+                    color=0x2ecc71
+                )
+                
+                embed.add_field(
+                    name="💎 Points Spent",
+                    value=f"{option['cost']} points",
+                    inline=True
+                )
+                
+                embed.add_field(
+                    name="💰 Remaining Points",
+                    value=f"{user_data['points'] - option['cost']} points",
+                    inline=True
+                )
+                
+                embed.add_field(
+                    name="⏰ Access Expires",
+                    value=f"{expiry_date.strftime('%Y-%m-%d %H:%M UTC')}",
+                    inline=False
+                )
+                
+                embed.add_field(
+                    name="🚀 Ready to Use!",
+                    value="You can now use `/voicechat2` for enhanced voice translation!",
+                    inline=False
+                )
+                
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                
+            except Exception as e:
+                logger.error(f"Error processing Enhanced Voice V2 purchase: {e}")
+                await interaction.response.send_message(
+                    "❌ An error occurred while processing your purchase. Please try again.",
+                    ephemeral=True
+                )
+
+# Helper function to check Enhanced Voice V2 access
+def has_enhanced_voice_access(user_id, reward_db, tier_handler):
+    """Check if user has access to Enhanced Voice V2"""
+    
+    # Premium and Pro users always have access
+    current_tier = tier_handler.get_user_tier(user_id)
+    if current_tier in ['premium', 'pro']:
+        return True
+    
+    # Check temporary access purchases
+    if hasattr(reward_db, 'enhanced_voice_access') and user_id in reward_db.enhanced_voice_access:
+        access_info = reward_db.enhanced_voice_access[user_id]
+        from datetime import datetime
+        
+        if datetime.now() < access_info['expires']:
+            return True
+        else:
+            # Access expired, remove it
+            del reward_db.enhanced_voice_access[user_id]
+            return False
+    
+    return False
+
+# Enhanced voice channel checking function (if not already defined)
+async def check_voice_channel_enhanced(voice_client, voice_channel):
+    """Enhanced voice channel monitoring with better error handling"""
+    if not voice_client:
+        return
+        
+    consecutive_empty_checks = 0
+    error_count = 0
+    
+    while voice_client.is_connected():
+        try:
+            # Refresh the voice channel object to get current members
+            updated_channel = voice_client.guild.get_channel(voice_channel.id)
+            if not updated_channel:
+                logger.warning("Voice channel no longer exists, disconnecting")
+                break
+                
+            # Count human members (excluding bots)
+            human_members = [member for member in updated_channel.members if not member.bot]
+            member_count = len(human_members)
+            
+            if member_count == 0:
+                consecutive_empty_checks += 1
+                # Wait longer before disconnecting to avoid false positives
+                if consecutive_empty_checks >= 4:  # 20 seconds of being alone
+                    logger.info(f"🔇 Enhanced V2 disconnecting from {voice_channel.name} - everyone left")
+                    await voice_client.disconnect()
+                    break
+            else:
+                consecutive_empty_checks = 0  # Reset counter when people are present
+                error_count = 0  # Reset error counter on successful check
+            
+            # Check every 5 seconds
+            await asyncio.sleep(5)
+            
+        except Exception as e:
+            error_count += 1
+            logger.error(f"Error in enhanced voice channel check (count: {error_count}): {e}")
+            
+            # If too many errors, disconnect to prevent hanging
+            if error_count > 5:
+                logger.error("Too many voice channel check errors, disconnecting")
+                try:
+                    await voice_client.disconnect()
+                except:
+                    pass
+                break
+                
+            await asyncio.sleep(5)
 
 # Enhanced voice channel checking function
 async def check_voice_channel_enhanced(voice_client, voice_channel):
@@ -5098,7 +5625,8 @@ async def help_command(interaction: discord.Interaction):
         name="🎛️ Settings",
         value=(
             "`/hide` - Hide original text in translations\n"
-            "`/show` - Show original text in translations"
+            "`/show` - Show original text in translations\n"
+            "`/history` - View translation history"
         ),
         inline=False
     )
@@ -6690,62 +7218,97 @@ async def transactions(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@tree.command(name="addbasic", description="[ADMIN] Grant basic tier access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@tree.command(name="addbasic", description="[ADMIN] Grant Basic tier access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(
-    user="Any Discord user to grant basic tier to",
-    days="Number of days of basic access (default: 30)"
+    user="Discord user to grant Basic tier to",
+    days="Number of days of Basic access (default: 30)",
+    permanent="Make this a permanent upgrade (default: False)"
 )
-async def add_basic(interaction: discord.Interaction, user: discord.User, days: int = 30):
-    # Double security: Must be admin in YOUR server AND be you
+async def add_basic(interaction: discord.Interaction, user: discord.User, days: int = 30, permanent: bool = False):
     if interaction.user.id != YOUR_ADMIN_ID:
         await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
         return
     
+    if days <= 0 and not permanent:
+        await interaction.response.send_message("❌ Days must be positive for temporary access!", ephemeral=True)
+        return
+    
     try:
         from datetime import datetime, timedelta
-        expires_at = datetime.now() + timedelta(days=days)
         
-        # Add to database
-        user_data = reward_db.get_or_create_user(user.id, user.display_name)
+        if permanent:
+            expires_at = None
+            duration_text = "Permanent"
+        else:
+            expires_at = datetime.now() + timedelta(days=days)
+            duration_text = f"{days} days"
+        
+        # Grant Basic tier
         await tier_handler.set_user_tier(user.id, 'basic', expires_at)
+        
+        # Get tier limits for display
+        limits = tier_handler.get_limits_for_tier('basic')
         
         # Success message
         embed = discord.Embed(
             title="✅ Basic Tier Granted Successfully",
             description=(
                 f"**User:** {user.display_name} (`{user.id}`)\n"
-                f"**Tier:** Basic 🥉\n"
-                f"**Duration:** {days} days\n"
-                f"**Expires:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n\n"
-                f"🥉 *Basic tier access activated*"
+                f"**Tier:** {TIER_EMOJIS['basic']} Basic\n"
+                f"**Duration:** {duration_text}\n"
+                f"**Price:** $1/month equivalent\n"
             ),
-            color=0xcd7f32  # Bronze color
+            color=TIER_COLORS['basic']
+        )
+        
+        if not permanent:
+            embed.description += f"**Expires:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n"
+        
+        embed.add_field(
+            name="🎯 Basic Tier Features",
+            value=(
+                f"• **Text Limit:** {limits['text_limit']} characters\n"
+                f"• **Voice Limit:** {limits['voice_limit']//60} minutes\n"
+                f"• **Daily Points:** {limits['daily_points_min']}-{limits['daily_points_max']}\n"
+                f"• **Features:** Auto-translate, History"
+            ),
+            inline=False
         )
         
         if user.avatar:
             embed.set_thumbnail(url=user.avatar.url)
         
+        embed.set_footer(text=f"Granted by {interaction.user.display_name}")
+        
         await interaction.response.send_message(embed=embed, ephemeral=True)
         
-        # Try to notify the user
+        # Notify user
         try:
             user_embed = discord.Embed(
                 title="🥉 Basic Tier Access Granted!",
                 description=(
-                    f"You've been granted **{days} days** of Basic tier access for Muse Translator!\n\n"
-                    f"**Expires:** {expires_at.strftime('%B %d, %Y at %H:%M UTC')}\n\n"
-                    f"**Basic Tier Features Unlocked:**\n"
-                    f"• 📝 500 character text translations\n"
-                    f"• 🎤 2-minute voice translations\n"
-                    f"• 💎 Daily points: 10-15\n"
-                    f"• 🎯 Basic achievements\n"
-                    f"• ⚡ Standard support"
+                    f"You've been granted **{duration_text}** of Basic tier access for Muse Translator!\n\n"
+                    f"**Basic Tier Benefits:**\n"
+                    f"• 📝 **500 character** text translations\n"
+                    f"• 🎤 **60-minute** voice translations\n"
+                    f"• 🔄 **Auto-translate** feature\n"
+                    f"• 📚 **Translation history**\n"
+                    f"• 💎 **10-15 daily points**\n"
+                    f"• ⚡ **Standard support**\n\n"
+                    f"💡 *Use `/status` to check your tier anytime!*"
                 ),
-                color=0xcd7f32
+                color=TIER_COLORS['basic']
             )
-            await user.send(embed=user_embed)
             
+            if not permanent:
+                user_embed.add_field(
+                    name="⏰ Expiration",
+                    value=expires_at.strftime('%B %d, %Y at %H:%M UTC'),
+                    inline=False
+                )
+            
+            await user.send(embed=user_embed)
             await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
         except discord.Forbidden:
             await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
@@ -6753,133 +7316,177 @@ async def add_basic(interaction: discord.Interaction, user: discord.User, days: 
             await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
     
     except Exception as e:
-        await interaction.response.send_message(f"❌ Error granting basic tier: {str(e)}", ephemeral=True)
+        await interaction.response.send_message(f"❌ Error granting Basic tier: {str(e)}", ephemeral=True)
 
-@tree.command(name="addpro", description="[ADMIN] Grant pro tier access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+### ➖ **Remove Basic Tier**
+
+@tree.command(name="removebasic", description="[ADMIN] Remove Basic tier access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(
-    user="Any Discord user to grant pro tier to",
-    days="Number of days of pro access (default: 30)"
+    user="Discord user to remove Basic tier from",
+    reason="Reason for removal (optional)"
 )
-async def add_pro(interaction: discord.Interaction, user: discord.User, days: int = 30):
-    # Double security: Must be admin in YOUR server AND be you
+async def remove_basic(interaction: discord.Interaction, user: discord.User, reason: str = "Admin removal"):
     if interaction.user.id != YOUR_ADMIN_ID:
         await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
         return
     
     try:
-        from datetime import datetime, timedelta
-        expires_at = datetime.now() + timedelta(days=days)
-        
-        # Add to database
-        user_data = reward_db.get_or_create_user(user.id, user.display_name)
-        await tier_handler.set_user_tier(user.id, 'pro', expires_at)
-        
-        # Success message
-        embed = discord.Embed(
-            title="✅ Pro Tier Granted Successfully",
-            description=(
-                f"**User:** {user.display_name} (`{user.id}`)\n"
-                f"**Tier:** Pro 🥇\n"
-                f"**Duration:** {days} days\n"
-                f"**Expires:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n\n"
-                f"🥇 *Pro tier access activated*"
-            ),
-            color=0xffd700  # Gold color
-        )
-        
-        if user.avatar:
-            embed.set_thumbnail(url=user.avatar.url)
-        
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        
-        # Try to notify the user
-        try:
-            user_embed = discord.Embed(
-                title="🥇 Pro Tier Access Granted!",
-                description=(
-                    f"You've been granted **{days} days** of Pro tier access for Muse Translator!\n\n"
-                    f"**Expires:** {expires_at.strftime('%B %d, %Y at %H:%M UTC')}\n\n"
-                    f"**Pro Tier Features Unlocked:**\n"
-                    f"• ♾️ Unlimited text translation\n"
-                    f"• 🎤 Unlimited voice translation\n"
-                    f"• 🚀 Enhanced Voice V2 access\n"
-                    f"• 💎 Daily points: 20-25\n"
-                    f"• 🏆 All achievements unlocked\n"
-                    f"• ⚡ Priority support\n"
-                    f"• 🧪 Beta feature access"
-                ),
-                color=0xffd700
-            )
-            await user.send(embed=user_embed)
-            
-            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
-        except discord.Forbidden:
-            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
-        except Exception as dm_error:
-            await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
-    
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Error granting pro tier: {str(e)}", ephemeral=True)
-
-@tree.command(name="removebasic", description="[ADMIN] Remove basic tier access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
-@app_commands.default_permissions(administrator=True)
-@app_commands.describe(user="Discord user to remove basic tier from")
-async def remove_basic(interaction: discord.Interaction, user: discord.User):
-    # Double security: Must be admin in YOUR server AND be you
-    if interaction.user.id != YOUR_ADMIN_ID:
-        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
-        return
-    
-    try:
-        # Get current tier
+        # Check if user has Basic tier
         current_tier = await tier_handler.get_user_tier_async(user.id)
-        
         if current_tier != 'basic':
             await interaction.response.send_message(
-                f"❌ {user.display_name} is not on Basic tier (current: {current_tier.title()})",
+                f"❌ User {user.display_name} doesn't have Basic tier! Current tier: {current_tier.title()}",
                 ephemeral=True
             )
             return
         
-        # Remove from database
-        await tier_handler.set_user_tier(user.id, 'free')
+        # Get expiration info before removal
+        expires_at = await tier_handler.get_tier_expiration(user.id)
+        
+        # Remove Basic tier (downgrade to free)
+        await tier_handler.downgrade_user_tier(user.id, reason)
         
         # Success message
         embed = discord.Embed(
             title="✅ Basic Tier Removed Successfully",
             description=(
                 f"**User:** {user.display_name} (`{user.id}`)\n"
-                f"**Previous Tier:** Basic 🥉\n"
-                f"**New Tier:** Free 🆓\n\n"
-                f"🔄 *User reverted to free tier*"
+                f"**Previous Tier:** {TIER_EMOJIS['basic']} Basic\n"
+                f"**New Tier:** {TIER_EMOJIS['free']} Free\n"
+                f"**Reason:** {reason}\n"
             ),
-            color=0xff6b6b  # Red color
+            color=0xff6b6b
         )
+        
+        if expires_at:
+            embed.description += f"**Was set to expire:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n"
         
         if user.avatar:
             embed.set_thumbnail(url=user.avatar.url)
         
+        embed.set_footer(text=f"Removed by {interaction.user.display_name}")
+        
         await interaction.response.send_message(embed=embed, ephemeral=True)
         
-        # Try to notify the user
+        # Notify user
         try:
             user_embed = discord.Embed(
                 title="🥉 Basic Tier Access Removed",
                 description=(
                     f"Your Basic tier access for Muse Translator has been removed.\n\n"
-                    f"**Current Tier:** Free 🆓\n\n"
-                    f"**Free Tier Features:**\n"
-                    f"• 📝 100 character text translations\n"
-                    f"• 🎤 30-second voice translations\n"
-                    f"• 💎 Daily points: 5-10\n"
-                    f"• 🎯 Basic achievements\n\n"
-                    f"💡 *Upgrade anytime with `/upgrade`*"
+                    f"**Reason:** {reason}\n"
+                    f"**Current Tier:** Free\n\n"
+                    f"**Free Tier Limits:**\n"
+                    f"• 📝 50 character text translations\n"
+                    f"• 🎤 30-minute voice translations\n"
+                    f"• 💎 5-10 daily points\n\n"
+                    f"💡 *Use `/premium` to upgrade again!*"
                 ),
                 color=0xff6b6b
             )
             await user.send(embed=user_embed)
+            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
+        except:
+            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
+    
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error removing Basic tier: {str(e)}", ephemeral=True)
+
+
+@tree.command(name="addpremium", description="[ADMIN] Grant Premium tier access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(
+    user="Discord user to grant Premium tier to",
+    days="Number of days of Premium access (default: 30)",
+    permanent="Make this a permanent upgrade (default: False)"
+)
+async def add_premium(interaction: discord.Interaction, user: discord.User, days: int = 30, permanent: bool = False):
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    if days <= 0 and not permanent:
+        await interaction.response.send_message("❌ Days must be positive for temporary access!", ephemeral=True)
+        return
+    
+    try:
+        from datetime import datetime, timedelta
+        
+        if permanent:
+            expires_at = None
+            duration_text = "Permanent"
+        else:
+            expires_at = datetime.now() + timedelta(days=days)
+            duration_text = f"{days} days"
+        
+        # Grant Premium tier
+        await tier_handler.set_user_tier(user.id, 'premium', expires_at)
+        
+        # Get tier limits for display
+        limits = tier_handler.get_limits_for_tier('premium')
+        
+        # Success message
+        embed = discord.Embed(
+            title="✅ Premium Tier Granted Successfully",
+            description=(
+                f"**User:** {user.display_name} (`{user.id}`)\n"
+                f"**Tier:** {TIER_EMOJIS['premium']} Premium\n"
+                f"**Duration:** {duration_text}\n"
+                f"**Price:** $3/month equivalent\n"
+            ),
+            color=TIER_COLORS['premium']
+        )
+        
+        if not permanent:
+            embed.description += f"**Expires:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n"
+        
+        embed.add_field(
+            name="🎯 Premium Tier Features",
+            value=(
+                f"• **Text Limit:** {limits['text_limit']:,} characters\n"
+                f"• **Voice Limit:** {limits['voice_limit']//60} minutes\n"
+                f"• **Daily Points:** {limits['daily_points_min']}-{limits['daily_points_max']}\n"
+                f"• **Features:** Enhanced Voice, Priority Processing"
+            ),
+            inline=False
+        )
+        
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+        
+        embed.set_footer(text=f"Granted by {interaction.user.display_name}")
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+        # Notify user
+        try:
+            user_embed = discord.Embed(
+                title="🥈 Premium Tier Access Granted!",
+                description=(
+                    f"You've been granted **{duration_text}** of Premium tier access for Muse Translator!\n\n"
+                    f"**Premium Tier Benefits:**\n"
+                    f"• 📝 **2,000 character** text translations\n"
+                    f"• 🎤 **2-hour** voice translations\n"
+                    f"• 🚀 **Enhanced voice features**\n"
+                    f"• ⚡ **Priority processing**\n"
+                    f"• 🔄 **Auto-translate** feature\n"
+                    f"• 📚 **Translation history**\n"
+                    f"• 💎 **15-20 daily points**\n"
+                    f"• 🎯 **Priority support**\n\n"
+                    f"💡 *Use `/voicechat2` for enhanced voice features!*"
+                ),
+                color=TIER_COLORS['premium']
+            )
             
+            if not permanent:
+                user_embed.add_field(
+                    name="⏰ Expiration",
+                    value=expires_at.strftime('%B %d, %Y at %H:%M UTC'),
+                    inline=False
+                )
+            
+            await user.send(embed=user_embed)
             await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
         except discord.Forbidden:
             await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
@@ -6887,198 +7494,468 @@ async def remove_basic(interaction: discord.Interaction, user: discord.User):
             await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
     
     except Exception as e:
-        await interaction.response.send_message(f"❌ Error removing basic tier: {str(e)}", ephemeral=True)
+        await interaction.response.send_message(f"❌ Error granting Premium tier: {str(e)}", ephemeral=True)
 
-@tree.command(name="removepro", description="[ADMIN] Remove pro tier access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+### ➖ **Remove Premium Tier**
+
+@tree.command(name="removepremium", description="[ADMIN] Remove Premium tier access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
-@app_commands.describe(user="Discord user to remove pro tier from")
-async def remove_pro(interaction: discord.Interaction, user: discord.User):
-    # Double security: Must be admin in YOUR server AND be you
+@app_commands.describe(
+    user="Discord user to remove Premium tier from",
+    reason="Reason for removal (optional)"
+)
+async def remove_premium(interaction: discord.Interaction, user: discord.User, reason: str = "Admin removal"):
     if interaction.user.id != YOUR_ADMIN_ID:
         await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
         return
     
     try:
-        # Get current tier
+        # Check if user has Premium tier
         current_tier = await tier_handler.get_user_tier_async(user.id)
+        if current_tier != 'premium':
+            await interaction.response.send_message(
+                f"❌ User {user.display_name} doesn't have Premium tier! Current tier: {current_tier.title()}",
+                ephemeral=True)
+            return
+                # Get expiration info before removal
+        expires_at = await tier_handler.get_tier_expiration(user.id)
         
+        # Remove Premium tier (downgrade to free)
+        await tier_handler.downgrade_user_tier(user.id, reason)
+        
+        # Success message
+        embed = discord.Embed(
+            title="✅ Premium Tier Removed Successfully",
+            description=(
+                f"**User:** {user.display_name} (`{user.id}`)\n"
+                f"**Previous Tier:** {TIER_EMOJIS['premium']} Premium\n"
+                f"**New Tier:** {TIER_EMOJIS['free']} Free\n"
+                f"**Reason:** {reason}\n"
+            ),
+            color=0xff6b6b
+        )
+        
+        if expires_at:
+            embed.description += f"**Was set to expire:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n"
+        
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+        
+        embed.set_footer(text=f"Removed by {interaction.user.display_name}")
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+        # Notify user
+        try:
+            user_embed = discord.Embed(
+                title="🥈 Premium Tier Access Removed",
+                description=(
+                    f"Your Premium tier access for Muse Translator has been removed.\n\n"
+                    f"**Reason:** {reason}\n"
+                    f"**Current Tier:** Free\n\n"
+                    f"**Free Tier Limits:**\n"
+                    f"• 📝 50 character text translations\n"
+                    f"• 🎤 30-minute voice translations\n"
+                    f"• 💎 5-10 daily points\n\n"
+                    f"💡 *Use `/premium` to upgrade again!*"
+                ),
+                color=0xff6b6b
+            )
+            await user.send(embed=user_embed)
+            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
+        except:
+            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
+    
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error removing Premium tier: {str(e)}", ephemeral=True)
+
+@tree.command(name="addpro", description="[ADMIN] Grant Pro tier access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(
+    user="Discord user to grant Pro tier to",
+    days="Number of days of Pro access (default: 30)",
+    permanent="Make this a permanent upgrade (default: False)"
+)
+async def add_pro(interaction: discord.Interaction, user: discord.User, days: int = 30, permanent: bool = False):
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    if days <= 0 and not permanent:
+        await interaction.response.send_message("❌ Days must be positive for temporary access!", ephemeral=True)
+        return
+    
+    try:
+        from datetime import datetime, timedelta
+        
+        if permanent:
+            expires_at = None
+            duration_text = "Permanent"
+        else:
+            expires_at = datetime.now() + timedelta(days=days)
+            duration_text = f"{days} days"
+        
+        # Grant Pro tier
+        await tier_handler.set_user_tier(user.id, 'pro', expires_at)
+        
+        # Get tier limits for display
+        limits = tier_handler.get_limits_for_tier('pro')
+        
+        # Success message
+        embed = discord.Embed(
+            title="✅ Pro Tier Granted Successfully",
+            description=(
+                f"**User:** {user.display_name} (`{user.id}`)\n"
+                f"**Tier:** {TIER_EMOJIS['pro']} Pro\n"
+                f"**Duration:** {duration_text}\n"
+                f"**Price:** $5/month equivalent\n"
+            ),
+            color=TIER_COLORS['pro']
+        )
+        
+        if not permanent:
+            embed.description += f"**Expires:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n"
+        
+        embed.add_field(
+            name="🎯 Pro Tier Features",
+            value=(
+                f"• **Text Limit:** Unlimited\n"
+                f"• **Voice Limit:** Unlimited\n"
+                f"• **Daily Points:** {limits['daily_points_min']}-{limits['daily_points_max']}\n"
+                f"• **Features:** All Features + Beta Access"
+            ),
+            inline=False
+        )
+        
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+        
+        embed.set_footer(text=f"Granted by {interaction.user.display_name}")
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+        # Notify user
+        try:
+            user_embed = discord.Embed(
+                title="🥇 Pro Tier Access Granted!",
+                description=(
+                    f"You've been granted **{duration_text}** of Pro tier access for Muse Translator!\n\n"
+                    f"**Pro Tier Benefits:**\n"
+                    f"• 📝 **Unlimited** text translations\n"
+                    f"• 🎤 **Unlimited** voice translations\n"
+                    f"• 🚀 **All enhanced features**\n"
+                    f"• 🧪 **Beta access** to new features\n"
+                    f"• ⚡ **Priority processing**\n"
+                    f"• 🔄 **Custom integrations**\n"
+                    f"• 📚 **Full translation history**\n"
+                    f"• 💎 **20-25 daily points**\n"
+                    f"• 👑 **Priority support**\n\n"
+                    f"💡 *You now have access to all current and future features!*"
+                ),
+                color=TIER_COLORS['pro']
+            )
+            
+            if not permanent:
+                user_embed.add_field(
+                    name="⏰ Expiration",
+                    value=expires_at.strftime('%B %d, %Y at %H:%M UTC'),
+                    inline=False
+                )
+            
+            await user.send(embed=user_embed)
+            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
+        except Exception as dm_error:
+            await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
+    
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error granting Pro tier: {str(e)}", ephemeral=True)
+
+### ➖ **Remove Pro Tier**
+
+@tree.command(name="removepro", description="[ADMIN] Remove Pro tier access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(
+    user="Discord user to remove Pro tier from",
+    reason="Reason for removal (optional)"
+)
+async def remove_pro(interaction: discord.Interaction, user: discord.User, reason: str = "Admin removal"):
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    try:
+        # Check if user has Pro tier
+        current_tier = await tier_handler.get_user_tier_async(user.id)
         if current_tier != 'pro':
             await interaction.response.send_message(
-                f"❌ {user.display_name} is not on Pro tier (current: {current_tier.title()})",
+                f"❌ User {user.display_name} doesn't have Pro tier! Current tier: {current_tier.title()}",
                 ephemeral=True
             )
             return
         
-        # Remove from database
-        await tier_handler.set_user_tier(user.id, 'free')
+        # Get expiration info before removal
+        expires_at = await tier_handler.get_tier_expiration(user.id)
+        
+        # Remove Pro tier (downgrade to free)
+        await tier_handler.downgrade_user_tier(user.id, reason)
         
         # Success message
         embed = discord.Embed(
             title="✅ Pro Tier Removed Successfully",
             description=(
                 f"**User:** {user.display_name} (`{user.id}`)\n"
-                f"**Previous Tier:** Pro 🥇\n"
-                f"**New Tier:** Free 🆓\n\n"
-                f"🔄 *User reverted to free tier*"
+                f"**Previous Tier:** {TIER_EMOJIS['pro']} Pro\n"
+                f"**New Tier:** {TIER_EMOJIS['free']} Free\n"
+                f"**Reason:** {reason}\n"
             ),
-            color=0xff6b6b  # Red color
+            color=0xff6b6b
         )
+        
+        if expires_at:
+            embed.description += f"**Was set to expire:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n"
         
         if user.avatar:
             embed.set_thumbnail(url=user.avatar.url)
         
+        embed.set_footer(text=f"Removed by {interaction.user.display_name}")
+        
         await interaction.response.send_message(embed=embed, ephemeral=True)
         
-        # Try to notify the user
+        # Notify user
         try:
             user_embed = discord.Embed(
                 title="🥇 Pro Tier Access Removed",
                 description=(
                     f"Your Pro tier access for Muse Translator has been removed.\n\n"
-                    f"**Current Tier:** Free 🆓\n\n"
-                    f"**Free Tier Features:**\n"
+                    f"**Reason:** {reason}\n"
+                    f"**Current Tier:** Free\n\n"
+                    f"**Free Tier Limits:**\n"
                     f"• 📝 50 character text translations\n"
                     f"• 🎤 30-minute voice translations\n"
-                    f"• 💎 Daily points\n"
-                    f"• 🎯 Basic achievements\n\n"
-                    f"💡 *Upgrade anytime with `/upgrade`*"
+                    f"• 💎 5-10 daily points\n\n"
+                    f"💡 *Use `/premium` to upgrade again!*"
                 ),
                 color=0xff6b6b
             )
             await user.send(embed=user_embed)
-            
             await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
-        except discord.Forbidden:
+        except:
             await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
-        except Exception as dm_error:
-            await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
     
     except Exception as e:
-        await interaction.response.send_message(f"❌ Error removing pro tier: {str(e)}", ephemeral=True)
-
-@tree.command(name="checkuser", description="[ADMIN] Check any user's tier and access status", guild=discord.Object(id=YOUR_SERVER_ID))
+        await interaction.response.send_message(f"❌ Error removing Pro tier: {str(e)}", ephemeral=True)
+        
+@tree.command(name="checktier", description="[ADMIN] Check any user's current tier and expiration", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
-@app_commands.describe(user="Discord user to check status for")
-async def check_user(interaction: discord.Interaction, user: discord.User):
-    # Double security: Must be admin in YOUR server AND be you
+@app_commands.describe(user="Discord user to check tier for")
+async def check_tier(interaction: discord.Interaction, user: discord.User):
     if interaction.user.id != YOUR_ADMIN_ID:
         await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
         return
     
     try:
-        # Get user data
-        user_data = reward_db.get_or_create_user(user.id, user.display_name)
+        # Get user's current tier
         current_tier = await tier_handler.get_user_tier_async(user.id)
+        limits = tier_handler.get_limits(user.id)
+        expires_at = await tier_handler.get_tier_expiration(user.id)
+        tier_info = tier_handler.get_tier_info(current_tier)
         
-        # Check special access
-        enhanced_voice_access = has_enhanced_voice_access(user.id, reward_db, tier_handler)
-        
-        # Get tier expiration if applicable
-        tier_expires = await tier_handler.get_tier_expiration(user.id)
-        
+        # Create detailed embed
         embed = discord.Embed(
-            title=f"👤 User Status: {user.display_name}",
+            title=f"📊 Tier Information: {user.display_name}",
             description=f"**User ID:** `{user.id}`",
-            color=0x3498db
+            color=tier_info['color']
         )
+        
+        # Current tier info
+        embed.add_field(
+            name=f"{tier_info['emoji']} Current Tier",
+            value=f"**{tier_info['name']}** ({tier_info['price']})",
+            inline=True
+        )
+        
+        # Expiration info
+        if expires_at:
+            from datetime import datetime
+            days_remaining = (expires_at - datetime.now()).days
+            if days_remaining > 0:
+                expiry_text = f"{expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n({days_remaining} days remaining)"
+                expiry_color = "🟢" if days_remaining > 7 else "🟡" if days_remaining > 3 else "🔴"
+            else:
+                expiry_text = f"{expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n🔴 **EXPIRED**"
+                expiry_color = "🔴"
+            
+            embed.add_field(
+                name=f"{expiry_color} Expiration",
+                value=expiry_text,
+                inline=True
+            )
+        else:
+            embed.add_field(
+                name="⏰ Expiration",
+                value="Permanent / No expiration",
+                inline=True
+            )
+        
+        # Tier limits
+        text_limit = "Unlimited" if limits['text_limit'] == float('inf') else f"{limits['text_limit']:,} chars"
+        voice_limit = "Unlimited" if limits['voice_limit'] == float('inf') else f"{limits['voice_limit']//60} minutes"
+        
+        embed.add_field(
+            name="📋 Current Limits",
+            value=(
+                f"**Text:** {text_limit}\n"
+                f"**Voice:** {voice_limit}\n"
+                f"**Daily Points:** {limits['daily_points_min']}-{limits['daily_points_max']}"
+            ),
+            inline=False
+        )
+        
+        # Features
+        features = limits.get('features', [])
+        if features:
+            feature_text = "\n".join([f"• {feature.replace('_', ' ').title()}" for feature in features])
+            embed.add_field(
+                name="🎯 Available Features",
+                value=feature_text,
+                inline=False
+            )
         
         if user.avatar:
             embed.set_thumbnail(url=user.avatar.url)
         
-        # Tier info
-        tier_colors = {
-            'free': '🆓',
-            'basic': '🥉',
-            'premium': '🥈',
-            'pro': '🥇'
-        }
-        
-        tier_info = f"{tier_colors.get(current_tier, '❓')} {current_tier.title()}"
-        if tier_expires and current_tier != 'free':
-            tier_info = f"{tier_colors.get(current_tier, '❓')} {current_tier.title()}"
-        if tier_expires and current_tier != 'free':
-            tier_info += f"\n**Expires:** {tier_expires.strftime('%Y-%m-%d %H:%M UTC')}"
-        
-        embed.add_field(
-            name="🎯 Current Tier",
-            value=tier_info,
-            inline=True
-        )
-        
-        embed.add_field(
-            name="💎 Points",
-            value=f"{user_data['points']:,}",
-            inline=True
-        )
-        
-        embed.add_field(
-            name="📊 Sessions",
-            value=f"{user_data.get('total_sessions', 0)}",
-            inline=True
-        )
-        
-        # Access status
-        access_status = []
-        if enhanced_voice_access:
-            access_status.append("🚀 Enhanced Voice V2")
-        
-        # Check for temporary access
-        if 'enhanced_voice_access' in user_data:
-            from datetime import datetime
-            try:
-                expires = datetime.fromisoformat(user_data['enhanced_voice_access'])
-                if datetime.now() < expires:
-                    access_status.append(f"⏰ Temp Voice Access (until {expires.strftime('%m/%d %H:%M')})")
-            except:
-                pass
-        
-        embed.add_field(
-            name="🔑 Special Access",
-            value="\n".join(access_status) if access_status else "None",
-            inline=False
-        )
-        
-        # Recent activity
-        last_daily = user_data.get('last_daily', 'Never')
-        if last_daily != 'Never':
-            try:
-                from datetime import datetime
-                last_daily_date = datetime.fromisoformat(last_daily)
-                last_daily = last_daily_date.strftime('%Y-%m-%d')
-            except:
-                pass
-        
-        embed.add_field(
-            name="📅 Last Daily",
-            value=last_daily,
-            inline=True
-        )
-        
-        embed.add_field(
-            name="🏆 Achievements",
-            value=f"{len(user_data.get('achievements', []))}",
-            inline=True
-        )
-        
-        # Tier limits
-        limits = tier_handler.get_limits_for_tier(current_tier)
-        embed.add_field(
-            name="📋 Current Limits",
-            value=(
-                f"**Text:** {limits['text_limit']} chars\n"
-                f"**Voice:** {limits['voice_limit']}s\n"
-                f"**Daily Points:** {limits.get('daily_points_min', 5)}-{limits.get('daily_points_max', 10)}"
-            ),
-            inline=True
-        )
-        
-        embed.timestamp = datetime.now()
-        embed.set_footer(text="Admin User Check")
+        embed.set_footer(text=f"Checked by {interaction.user.display_name}")
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
     
     except Exception as e:
-        await interaction.response.send_message(f"❌ Error checking user: {str(e)}", ephemeral=True)
+        await interaction.response.send_message(f"❌ Error checking tier: {str(e)}", ephemeral=True)
+
+### 📈 **Tier Statistics**
+
+@tree.command(name="tierstats", description="[ADMIN] View tier distribution statistics", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+async def tier_stats(interaction: discord.Interaction):
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    try:
+        # Get tier statistics
+        stats = tier_handler.get_tier_stats()
+        
+        # Create statistics embed
+        embed = discord.Embed(
+            title="📈 Tier Distribution Statistics",
+            description="Current tier membership breakdown",
+            color=0x3498db
+        )
+        
+        # Add tier counts
+        embed.add_field(
+            name=f"{TIER_EMOJIS['basic']} Basic Tier",
+            value=f"**{stats['basic']}** users",
+            inline=True
+        )
+        
+        embed.add_field(
+            name=f"{TIER_EMOJIS['premium']} Premium Tier",
+            value=f"**{stats['premium']}** users",
+            inline=True
+        )
+        
+        embed.add_field(
+            name=f"{TIER_EMOJIS['pro']} Pro Tier",
+            value=f"**{stats['pro']}** users",
+            inline=True
+        )
+        
+        # Total premium users
+        embed.add_field(
+            name="💎 Total Premium Users",
+            value=f"**{stats['total_premium']}** users",
+            inline=False
+        )
+        
+        # Revenue estimation (rough)
+        estimated_revenue = (stats['basic'] * 1) + (stats['premium'] * 3) + (stats['pro'] * 5)
+        embed.add_field(
+            name="💰 Estimated Monthly Revenue",
+            value=f"**${estimated_revenue}** USD",
+            inline=True
+        )
+        
+        embed.set_footer(text=f"Generated by {interaction.user.display_name}")
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+    
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error getting tier stats: {str(e)}", ephemeral=True)
+
+### 🧹 **Cleanup Expired Tiers**
+
+@tree.command(name="cleanupexpired", description="[ADMIN] Clean up expired tier memberships", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+async def cleanup_expired(interaction: discord.Interaction):
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    try:
+        await interaction.response.defer(ephemeral=True)
+        
+        # Clean up expired tiers
+        expired_users = await tier_handler.cleanup_expired_tiers()
+        
+        if not expired_users:
+            embed = discord.Embed(
+                title="✅ Cleanup Complete",
+                description="No expired tier memberships found.",
+                color=0x2ecc71
+            )
+        else:
+            # Create summary of cleaned up users
+            embed = discord.Embed(
+                title="🧹 Cleanup Complete",
+                description=f"Cleaned up **{len(expired_users)}** expired tier memberships:",
+                color=0xf39c12
+            )
+            
+            # Group by tier
+            basic_expired = [u for u in expired_users if u[1] == 'basic']
+            premium_expired = [u for u in expired_users if u[1] == 'premium']
+            pro_expired = [u for u in expired_users if u[1] == 'pro']
+            
+            if basic_expired:
+                embed.add_field(
+                    name=f"{TIER_EMOJIS['basic']} Basic Expired",
+                    value=f"**{len(basic_expired)}** users",
+                    inline=True
+                )
+            
+            if premium_expired:
+                embed.add_field(
+                    name=f"{TIER_EMOJIS['premium']} Premium Expired",
+                    value=f"**{len(premium_expired)}** users",
+                    inline=True
+                )
+            
+            if pro_expired:
+                embed.add_field(
+                    name=f"{TIER_EMOJIS['pro']} Pro Expired",
+                    value=f"**{len(pro_expired)}** users",
+                    inline=True
+                )
+        
+        embed.set_footer(text=f"Cleanup performed by {interaction.user.display_name}")
+        
+        await interaction.followup.send(embed=embed, ephemeral=True)
+    
+    except Exception as e:
+        await interaction.followup.send(f"❌ Error during cleanup: {str(e)}", ephemeral=True)
+
 @tree.command(name="grantpoints", description="[ADMIN] Grant points to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(
