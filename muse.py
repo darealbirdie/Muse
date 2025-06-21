@@ -144,93 +144,269 @@ async def source_language_autocomplete(
     return matches[:25]
 class TierHandler:
     def __init__(self):
-        self.premium_users = set()
+        self.basic_users = set()      # $1/month
+        self.premium_users = set()    # $3/month  
+        self.pro_users = set()        # $5/month
+        
         self.tiers = {
             'free': {
-                'text_limit': 150,    # 150 characters per translation
-                'voice_limit': 1800   # 30 minutes per day (in seconds)
+                'text_limit': 50,         # 50 characters per translation
+                'voice_limit': 300,       # 5 minutes total voice time (in seconds)
+                'features': ['basic_translation']
             },
-            'premium': {
+            'basic': {                    # $1/month
+                'text_limit': 500,        # 500 characters per translation
+                'voice_limit': 1800,      # 30 minutes total voice time
+                'features': ['basic_translation', 'history', 'auto_translate']
+            },
+            'premium': {                  # $3/month
+                'text_limit': 2000,       # 2000 characters per translation
+                'voice_limit': 7200,      # 2 hours total voice time
+                'features': ['basic_translation', 'history', 'auto_translate', 'priority_processing', 'enhanced_voice']
+            },
+            'pro': {                      # $5/month
                 'text_limit': float('inf'),  # Unlimited characters per translation
-                'voice_limit': float('inf')  # Unlimited voice translation
+                'voice_limit': float('inf'), # Unlimited voice time
+                'features': ['all_features', 'priority_support', 'beta_access', 'custom_integrations']
             }
         }
     
     def get_limits(self, user_id: int):
         """Get user limits (synchronous version for immediate use)"""
-        return self.tiers['premium'] if user_id in self.premium_users else self.tiers['free']
+        if user_id in self.pro_users:
+            return self.tiers['pro']
+        elif user_id in self.premium_users:
+            return self.tiers['premium']
+        elif user_id in self.basic_users:
+            return self.tiers['basic']
+        else:
+            return self.tiers['free']
+    
+    def get_user_tier(self, user_id: int):
+        """Get user's current tier name (synchronous)"""
+        if user_id in self.pro_users:
+            return 'pro'
+        elif user_id in self.premium_users:
+            return 'premium'
+        elif user_id in self.basic_users:
+            return 'basic'
+        else:
+            return 'free'
     
     async def get_limits_async(self, user_id: int):
         """Get user limits using database (async version)"""
         try:
-            user = await db.get_or_create_user(user_id)
-            if user and user.get('is_premium', False):
+            # First check memory-based status for speed
+            if user_id in self.pro_users:
+                return self.tiers['pro']
+            elif user_id in self.premium_users:
                 return self.tiers['premium']
-            else:
-                return self.tiers['free']
+            elif user_id in self.basic_users:
+                return self.tiers['basic']
+            
+            # Check database for subscription status
+            try:
+                user = await db.get_or_create_user(user_id)
+                if user:
+                    # Check subscription tier from database
+                    tier = user.get('subscription_tier', 'free')
+                    
+                    if tier == 'pro':
+                        self.pro_users.add(user_id)
+                        return self.tiers['pro']
+                    elif tier == 'premium':
+                        self.premium_users.add(user_id)
+                        return self.tiers['premium']
+                    elif tier == 'basic':
+                        self.basic_users.add(user_id)
+                        return self.tiers['basic']
+                        
+            except Exception as db_error:
+                logger.error(f"Database error getting limits for {user_id}: {db_error}")
+            
+            # Check for temporary premium from rewards
+            try:
+                temp_tier = await self.get_temp_tier(user_id)
+                if temp_tier and temp_tier != 'free':
+                    return self.tiers[temp_tier]
+            except Exception as temp_error:
+                logger.error(f"Error checking temp tier: {temp_error}")
+            
+            # Default to free tier
+            return self.tiers['free']
+                
         except Exception as e:
-            logger.error(f"Error getting async limits for {user_id}: {e}")
+            logger.error(f"Error in get_limits_async for {user_id}: {e}")
             # Fallback to memory-based check
             return self.get_limits(user_id)
     
-    async def check_usage_limits(self, user_id: int, text_chars: int = 0, voice_seconds: int = 0):
-        """Check if user can perform action within limits"""
+    async def get_user_tier_async(self, user_id: int):
+        """Get user's current tier name (async version with database check)"""
         try:
-            # First check memory-based premium status
-            if user_id in self.premium_users:
-                return True, "Premium user - unlimited"
+            # Check memory first
+            if user_id in self.pro_users:
+                return 'pro'
+            elif user_id in self.premium_users:
+                return 'premium'
+            elif user_id in self.basic_users:
+                return 'basic'
             
-            # Try to get user from database
+            # Check database
             try:
                 user = await db.get_or_create_user(user_id)
-                if user and user.get('is_premium', False):
-                    # Add to memory for faster future checks
-                    self.premium_users.add(user_id)
-                    return True, "Premium user - unlimited"
+                if user:
+                    tier = user.get('subscription_tier', 'free')
+                    if tier in ['pro', 'premium', 'basic']:
+                        # Update memory cache
+                        if tier == 'pro':
+                            self.pro_users.add(user_id)
+                        elif tier == 'premium':
+                            self.premium_users.add(user_id)
+                        elif tier == 'basic':
+                            self.basic_users.add(user_id)
+                        return tier
             except Exception as db_error:
-                logger.error(f"Database error in usage check: {db_error}")
-                # Continue with free tier checks
+                logger.error(f"Database error getting tier for {user_id}: {db_error}")
             
-            # Free tier limits
-            limits = self.tiers['free']
+            # Check temporary tiers
+            temp_tier = await self.get_temp_tier(user_id)
+            if temp_tier:
+                return temp_tier
+                
+            return 'free'
             
-            # Check text limit (per translation, not daily)
-            if text_chars > limits['text_limit']:
-                return False, f"Text too long! Free tier limit: {limits['text_limit']} characters per translation"
+        except Exception as e:
+            logger.error(f"Error in get_user_tier_async for {user_id}: {e}")
+            return self.get_user_tier(user_id)
+    
+    async def check_usage_limits(self, user_id: int, text_chars: int = 0, voice_seconds: int = 0):
+        """Check if user can perform action within limits (NO DAILY LIMITS)"""
+        try:
+            # Get current tier and limits
+            current_tier = await self.get_user_tier_async(user_id)
+            limits = self.tiers[current_tier]
             
-            # Check voice limit (daily) using database
-            if voice_seconds > 0:
+            # Check text limit (per translation only, no daily limit)
+            if text_chars > 0 and limits['text_limit'] != float('inf'):
+                if text_chars > limits['text_limit']:
+                    tier_names = {'free': 'Free', 'basic': 'Basic ($1/month)', 'premium': 'Premium ($3/month)', 'pro': 'Pro ($5/month)'}
+                    return False, f"Text too long! {tier_names.get(current_tier, 'Current')} tier limit: {limits['text_limit']} characters per translation"
+            
+            # Check voice limit (total accumulated, not daily)
+            if voice_seconds > 0 and limits['voice_limit'] != float('inf'):
                 try:
-                    daily_usage = await db.get_daily_usage(user_id)
-                    if daily_usage and (daily_usage.get('voice_seconds', 0) + voice_seconds) > limits['voice_limit']:
-                        remaining_minutes = max(0, (limits['voice_limit'] - daily_usage.get('voice_seconds', 0)) // 60)
-                        return False, f"Daily voice limit exceeded! You have {remaining_minutes} minutes remaining today"
+                    # Get total voice usage (not daily - accumulated)
+                    total_usage = await db.get_total_voice_usage(user_id)
+                    current_usage = total_usage.get('voice_seconds', 0) if total_usage else 0
+                    
+                    if (current_usage + voice_seconds) > limits['voice_limit']:
+                        remaining_minutes = max(0, (limits['voice_limit'] - current_usage) // 60)
+                        tier_names = {'free': 'Free', 'basic': 'Basic', 'premium': 'Premium', 'pro': 'Pro'}
+                        return False, f"{tier_names.get(current_tier, 'Current')} tier voice limit exceeded! You have {remaining_minutes} minutes remaining total"
+                        
                 except Exception as voice_error:
                     logger.error(f"Error checking voice usage: {voice_error}")
                     # Allow voice on database error (don't block user)
                     pass
             
-            # Check for temporary premium from rewards
-            try:
-                if self.has_temp_premium(user_id, reward_db):
-                    return True, "Temporary premium active"
-            except Exception as temp_error:
-                logger.error(f"Error checking temp premium: {temp_error}")
-            
-            return True, "Within limits"
-            
+            return True, f"{current_tier.title()} tier - within limits"
+                
         except Exception as e:
             logger.error(f"Error in check_usage_limits for {user_id}: {e}")
             # On any error, allow the action (don't block users due to bugs)
             return True, "Limits check bypassed due to error"
     
-    def has_temp_premium(self, user_id: int, reward_db):
-        """Check if user has temporary premium from rewards"""
+    async def get_temp_tier(self, user_id: int):
+        """Check if user has temporary tier upgrade from rewards"""
         try:
-            return reward_db.has_active_reward(user_id, 'temp_premium')
+            # Check for active temporary tier rewards
+            active_rewards = await reward_db.get_active_rewards(user_id)
+            
+            if not active_rewards:
+                return 'free'
+            
+            # Find highest tier from active rewards
+            tier_priority = {'pro': 4, 'premium': 3, 'basic': 2, 'free': 1}
+            highest_tier = 'free'
+            
+            for reward in active_rewards:
+                reward_type = reward.get('reward_type', '')
+                if reward_type in ['pro', 'premium', 'basic']:
+                    if tier_priority.get(reward_type, 0) > tier_priority.get(highest_tier, 0):
+                        highest_tier = reward_type
+            
+            return highest_tier
+            
+        except Exception as e:
+            logger.error(f"Error checking temp tier for {user_id}: {e}")
+            return 'free'
+    
+    def has_temp_premium(self, user_id: int, reward_db):
+        """Check if user has any temporary premium tier from rewards (legacy method)"""
+        try:
+            # Check for any premium-level rewards
+            return (reward_db.has_active_reward(user_id, 'basic') or 
+                   reward_db.has_active_reward(user_id, 'premium') or 
+                   reward_db.has_active_reward(user_id, 'pro'))
         except Exception as e:
             logger.error(f"Error checking temp premium: {e}")
             return False
+    
+    async def upgrade_user_tier(self, user_id: int, new_tier: str, permanent: bool = True):
+        """Upgrade user to a new tier"""
+        try:
+            # Remove from all tier sets first
+            self.basic_users.discard(user_id)
+            self.premium_users.discard(user_id)
+            self.pro_users.discard(user_id)
+            
+            # Add to appropriate tier set
+            if new_tier == 'basic':
+                self.basic_users.add(user_id)
+            elif new_tier == 'premium':
+                self.premium_users.add(user_id)
+            elif new_tier == 'pro':
+                self.pro_users.add(user_id)
+            
+            # Update database if permanent
+            if permanent:
+                await db.update_user_subscription(user_id, new_tier)
+            
+            logger.info(f"User {user_id} upgraded to {new_tier} tier (permanent: {permanent})")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error upgrading user {user_id} to {new_tier}: {e}")
+            return False
+    
+    async def downgrade_user_tier(self, user_id: int, reason: str = "Subscription ended"):
+        """Downgrade user to free tier"""
+        try:
+            # Remove from all premium tier sets
+            self.basic_users.discard(user_id)
+            self.premium_users.discard(user_id)
+            self.pro_users.discard(user_id)
+            
+            # Update database
+            await db.update_user_subscription(user_id, 'free')
+            
+            logger.info(f"User {user_id} downgraded to free tier: {reason}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error downgrading user {user_id}: {e}")
+            return False
+    
+    def get_tier_info(self, tier_name: str):
+        """Get display information for a tier"""
+        tier_info = {
+            'free': {'color': 0x95a5a6, 'emoji': '🆓', 'name': 'Free', 'price': '$0'},
+            'basic': {'color': 0xcd7f32, 'emoji': '🥉', 'name': 'Basic', 'price': '$1/month'},
+            'premium': {'color': 0xc0c0c0, 'emoji': '🥈', 'name': 'Premium', 'price': '$3/month'},
+            'pro': {'color': 0xffd700, 'emoji': '🥇', 'name': 'Pro', 'price': '$5/month'}
+        }
+        return tier_info.get(tier_name, tier_info['free'])
+
 
 # Update tier_handler instance
 tier_handler = TierHandler()
@@ -443,15 +619,16 @@ def get_language_code(lang_input):
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def start(interaction: discord.Interaction):
-    await track_command_usage(interaction)  # NEW: Track usage for points
+    await track_command_usage(interaction)  # Track usage for points
     
     user_id = interaction.user.id
     guild_id = interaction.guild_id
     
-    # NEW: Initialize user in reward system
+    # Initialize user in reward system
     user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
     is_new_user = user_data['total_sessions'] == 0
     
+    # Handle guild-based translator initialization
     if guild_id:
         if guild_id not in translation_server.translators:
             translation_server.translators[guild_id] = {}
@@ -460,7 +637,7 @@ async def start(interaction: discord.Interaction):
             translation_server.translators[guild_id][user_id] = {}
             translation_server.get_user_url(user_id)
     
-    # NEW: Award welcome bonus for new users
+    # Award welcome bonus ONLY for truly new users
     if is_new_user:
         welcome_bonus = 50
         reward_db.add_points(user_id, welcome_bonus, "Welcome bonus - first time using Muse!")
@@ -472,7 +649,7 @@ async def start(interaction: discord.Interaction):
             color=0x2ecc71
         )
         
-        # NEW: Welcome bonus notification
+        # Welcome bonus notification
         embed.add_field(
             name="🎁 Welcome Bonus",
             value=f"You received **{welcome_bonus} points** for joining Muse!\nUse `/daily` to claim 10 more points daily!",
@@ -487,14 +664,15 @@ async def start(interaction: discord.Interaction):
             color=0x3498db
         )
         
-        # NEW: Show user stats
+        # Show user stats
         embed.add_field(
             name="📊 Your Stats",
             value=f"💎 Points: {user_data['points']:,}\n🎯 Sessions: {user_data['total_sessions']}\n⏱️ Usage: {user_data['total_usage_hours']:.1f}h",
             inline=True
         )
         
-        # NEW: Daily reward reminder
+        # Daily reward reminder
+        from datetime import datetime
         today = datetime.now().date().isoformat()
         if user_data['last_daily_claim'] != today:
             embed.add_field(
@@ -525,7 +703,7 @@ async def start(interaction: discord.Interaction):
         inline=False
     )
     
-    # NEW: Reward system commands
+    # Reward system commands
     embed.add_field(
         name="💎 Reward System",
         value=(
@@ -552,7 +730,8 @@ async def start(interaction: discord.Interaction):
     embed.set_footer(text="Join our support server: https://discord.gg/VMpBsbhrff")
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
-    print(f"🔥 User connected: {interaction.user.display_name} (Points: {user_data['points']})")
+    print(f"🔥 User connected: {interaction.user.display_name} (New: {is_new_user}, Points: {user_data['points']})")
+
 
         
 @tree.command(name="setchannel", description="Set the channel for translations")
@@ -4104,53 +4283,97 @@ async def send_points_only_notification(user_id: int, points: int, amount: float
     except Exception as e:
         logger.error(f"Failed to send points notification: {e}")
 
-@tree.command(name="premium", description="Get premium access through Ko-fi subscription")
+@tree.command(name="premium", description="Get premium access through Ko-fi")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def premium(interaction: discord.Interaction):
-    user_id = interaction.user.id
-    is_premium = user_id in tier_handler.premium_users
+    embed = discord.Embed(
+        title="💎 Upgrade Your Translation Experience",
+        description="Choose the perfect plan for your needs:",
+        color=0x29abe0
+    )
     
-    if is_premium:
-        embed = discord.Embed(
-            title="⭐ Premium Active!",
-            description="Your premium subscription is active!",
-            color=0x2ecc71
-        )
-        embed.add_field(
-            name="✨ Active Features",
-            value="• Unlimited character translation\n• Extended voice translation\n• Priority support",
-            inline=False
-        )
-    else:
-        embed = discord.Embed(
-            title="🌟 Get Premium Access - $1/month Subscription",
-            description=(
-                "**Premium Features (Subscription Only)**\n"
-                "• Unlimited character translation\n"
-                "• Extended voice translation time\n"
-                "• Priority support\n\n"
-                "**How to Subscribe:**\n"
-                f"1. Click the Ko-fi button below\n"
-                f"2. **Set up monthly subscription** for $1+\n"
-                f"3. Include your Discord ID: `{user_id}`\n"
-                f"4. Premium activates instantly!"
-            ),
-            color=0x29abe0
-        )
-        
-        embed.add_field(
-            name="💡 Important",
-            value="**Only subscriptions grant premium access**\nOne-time donations only give points!",
-            inline=False
-        )
+    # Free Tier (current)
+    embed.add_field(
+        name="🆓 Free Tier",
+        value=(
+            "• 50 character limit per translation\n"
+            "• 5 minutes total voice time\n"
+            "• Basic features only\n"
+        ),
+        inline=True
+    )
+    
+    # Basic Tier - $1/month
+    embed.add_field(
+        name="🥉 Basic - $1/month",
+        value=(
+            "• 500 character limit per translation\n"
+            "• 30 minutes total voice time\n"
+            "• Translation history\n"
+            "• Auto-translate feature\n"
+        ),
+        inline=True
+    )
+    
+    # Premium Tier - $3/month
+    embed.add_field(
+        name="🥈 Premium - $3/month",
+        value=(
+            "• 2000 character limit per translation\n"
+            "• 2 hours total voice time\n"
+            "• Priority processing\n"
+            "• Enhanced voice features\n"
+            "• All Basic features\n"
+        ),
+        inline=True
+    )
+    
+    # Pro Tier - $5/month
+    embed.add_field(
+        name="🥇 Pro - $5/month",
+        value=(
+            "• ♾️ Unlimited character limit\n"
+            "• ♾️ Unlimited voice time\n"
+            "• Priority support\n"
+            "• Beta feature access\n"
+            "• Custom integrations\n"
+        ),
+        inline=True
+    )
+    
+    embed.add_field(
+        name="📝 How to Subscribe",
+        value=(
+            f"1. Click the Ko-fi link below\n"
+            f"2. Include your Discord ID: `{interaction.user.id}`\n"
+            f"3. Choose your monthly tier\n"
+            f"4. Get instant access!"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🎁 Try Before You Buy",
+        value=(
+            "Use `/shop` to try premium features with points!\n"
+            "• Basic (1 day): 75 points\n"
+            "• Premium (1 day): 150 points\n"
+            "• Pro (1 day): 250 points"
+        ),
+        inline=False
+    )
     
     view = discord.ui.View()
     view.add_item(discord.ui.Button(
-        label="⭐ Subscribe on Ko-fi",
-        url="https://ko-fi.com/yourusername",  # Replace with your Ko-fi URL
-        style=discord.ButtonStyle.link
+        label="Subscribe on Ko-fi",
+        url="https://ko-fi.com/muse/tiers",
+        style=discord.ButtonStyle.link,
+        emoji="☕"
     ))
     
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
 
 @tree.command(name="buypoints", description="Purchase points with one-time Ko-fi donation")
 async def buy_points(interaction: discord.Interaction):
@@ -4284,20 +4507,29 @@ async def check_status(interaction: discord.Interaction):
     await track_command_usage(interaction)
     
     user_id = interaction.user.id
-    is_premium = user_id in tier_handler.premium_users
-    limits = tier_handler.get_limits(user_id)
+    
+    # Get current tier (async for database accuracy)
+    current_tier = await tier_handler.get_user_tier_async(user_id)
+    limits = await tier_handler.get_limits_async(user_id)
     user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
     active_rewards = reward_db.get_active_rewards(user_id)
     
+    # Get tier display info
+    tier_info = tier_handler.get_tier_info(current_tier)
+    
     embed = discord.Embed(
-        title="📊 Account Status",
-        color=0xf1c40f if is_premium else 0x3498db
+        title=f"{tier_info['emoji']} Account Status",
+        color=tier_info['color']
     )
     
-    # Basic tier info
+    # Tier info with price
+    tier_display = f"{tier_info['name']}"
+    if current_tier != 'free':
+        tier_display += f" ({tier_info['price']})"
+    
     embed.add_field(
         name="⭐ Subscription Tier",
-        value="Premium" if is_premium else "Free",
+        value=tier_display,
         inline=True
     )
     
@@ -4317,7 +4549,7 @@ async def check_status(interaction: discord.Interaction):
     
     # Current limits (enhanced by active rewards)
     text_limit = "Unlimited" if limits['text_limit'] == float('inf') else f"{limits['text_limit']} chars"
-    voice_limit = "Unlimited" if limits['voice_limit'] == float('inf') else f"{limits['voice_limit']} seconds"
+    voice_limit_display = "Unlimited" if limits['voice_limit'] == float('inf') else f"{limits['voice_limit']//60} min total"
     
     embed.add_field(
         name="📝 Text Limit",
@@ -4327,7 +4559,7 @@ async def check_status(interaction: discord.Interaction):
     
     embed.add_field(
         name="🎤 Voice Limit",
-        value=voice_limit,
+        value=voice_limit_display,
         inline=True
     )
     
@@ -4339,10 +4571,14 @@ async def check_status(interaction: discord.Interaction):
     
     # Active rewards
     if active_rewards:
+        from datetime import datetime
         reward_text = "\n".join([
             f"• {reward['name']} (expires <t:{int(datetime.fromisoformat(reward['expires_at']).timestamp())}:R>)"
             for reward in active_rewards[:3]
         ])
+        if len(active_rewards) > 3:
+            reward_text += f"\n• +{len(active_rewards) - 3} more..."
+            
         embed.add_field(
             name="🎁 Active Rewards",
             value=reward_text,
@@ -4350,6 +4586,7 @@ async def check_status(interaction: discord.Interaction):
         )
     
     # Daily reward status
+    from datetime import datetime
     today = datetime.now().date().isoformat()
     if user_data['last_daily_claim'] == today:
         daily_status = "✅ Claimed today"
@@ -4362,44 +4599,143 @@ async def check_status(interaction: discord.Interaction):
         inline=True
     )
     
-    # Enhanced voice access
-    has_enhanced_voice = has_enhanced_voice_access(user_id, reward_db, tier_handler)
+    # Enhanced voice access (check for premium+ tiers or temp rewards)
+    has_enhanced_voice = (current_tier in ['premium', 'pro'] or 
+                         has_enhanced_voice_access(user_id, reward_db, tier_handler))
     embed.add_field(
         name="🚀 Enhanced Voice V2",
         value="✅ Available" if has_enhanced_voice else "❌ Not available",
         inline=True
     )
     
-    if not is_premium:
+    # Show available features based on tier
+    features = limits.get('features', [])
+    feature_icons = {
+        'basic_translation': '📝 Basic Translation',
+        'history': '📚 Translation History', 
+        'auto_translate': '🔄 Auto-translate',
+        'priority_processing': '⚡ Priority Processing',
+        'enhanced_voice': '🚀 Enhanced Voice',
+        'all_features': '✨ All Features',
+        'beta_access': '🧪 Beta Access',
+        'priority_support': '🎯 Priority Support',
+        'custom_integrations': '🔧 Custom Integrations'
+    }
+    
+    feature_list = []
+    for feature in features:
+        if feature in feature_icons:
+            feature_list.append(feature_icons[feature])
+    
+    if feature_list:
         embed.add_field(
-            name="💡 Upgrade Benefits",
-            value="• 2.5x daily rewards\n• 10x usage points\n• Permanent Enhanced Voice V2\n• Unlimited translations",
+            name="🎯 Your Features",
+            value="\n".join(feature_list[:6]),  # Limit to 6 features to avoid embed limits
+            inline=True
+        )
+    
+    # Upgrade suggestions based on current tier
+    if current_tier == 'free':
+        embed.add_field(
+            name="🚀 Upgrade to Basic ($1/month)",
+            value="• 10x character limit (500 chars)\n• 6x voice time (30 min)\n• Translation history\n• Auto-translate feature",
+            inline=False
+        )
+    elif current_tier == 'basic':
+        embed.add_field(
+            name="🚀 Upgrade to Premium ($3/month)", 
+            value="• 4x character limit (2000 chars)\n• 4x voice time (2 hours)\n• Priority processing\n• Enhanced voice features",
+            inline=False
+        )
+    elif current_tier == 'premium':
+        embed.add_field(
+            name="🚀 Upgrade to Pro ($5/month)",
+            value="• ♾️ Unlimited everything\n• 🧪 Beta feature access\n• 🎯 Priority support\n• 🔧 Custom integrations",
+            inline=False
+        )
+    else:  # Pro tier
+        embed.add_field(
+            name="🥇 Pro Member Benefits",
+            value="• ♾️ Unlimited translations\n• 🧪 Early access to new features\n• 🎯 Priority support\n• 🔧 Custom integrations",
+            inline=False
+        )
+    
+    # Add usage efficiency tip
+    if current_tier == 'free' and user_data['total_sessions'] > 5:
+        embed.add_field(
+            name="💡 Pro Tip",
+            value="You're an active user! Consider upgrading for unlimited translations and premium features.",
             inline=False
         )
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-
-# Add new command for translation history
 @tree.command(name="history", description="View your recent translation history")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-@app_commands.describe(limit="Number of translations to show (max 20)")
+@app_commands.describe(limit="Number of translations to show (max varies by tier)")
 async def translation_history(interaction: discord.Interaction, limit: int = 10):
+    await track_command_usage(interaction)
+    
     user_id = interaction.user.id
     
-    # Get user to check premium status
-    user = await db.get_or_create_user(user_id, interaction.user.display_name)
+    # Get current tier and check if history feature is available
+    current_tier = await tier_handler.get_user_tier_async(user_id)
+    limits = await tier_handler.get_limits_async(user_id)
+    features = limits.get('features', [])
     
-    # Limit based on tier
-    if not user['is_premium']:
-        limit = min(limit, 10)  # Free users get max 10
-    else:
-        limit = min(limit, 20)  # Premium users get max 20
+    # Check if user has access to history feature
+    if 'history' not in features and current_tier == 'free':
+        # Check for temporary history access from rewards
+        has_temp_history = reward_db.has_active_reward(user_id, 'translation_history')
+        
+        if not has_temp_history:
+            embed = discord.Embed(
+                title="🔒 Feature Locked",
+                description="Translation history is available for Basic tier and above!",
+                color=0xe74c3c
+            )
+            
+            embed.add_field(
+                name="🥉 Basic Tier ($1/month)",
+                value="• Translation history access\n• 500 character limit\n• 30 minutes voice time\n• Auto-translate feature",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="🎁 Try It Now",
+                value="Use `/shop` to get temporary history access with points!\nOr upgrade to Basic for permanent access.",
+                inline=False
+            )
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+    
+    # Set limits based on tier
+    tier_limits = {
+        'free': 5,      # Free users with temp access get 5
+        'basic': 15,    # Basic users get 15
+        'premium': 30,  # Premium users get 30
+        'pro': 50       # Pro users get 50
+    }
+    
+    max_limit = tier_limits.get(current_tier, 5)
+    limit = min(limit, max_limit)
+    
+    # Get user data for display
+    user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
     
     # Get translation history using your database method
-    history = await db.get_translation_history(user_id, limit)
+    try:
+        history = await db.get_translation_history(user_id, limit)
+    except Exception as e:
+        logger.error(f"Error getting translation history for {user_id}: {e}")
+        embed = discord.Embed(
+            title="❌ Error",
+            description="Unable to retrieve translation history. Please try again later.",
+            color=0xe74c3c
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
     
     if not history:
         embed = discord.Embed(
@@ -4407,40 +4743,120 @@ async def translation_history(interaction: discord.Interaction, limit: int = 10)
             description="No translations found. Start translating to build your history!",
             color=0x95a5a6
         )
+        
+        embed.add_field(
+            name="🚀 Start Translating",
+            value="Use `/texttr`, `/voice`, or `/voicechat` to create your first translation!",
+            inline=False
+        )
+        
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
     
+    # Get tier info for styling
+    tier_info = tier_handler.get_tier_info(current_tier)
+    
     embed = discord.Embed(
-        title="📚 Your Translation History",
+        title=f"📚 Your Translation History {tier_info['emoji']}",
         description=f"Showing your {len(history)} most recent translations",
-        color=0x2ecc71 if user['is_premium'] else 0x3498db
+        color=tier_info['color']
     )
     
     for i, translation in enumerate(history, 1):
-        # Get language names and flags
-        source_name = languages.get(translation['source_lang'], translation['source_lang'])
-        target_name = languages.get(translation['target_lang'], translation['target_lang'])
-        source_flag = flag_mapping.get(translation['source_lang'], '🌐')
-        target_flag = flag_mapping.get(translation['target_lang'], '🌐')
-        
-        # Format the translation entry - USE CORRECT FIELD NAMES
-        original_text = translation['original'][:100] + "..." if len(translation['original']) > 100 else translation['original']
-        translated_text = translation['translated'][:100] + "..." if len(translation['translated']) > 100 else translation['translated']
-        
+        try:
+            # Get language names and flags
+            source_lang = translation.get('source_lang', 'unknown')
+            target_lang = translation.get('target_lang', 'unknown')
+            
+            source_name = languages.get(source_lang, source_lang)
+            target_name = languages.get(target_lang, target_lang)
+            source_flag = flag_mapping.get(source_lang, '🌐')
+            target_flag = flag_mapping.get(target_lang, '🌐')
+            
+            # Format the translation entry with proper field names
+            original_text = translation.get('original', translation.get('original_text', 'N/A'))
+            translated_text = translation.get('translated', translation.get('translated_text', 'N/A'))
+            translation_type = translation.get('type', translation.get('translation_type', 'text'))
+            
+            # Truncate long text
+            original_display = original_text[:80] + "..." if len(original_text) > 80 else original_text
+            translated_display = translated_text[:80] + "..." if len(translated_text) > 80 else translated_text
+            
+            # Add timestamp if available
+            timestamp_info = ""
+            if 'created_at' in translation:
+                try:
+                    from datetime import datetime
+                    created_at = datetime.fromisoformat(translation['created_at'])
+                    timestamp_info = f" • <t:{int(created_at.timestamp())}:R>"
+                except:
+                    pass
+            
+            # Type emoji
+            type_emoji = {
+                'text': '📝',
+                'voice': '🎤', 
+                'auto': '🔄',
+                'dm': '💬'
+            }.get(translation_type, '📝')
+            
+            embed.add_field(
+                name=f"{i}. {source_flag} {source_name} → {target_flag} {target_name} {type_emoji}{timestamp_info}",
+                value=f"**Original:** {original_display}\n**Translation:** {translated_display}",
+                inline=False
+            )
+            
+        except Exception as e:
+            logger.error(f"Error formatting translation {i}: {e}")
+            embed.add_field(
+                name=f"{i}. Translation Error",
+                value="Unable to display this translation",
+                inline=False
+            )
+    
+    # Add tier-specific footer and info
+    if current_tier == 'free':
+        # Free user with temporary access
         embed.add_field(
-            name=f"{i}. {source_flag} {source_name} → {target_flag} {target_name} ({translation['type']})",
-            value=f"**Original:** {original_text}\n**Translation:** {translated_text}",
+            name="🎁 Temporary Access",
+            value="You have temporary history access! Upgrade to Basic for permanent access.",
+            inline=False
+        )
+        embed.set_footer(text="🆓 Free + Temp Access: Limited history • /premium to upgrade")
+        
+    elif current_tier == 'basic':
+        embed.add_field(
+            name="🥉 Basic Tier Benefits",
+            value=f"• History access (up to {tier_limits['basic']} entries)\n• 500 character translations\n• Auto-translate feature",
+            inline=False
+        )
+        embed.set_footer(text="🥉 Basic: Translation history included • /premium for more features")
+        
+    elif current_tier == 'premium':
+        embed.add_field(
+            name="🥈 Premium Tier Benefits", 
+            value=f"• Extended history (up to {tier_limits['premium']} entries)\n• Priority processing\n• Enhanced voice features",
+            inline=False
+        )
+        embed.set_footer(text="🥈 Premium: Extended history access • /premium for Pro features")
+        
+    else:  # Pro tier
+        embed.add_field(
+            name="🥇 Pro Tier Benefits",
+            value=f"• Full history access (up to {tier_limits['pro']} entries)\n• Unlimited translations\n• Beta features & priority support",
+            inline=False
+        )
+        embed.set_footer(text="🥇 Pro: Full history access • Thank you for your support!")
+    
+    # Add usage tip
+    if len(history) >= limit:
+        embed.add_field(
+            name="💡 Tip",
+            value=f"Showing maximum {limit} entries for your tier. Use a smaller number to see fewer results.",
             inline=False
         )
     
-    # Add tier info
-    if user['is_premium']:
-        embed.set_footer(text="⭐ Premium: Full history access")
-    else:
-        embed.set_footer(text="🆓 Free: Recent history only • /premium for full access")
-    
     await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 # Add new command for setting user preferences
 @tree.command(name="preferences", description="Set your default translation languages")
