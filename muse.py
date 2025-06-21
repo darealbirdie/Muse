@@ -750,7 +750,7 @@ async def start(interaction: discord.Interaction):
             "`/hide` or `/show` - Toggle original text visibility\n"
             "`/history` - View translation history\n"
             "`/list` - See all supported languages\n"
-            "`/premium` - Unlock premium features\n"
+            "`/upgrade` - Unlock premium features\n"
             "`/help` - Full command list\n"
             "`/stop` - End translation session"
         ),
@@ -890,7 +890,7 @@ async def text_translate(
         if len(text) > text_limit:
             await interaction.response.send_message(
                 f"🔒 Text too long! Free tier limit: {text_limit} characters\n"
-                f"💡 Use `/premium` to get unlimited translation!",
+                f"💡 Use `/upgrade` to get unlimited translation!",
                 ephemeral=True
             )
             return
@@ -1042,14 +1042,14 @@ async def text_translate(
                 embed.set_footer(text=f"Server: {interaction.guild.name} • Premium User")
             else:
                 embed.set_footer(
-                    text=f"Characters: {len(text)}/{text_limit} • Server: {interaction.guild.name} • /premium for unlimited"
+                    text=f"Characters: {len(text)}/{text_limit} • Server: {interaction.guild.name} • /upgrade for unlimited"
                 )
         else:
             if is_premium:
                 embed.set_footer(text="User Mode: DM Translation • Premium User")
             else:
                 embed.set_footer(
-                    text=f"Characters: {len(text)}/{text_limit} • User Mode: DM Translation • /premium for unlimited"
+                    text=f"Characters: {len(text)}/{text_limit} • User Mode: DM Translation • /upgrade for unlimited"
                 )
         
         # Send the response
@@ -1134,7 +1134,7 @@ async def translate_and_speak(
         can_translate, limit_message = await tier_handler.check_usage_limits(user_id, text_chars=len(text))
         if not can_translate:
             await interaction.response.send_message(
-                f"🔒 {limit_message}\n💡 Try shorter text or use /premium for unlimited translation!",
+                f"🔒 {limit_message}\n💡 Try shorter text or use /upgrade for unlimited translation!",
                 ephemeral=True
             )
             return
@@ -1220,7 +1220,7 @@ async def translate_and_speak(
         # Add character count for free users
         user = await db.get_or_create_user(user_id)
         if not user['is_premium']:
-            embed.set_footer(text=f"Characters used: {len(text)}/150 • Upgrade: /premium")
+            embed.set_footer(text=f"Characters used: {len(text)}/150 • Upgrade: /upgrade")
         else:
             # Add context info for premium users
             if interaction.guild:
@@ -1337,7 +1337,7 @@ async def voice_chat_translate(
                     "• Unlimited voice translation\n"
                     "• Unlimited text translation\n"
                     "• Full translation history\n\n"
-                    "Use `/premium` to upgrade now!"
+                    "Use `/upgrade` to upgrade now!"
                 ),
                 color=0xFF6B6B
             )
@@ -1680,7 +1680,7 @@ async def voice_chat_translate(
                 )
                 embed.add_field(
                     name="💡 Upgrade Tip",
-                    value="Get unlimited voice translation with `/premium`",
+                    value="Get unlimited voice translation with `/upgrade`",
                     inline=False
                 )
             else:
@@ -1764,69 +1764,77 @@ async def voice_chat_translate_bidirectional_v2(
         return
     
     # NEW: Check if user has access to Enhanced Voice V2
+    # At the start of your voicechat2 command
     user_id = interaction.user.id
+
+    # Check enhanced voice access
     if not has_enhanced_voice_access(user_id, reward_db, tier_handler):
         user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
+        current_tier = await tier_handler.get_user_tier_async(user_id)
+    
+        # Create access denied embed with purchase options
         embed = discord.Embed(
-            title="🚀 Enhanced Voice V2 - Premium Feature",
-            description="This advanced feature requires premium access or can be purchased with points!",
+            title="🚀 Enhanced Voice V2 - Beta Feature",
+            description="This advanced voice translation feature is currently in beta testing!",
             color=0x9b59b6
         )
-        
+    
         embed.add_field(
             name="💎 Your Points",
             value=f"{user_data['points']:,}",
             inline=True
         )
-        
+    
         embed.add_field(
-            name="🛍️ Purchase Options",
-            value="• **1-Day Access:** 50 points\n• **7-Day Access:** 300 points",
-            inline=True
+            name="🛍️ Beta Access Options",
+            value=(
+                "• **1-Day Access:** 50 points\n"
+                "• **Beta Trial (48h):** 100 points\n"
+                "• **7-Day Access:** 300 points"
+            ),
+         inline=True
         )
-        
+    
         embed.add_field(
             name="⭐ Permanent Access",
-            value="Get premium for unlimited access!",
+            value=(
+                "**Premium ($3/month):** Unlimited Enhanced Voice V2\n"
+                "**Pro ($5/month):** All features + priority support\n"
+                "Use `/upgrade` to upgrade!"
+            ),
             inline=True
         )
-        
+    
         embed.add_field(
-            name="🎯 How to Get Points",
-            value="• `/daily` - 10 points daily\n• Use translator regularly\n• Complete achievements",
+            name="🧪 Enhanced Voice V2 Features",
+            value=(
+                "• **Bidirectional translation** between any 2 languages\n"
+                    "• **Smart language detection** with priority matching\n"
+                "• **Multi-speaker support** for group conversations\n"
+                "• **Improved audio processing** for better accuracy"
+            ),
             inline=False
         )
-        
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return
-        
-    # Convert language inputs to codes - support both codes and names
-    lang1_code = "auto" if language1.lower() == "auto" else get_language_code(language1)
-    lang2_code = "auto" if language2.lower() == "auto" else get_language_code(language2)
     
-    # Validate language codes (at least one must not be auto)
-    if language1.lower() != "auto" and not lang1_code:
-        await interaction.response.send_message(
-            f"❌ Invalid language: '{language1}'\nUse /list to see available languages or use 'auto' for automatic detection.",
-            ephemeral=True
+        embed.add_field(
+            name="🎯 How to Get Points",
+            value=(
+                "• `/daily` - 5-25 points daily (tier-based)\n"
+                "• Use translator regularly (+1-5 per use)\n"
+                "• Complete achievements (+10-100)\n"
+                "• Leave feedback (+15-30)"
+            ),
+            inline=False
         )
-        return
-        
-    if language2.lower() != "auto" and not lang2_code:
-        await interaction.response.send_message(
-            f"❌ Invalid language: '{language2}'\nUse /list to see available languages or use 'auto' for automatic detection.",
-            ephemeral=True
-        )
-        return
     
-    # Don't allow both languages to be auto
-    if lang1_code == "auto" and lang2_code == "auto":
-        await interaction.response.send_message(
-            "❌ At least one language must be specified (not 'auto'). Example: `/voicechat2 auto english`",
-            ephemeral=True
-        )
-        return
-        
+        embed.add_field(
+            name="📊 Current Status",
+            value=f"**Tier:** {current_tier.title()}\n**Access:** Basic voice features only",
+            inline=False
+        ) 
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+    return
+   
     # Get user's tier limits
     user_id = interaction.user.id
     limits = tier_handler.get_limits(user_id)
@@ -2498,7 +2506,7 @@ async def translate_and_speak_voice(
         can_translate, limit_message = await tier_handler.check_usage_limits(user_id, text_chars=len(text))
         if not can_translate:
             await interaction.response.send_message(
-                f"🔒 {limit_message}\n💡 Try shorter text or use /premium for unlimited translation!",
+                f"🔒 {limit_message}\n💡 Try shorter text or use /upgrade for unlimited translation!",
                 ephemeral=True
             )
             return
@@ -2579,7 +2587,7 @@ async def translate_and_speak_voice(
         # Add character count for free users
         user = await db.get_or_create_user(user_id)
         if not user['is_premium']:
-            embed.set_footer(text=f"Characters: {len(text)}/150 • Server: {interaction.guild.name} • /premium for unlimited")
+            embed.set_footer(text=f"Characters: {len(text)}/150 • Server: {interaction.guild.name} • /upgrade for unlimited")
         else:
             embed.set_footer(text=f"Server: {interaction.guild.name} • Premium User")
             
@@ -2994,7 +3002,7 @@ async def on_message(message):
                     if daily_usage['translations'] == 0:  # First translation attempt today
                         await message.author.send(
                             f"🔒 Auto-translation paused: {limit_message}\n"
-                            f"💡 Try shorter messages or use /premium for unlimited translation!"
+                            f"💡 Try shorter messages or use /upgrade for unlimited translation!"
                         )
                 except:
                     # Can't DM the user, ignore
@@ -3092,7 +3100,7 @@ async def on_message(message):
                 # Add character count for free users
                 user = await db.get_or_create_user(user_id)
                 if not user['is_premium']:
-                    embed.set_footer(text=f"Characters: {len(message.content)}/150 • Auto-translate • /premium for unlimited")
+                    embed.set_footer(text=f"Characters: {len(message.content)}/150 • Auto-translate • /upgrade for unlimited")
                 else:
                     embed.set_footer(text="Auto-translate • Premium User")
                 
@@ -3139,7 +3147,7 @@ async def dm_translate(
         can_translate, limit_message = await tier_handler.check_usage_limits(sender_id, text_chars=len(text))
         if not can_translate:
             await interaction.response.send_message(
-                f"🔒 {limit_message}\n💡 Try shorter text or use /premium for unlimited translation!",
+                f"🔒 {limit_message}\n💡 Try shorter text or use /upgrade for unlimited translation!",
                 ephemeral=True
             )
             return
@@ -3240,7 +3248,7 @@ async def dm_translate(
             # Add character count for free users
             sender_user = await db.get_or_create_user(sender_id)
             if not sender_user['is_premium']:
-                sender_embed.set_footer(text=f"Characters used: {len(text)}/150 • /premium for unlimited")
+                sender_embed.set_footer(text=f"Characters used: {len(text)}/150 • /upgrade for unlimited")
             
             await interaction.followup.send(embed=sender_embed, ephemeral=True)
             
@@ -3333,7 +3341,7 @@ async def translate_by_id(
         can_translate, limit_message = await tier_handler.check_usage_limits(user_id, text_chars=len(message_to_translate.content))
         if not can_translate:
             await interaction.response.send_message(
-                f"🔒 {limit_message}\n💡 Try a shorter message or use /premium for unlimited translation!",
+                f"🔒 {limit_message}\n💡 Try a shorter message or use /upgrade for unlimited translation!",
                 ephemeral=True
             )
             return
@@ -3430,7 +3438,7 @@ async def translate_by_id(
         # Add character count for free users
         user = await db.get_or_create_user(user_id)
         if not user['is_premium']:
-            footer_text = f"Characters: {len(message_to_translate.content)}/150 • From: {message_to_translate.author.display_name} • /premium for unlimited"
+            footer_text = f"Characters: {len(message_to_translate.content)}/150 • From: {message_to_translate.author.display_name} • /upgrade for unlimited"
         else:
             footer_text = f"From: {message_to_translate.author.display_name} • Premium User"
         
@@ -3496,7 +3504,7 @@ async def translate_message_context(interaction: discord.Interaction, message: d
         can_translate, limit_message = await tier_handler.check_usage_limits(user_id, text_chars=len(message.content))
         if not can_translate:
             await interaction.response.send_message(
-                f"🔒 {limit_message}\n💡 Try a shorter message or use /premium for unlimited translation!",
+                f"🔒 {limit_message}\n💡 Try a shorter message or use /upgrade for unlimited translation!",
                 ephemeral=True
             )
             return
@@ -3609,7 +3617,7 @@ async def translate_message_context(interaction: discord.Interaction, message: d
                 # Add character count for free users
                 user = await db.get_or_create_user(modal_interaction.user.id)
                 if not user['is_premium']:
-                    footer_text = f"Characters: {len(self.message_to_translate.content)}/150 • From: {self.message_to_translate.author.display_name} • /premium for unlimited"
+                    footer_text = f"Characters: {len(self.message_to_translate.content)}/150 • From: {self.message_to_translate.author.display_name} • /upgrade for unlimited"
                 else:
                     footer_text = f"From: {self.message_to_translate.author.display_name} • Premium User"
                 
@@ -4363,7 +4371,7 @@ async def send_points_only_notification(user_id: int, points: int, amount: float
     except Exception as e:
         logger.error(f"Failed to send points notification: {e}")
 
-@tree.command(name="premium", description="Get premium access through Ko-fi")
+@tree.command(name="upgrade", description="Get premium access through Ko-fi")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def premium(interaction: discord.Interaction):
@@ -4718,13 +4726,13 @@ async def check_status(interaction: discord.Interaction):
     if current_tier == 'free':
         embed.add_field(
             name="🚀 Upgrade to Basic ($1/month)",
-            value="• 10x character limit (500 chars)\n• 6x voice time (30 min)\n• Translation history\n• Auto-translate feature",
+            value="• 10x character limit (500 chars)\n• 2x voice time (60 min)\n• Translation history\n• Auto-translate feature",
             inline=False
         )
     elif current_tier == 'basic':
         embed.add_field(
             name="🚀 Upgrade to Premium ($3/month)", 
-            value="• 4x character limit (2000 chars)\n• 4x voice time (2 hours)\n• Priority processing\n• Enhanced voice features",
+            value="• 4x character limit (2000 chars)\n• 2x voice time (2 hours)\n• Priority processing\n• Enhanced voice features",
             inline=False
         )
     elif current_tier == 'premium':
@@ -4902,7 +4910,7 @@ async def translation_history(interaction: discord.Interaction, limit: int = 10)
             value="You have temporary history access! Upgrade to Basic for permanent access.",
             inline=False
         )
-        embed.set_footer(text="🆓 Free + Temp Access: Limited history • /premium to upgrade")
+        embed.set_footer(text="🆓 Free + Temp Access: Limited history • /upgrade to upgrade")
         
     elif current_tier == 'basic':
         embed.add_field(
@@ -4910,7 +4918,7 @@ async def translation_history(interaction: discord.Interaction, limit: int = 10)
             value=f"• History access (up to {tier_limits['basic']} entries)\n• 500 character translations\n• Auto-translate feature",
             inline=False
         )
-        embed.set_footer(text="🥉 Basic: Translation history included • /premium for more features")
+        embed.set_footer(text="🥉 Basic: Translation history included • /upgrade for more features")
         
     elif current_tier == 'premium':
         embed.add_field(
@@ -4918,7 +4926,7 @@ async def translation_history(interaction: discord.Interaction, limit: int = 10)
             value=f"• Extended history (up to {tier_limits['premium']} entries)\n• Priority processing\n• Enhanced voice features",
             inline=False
         )
-        embed.set_footer(text="🥈 Premium: Extended history access • /premium for Pro features")
+        embed.set_footer(text="🥈 Premium: Extended history access • /upgrade for Pro features")
         
     else:  # Pro tier
         embed.add_field(
@@ -5101,7 +5109,7 @@ async def help_command(interaction: discord.Interaction):
         value=(
             "`/list` - Show all supported languages\n"
             "`/status` - Check your account status & rewards\n"
-            "`/premium` - Get premium access info\n"
+            "`/upgrade` - Get premium access info\n"
             "`/invite` - Get bot invite links\n"
             "`/help` - Show this command list"
         ),
@@ -5458,7 +5466,7 @@ async def daily_reward(interaction: discord.Interaction):
         if not is_premium:
             embed.add_field(
                 name="💡 Tip",
-                value="Premium users get 2.5x daily rewards! Use `/premium` to upgrade.",
+                value="Premium users get 2.5x daily rewards! Use `/upgrade` to upgrade.",
                 inline=False
             )
         
@@ -6682,6 +6690,537 @@ async def transactions(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
+@tree.command(name="addbasic", description="[ADMIN] Grant basic tier access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(
+    user="Any Discord user to grant basic tier to",
+    days="Number of days of basic access (default: 30)"
+)
+async def add_basic(interaction: discord.Interaction, user: discord.User, days: int = 30):
+    # Double security: Must be admin in YOUR server AND be you
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    try:
+        from datetime import datetime, timedelta
+        expires_at = datetime.now() + timedelta(days=days)
+        
+        # Add to database
+        user_data = reward_db.get_or_create_user(user.id, user.display_name)
+        await tier_handler.set_user_tier(user.id, 'basic', expires_at)
+        
+        # Success message
+        embed = discord.Embed(
+            title="✅ Basic Tier Granted Successfully",
+            description=(
+                f"**User:** {user.display_name} (`{user.id}`)\n"
+                f"**Tier:** Basic 🥉\n"
+                f"**Duration:** {days} days\n"
+                f"**Expires:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n\n"
+                f"🥉 *Basic tier access activated*"
+            ),
+            color=0xcd7f32  # Bronze color
+        )
+        
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+        # Try to notify the user
+        try:
+            user_embed = discord.Embed(
+                title="🥉 Basic Tier Access Granted!",
+                description=(
+                    f"You've been granted **{days} days** of Basic tier access for Muse Translator!\n\n"
+                    f"**Expires:** {expires_at.strftime('%B %d, %Y at %H:%M UTC')}\n\n"
+                    f"**Basic Tier Features Unlocked:**\n"
+                    f"• 📝 500 character text translations\n"
+                    f"• 🎤 2-minute voice translations\n"
+                    f"• 💎 Daily points: 10-15\n"
+                    f"• 🎯 Basic achievements\n"
+                    f"• ⚡ Standard support"
+                ),
+                color=0xcd7f32
+            )
+            await user.send(embed=user_embed)
+            
+            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
+        except Exception as dm_error:
+            await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
+    
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error granting basic tier: {str(e)}", ephemeral=True)
+
+@tree.command(name="addpro", description="[ADMIN] Grant pro tier access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(
+    user="Any Discord user to grant pro tier to",
+    days="Number of days of pro access (default: 30)"
+)
+async def add_pro(interaction: discord.Interaction, user: discord.User, days: int = 30):
+    # Double security: Must be admin in YOUR server AND be you
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    try:
+        from datetime import datetime, timedelta
+        expires_at = datetime.now() + timedelta(days=days)
+        
+        # Add to database
+        user_data = reward_db.get_or_create_user(user.id, user.display_name)
+        await tier_handler.set_user_tier(user.id, 'pro', expires_at)
+        
+        # Success message
+        embed = discord.Embed(
+            title="✅ Pro Tier Granted Successfully",
+            description=(
+                f"**User:** {user.display_name} (`{user.id}`)\n"
+                f"**Tier:** Pro 🥇\n"
+                f"**Duration:** {days} days\n"
+                f"**Expires:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n\n"
+                f"🥇 *Pro tier access activated*"
+            ),
+            color=0xffd700  # Gold color
+        )
+        
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+        # Try to notify the user
+        try:
+            user_embed = discord.Embed(
+                title="🥇 Pro Tier Access Granted!",
+                description=(
+                    f"You've been granted **{days} days** of Pro tier access for Muse Translator!\n\n"
+                    f"**Expires:** {expires_at.strftime('%B %d, %Y at %H:%M UTC')}\n\n"
+                    f"**Pro Tier Features Unlocked:**\n"
+                    f"• ♾️ Unlimited text translation\n"
+                    f"• 🎤 Unlimited voice translation\n"
+                    f"• 🚀 Enhanced Voice V2 access\n"
+                    f"• 💎 Daily points: 20-25\n"
+                    f"• 🏆 All achievements unlocked\n"
+                    f"• ⚡ Priority support\n"
+                    f"• 🧪 Beta feature access"
+                ),
+                color=0xffd700
+            )
+            await user.send(embed=user_embed)
+            
+            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
+        except Exception as dm_error:
+            await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
+    
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error granting pro tier: {str(e)}", ephemeral=True)
+
+@tree.command(name="removebasic", description="[ADMIN] Remove basic tier access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(user="Discord user to remove basic tier from")
+async def remove_basic(interaction: discord.Interaction, user: discord.User):
+    # Double security: Must be admin in YOUR server AND be you
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    try:
+        # Get current tier
+        current_tier = await tier_handler.get_user_tier_async(user.id)
+        
+        if current_tier != 'basic':
+            await interaction.response.send_message(
+                f"❌ {user.display_name} is not on Basic tier (current: {current_tier.title()})",
+                ephemeral=True
+            )
+            return
+        
+        # Remove from database
+        await tier_handler.set_user_tier(user.id, 'free')
+        
+        # Success message
+        embed = discord.Embed(
+            title="✅ Basic Tier Removed Successfully",
+            description=(
+                f"**User:** {user.display_name} (`{user.id}`)\n"
+                f"**Previous Tier:** Basic 🥉\n"
+                f"**New Tier:** Free 🆓\n\n"
+                f"🔄 *User reverted to free tier*"
+            ),
+            color=0xff6b6b  # Red color
+        )
+        
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+        # Try to notify the user
+        try:
+            user_embed = discord.Embed(
+                title="🥉 Basic Tier Access Removed",
+                description=(
+                    f"Your Basic tier access for Muse Translator has been removed.\n\n"
+                    f"**Current Tier:** Free 🆓\n\n"
+                    f"**Free Tier Features:**\n"
+                    f"• 📝 100 character text translations\n"
+                    f"• 🎤 30-second voice translations\n"
+                    f"• 💎 Daily points: 5-10\n"
+                    f"• 🎯 Basic achievements\n\n"
+                    f"💡 *Upgrade anytime with `/upgrade`*"
+                ),
+                color=0xff6b6b
+            )
+            await user.send(embed=user_embed)
+            
+            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
+        except Exception as dm_error:
+            await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
+    
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error removing basic tier: {str(e)}", ephemeral=True)
+
+@tree.command(name="removepro", description="[ADMIN] Remove pro tier access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(user="Discord user to remove pro tier from")
+async def remove_pro(interaction: discord.Interaction, user: discord.User):
+    # Double security: Must be admin in YOUR server AND be you
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    try:
+        # Get current tier
+        current_tier = await tier_handler.get_user_tier_async(user.id)
+        
+        if current_tier != 'pro':
+            await interaction.response.send_message(
+                f"❌ {user.display_name} is not on Pro tier (current: {current_tier.title()})",
+                ephemeral=True
+            )
+            return
+        
+        # Remove from database
+        await tier_handler.set_user_tier(user.id, 'free')
+        
+        # Success message
+        embed = discord.Embed(
+            title="✅ Pro Tier Removed Successfully",
+            description=(
+                f"**User:** {user.display_name} (`{user.id}`)\n"
+                f"**Previous Tier:** Pro 🥇\n"
+                f"**New Tier:** Free 🆓\n\n"
+                f"🔄 *User reverted to free tier*"
+            ),
+            color=0xff6b6b  # Red color
+        )
+        
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+        # Try to notify the user
+        try:
+            user_embed = discord.Embed(
+                title="🥇 Pro Tier Access Removed",
+                description=(
+                    f"Your Pro tier access for Muse Translator has been removed.\n\n"
+                    f"**Current Tier:** Free 🆓\n\n"
+                    f"**Free Tier Features:**\n"
+                    f"• 📝 50 character text translations\n"
+                    f"• 🎤 30-minute voice translations\n"
+                    f"• 💎 Daily points\n"
+                    f"• 🎯 Basic achievements\n\n"
+                    f"💡 *Upgrade anytime with `/upgrade`*"
+                ),
+                color=0xff6b6b
+            )
+            await user.send(embed=user_embed)
+            
+            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
+        except Exception as dm_error:
+            await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
+    
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error removing pro tier: {str(e)}", ephemeral=True)
+
+@tree.command(name="checkuser", description="[ADMIN] Check any user's tier and access status", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(user="Discord user to check status for")
+async def check_user(interaction: discord.Interaction, user: discord.User):
+    # Double security: Must be admin in YOUR server AND be you
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    try:
+        # Get user data
+        user_data = reward_db.get_or_create_user(user.id, user.display_name)
+        current_tier = await tier_handler.get_user_tier_async(user.id)
+        
+        # Check special access
+        enhanced_voice_access = has_enhanced_voice_access(user.id, reward_db, tier_handler)
+        
+        # Get tier expiration if applicable
+        tier_expires = await tier_handler.get_tier_expiration(user.id)
+        
+        embed = discord.Embed(
+            title=f"👤 User Status: {user.display_name}",
+            description=f"**User ID:** `{user.id}`",
+            color=0x3498db
+        )
+        
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+        
+        # Tier info
+        tier_colors = {
+            'free': '🆓',
+            'basic': '🥉',
+            'premium': '🥈',
+            'pro': '🥇'
+        }
+        
+        tier_info = f"{tier_colors.get(current_tier, '❓')} {current_tier.title()}"
+        if tier_expires and current_tier != 'free':
+            tier_info = f"{tier_colors.get(current_tier, '❓')} {current_tier.title()}"
+        if tier_expires and current_tier != 'free':
+            tier_info += f"\n**Expires:** {tier_expires.strftime('%Y-%m-%d %H:%M UTC')}"
+        
+        embed.add_field(
+            name="🎯 Current Tier",
+            value=tier_info,
+            inline=True
+        )
+        
+        embed.add_field(
+            name="💎 Points",
+            value=f"{user_data['points']:,}",
+            inline=True
+        )
+        
+        embed.add_field(
+            name="📊 Sessions",
+            value=f"{user_data.get('total_sessions', 0)}",
+            inline=True
+        )
+        
+        # Access status
+        access_status = []
+        if enhanced_voice_access:
+            access_status.append("🚀 Enhanced Voice V2")
+        
+        # Check for temporary access
+        if 'enhanced_voice_access' in user_data:
+            from datetime import datetime
+            try:
+                expires = datetime.fromisoformat(user_data['enhanced_voice_access'])
+                if datetime.now() < expires:
+                    access_status.append(f"⏰ Temp Voice Access (until {expires.strftime('%m/%d %H:%M')})")
+            except:
+                pass
+        
+        embed.add_field(
+            name="🔑 Special Access",
+            value="\n".join(access_status) if access_status else "None",
+            inline=False
+        )
+        
+        # Recent activity
+        last_daily = user_data.get('last_daily', 'Never')
+        if last_daily != 'Never':
+            try:
+                from datetime import datetime
+                last_daily_date = datetime.fromisoformat(last_daily)
+                last_daily = last_daily_date.strftime('%Y-%m-%d')
+            except:
+                pass
+        
+        embed.add_field(
+            name="📅 Last Daily",
+            value=last_daily,
+            inline=True
+        )
+        
+        embed.add_field(
+            name="🏆 Achievements",
+            value=f"{len(user_data.get('achievements', []))}",
+            inline=True
+        )
+        
+        # Tier limits
+        limits = tier_handler.get_limits_for_tier(current_tier)
+        embed.add_field(
+            name="📋 Current Limits",
+            value=(
+                f"**Text:** {limits['text_limit']} chars\n"
+                f"**Voice:** {limits['voice_limit']}s\n"
+                f"**Daily Points:** {limits.get('daily_points_min', 5)}-{limits.get('daily_points_max', 10)}"
+            ),
+            inline=True
+        )
+        
+        embed.timestamp = datetime.now()
+        embed.set_footer(text="Admin User Check")
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+    
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error checking user: {str(e)}", ephemeral=True)
+@tree.command(name="grantpoints", description="[ADMIN] Grant points to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(
+    user="Discord user to grant points to",
+    points="Number of points to grant",
+    reason="Reason for granting points (optional)"
+)
+async def grant_points(interaction: discord.Interaction, user: discord.User, points: int, reason: str = "Admin grant"):
+    # Double security: Must be admin in YOUR server AND be you
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    if points <= 0:
+        await interaction.response.send_message("❌ Points must be positive!", ephemeral=True)
+        return
+    
+    try:
+        # Get user data
+        user_data = reward_db.get_or_create_user(user.id, user.display_name)
+        old_points = user_data['points']
+        
+        # Grant points
+        reward_db.add_points(user.id, points, f"Admin grant: {reason}")
+        new_points = old_points + points
+        
+        # Success message
+        embed = discord.Embed(
+            title="✅ Points Granted Successfully",
+            description=(
+                f"**User:** {user.display_name} (`{user.id}`)\n"
+                f"**Points Granted:** +{points:,}\n"
+                f"**Previous Balance:** {old_points:,}\n"
+                f"**New Balance:** {new_points:,}\n"
+                f"**Reason:** {reason}"
+            ),
+            color=0x00ff00
+        )
+        
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+        # Try to notify the user
+        try:
+            user_embed = discord.Embed(
+                title="💎 Points Granted!",
+                description=(
+                    f"You've been granted **{points:,} points** for Muse Translator!\n\n"
+                    f"**Reason:** {reason}\n"
+                    f"**New Balance:** {new_points:,} points\n\n"
+                    f"💡 *Use `/shop` to spend your points!*"
+                ),
+                color=0x00ff00
+            )
+            await user.send(embed=user_embed)
+            
+            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
+        except Exception as dm_error:
+            await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
+    
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error granting points: {str(e)}", ephemeral=True)
+
+@tree.command(name="removepoints", description="[ADMIN] Remove points from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(
+    user="Discord user to remove points from",
+    points="Number of points to remove",
+    reason="Reason for removing points (optional)"
+)
+async def remove_points(interaction: discord.Interaction, user: discord.User, points: int, reason: str = "Admin removal"):
+    # Double security: Must be admin in YOUR server AND be you
+    if interaction.user.id != YOUR_ADMIN_ID:
+        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
+        return
+    
+    if points <= 0:
+        await interaction.response.send_message("❌ Points must be positive!", ephemeral=True)
+        return
+    
+    try:
+        # Get user data
+        user_data = reward_db.get_or_create_user(user.id, user.display_name)
+        old_points = user_data['points']
+        
+        if old_points < points:
+            await interaction.response.send_message(
+                f"❌ User only has {old_points:,} points, cannot remove {points:,}!",
+                ephemeral=True
+            )
+            return
+        
+        # Remove points
+        reward_db.add_points(user.id, -points, f"Admin removal: {reason}")
+        new_points = old_points - points
+        
+        # Success message
+        embed = discord.Embed(
+            title="✅ Points Removed Successfully",
+            description=(
+                f"**User:** {user.display_name} (`{user.id}`)\n"
+                f"**Points Removed:** -{points:,}\n"
+                f"**Previous Balance:** {old_points:,}\n"
+                f"**New Balance:** {new_points:,}\n"
+                f"**Reason:** {reason}"
+            ),
+            color=0xff6b6b
+        )
+        
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+        # Try to notify the user
+        try:
+            user_embed = discord.Embed(
+                title="💎 Points Deducted",
+                description=(
+                    f"**{points:,} points** have been deducted from your Muse Translator account.\n\n"
+                    f"**Reason:** {reason}\n"
+                    f"**New Balance:** {new_points:,} points\n\n"
+                    f"💡 *Earn more points with `/daily` and regular usage!*"
+                ),
+                color=0xff6b6b
+            )
+            await user.send(embed=user_embed)
+            
+            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
+        except Exception as dm_error:
+            await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
+    
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error removing points: {str(e)}", ephemeral=True)
+
+
 @tree.command(name="addpremium", description="[ADMIN] Grant premium access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(
@@ -6783,7 +7322,7 @@ async def remove_premium(interaction: discord.Interaction, user: discord.User):
                     "**What this means:**\n"
                     "• Text translations limited to 100 characters\n"
                     "• Voice translations limited to 30 minutes daily\n\n"
-                    "Use `/premium` to subscribe again if you'd like premium features."
+                    "Use `/upgrade` to subscribe again if you'd like premium features."
                 ),
                 color=0xff9900
             )
@@ -6850,51 +7389,6 @@ async def list_premium(interaction: discord.Interaction):
         
     except Exception as e:
         await interaction.response.send_message(f"❌ Error listing premium users: {str(e)}", ephemeral=True)
-
-@tree.command(name="checkuser", description="[ADMIN] Check any Discord user's premium status", guild=discord.Object(id=YOUR_SERVER_ID))
-@app_commands.default_permissions(administrator=True)
-@app_commands.describe(user="Any Discord user to check")
-async def check_user(interaction: discord.Interaction, user: discord.User):
-    if interaction.user.id != YOUR_ADMIN_ID:
-        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
-        return
-    
-    try:
-        embed = discord.Embed(
-            title=f"👤 User Profile: {user.display_name}",
-            color=0x3498db
-        )
-        
-        # Add user avatar
-        if user.avatar:
-            embed.set_thumbnail(url=user.avatar.url)
-        
-        # Basic user info
-        embed.add_field(name="Discord Username", value=user.display_name, inline=True)
-        embed.add_field(name="User ID", value=f"`{user.id}`", inline=True)
-        embed.add_field(name="Account Created", value=user.created_at.strftime('%Y-%m-%d'), inline=True)
-        
-        # Premium status
-        is_premium = user.id in tier_handler.premium_users
-        limits = tier_handler.get_limits(user.id)
-        
-        if is_premium:
-            embed.add_field(name="Premium Status", value="✅ ACTIVE", inline=True)
-            embed.add_field(name="Text Limit", value="♾️ Unlimited", inline=True)
-            embed.add_field(name="Voice Limit", value="♾️ Unlimited", inline=True)
-            embed.color = 0x00ff00
-        else:
-            embed.add_field(name="Premium Status", value="❌ NOT PREMIUM", inline=True)
-            embed.add_field(name="Text Limit", value=f"{limits['text_limit']} characters", inline=True)
-            embed.add_field(name="Voice Limit", value=f"{limits['voice_limit']} seconds daily", inline=True)
-            embed.color = 0x95a5a6
-        
-        embed.set_footer(text=f"Admin Panel • Server: {interaction.guild.name}")
-        
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Error checking user: {str(e)}", ephemeral=True)
 
 # Separate sync command for guild commands
 @tree.command(name="syncguild", description="[ADMIN] Sync guild commands", guild=discord.Object(id=YOUR_SERVER_ID))
