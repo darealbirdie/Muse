@@ -1848,7 +1848,7 @@ async def voice_chat_translate(
         
     # Get user's tier limits and check voice usage
     user_id = interaction.user.id
-    user = await db.get_or_create_user(user_id, interaction.user.display_name)
+    user = db.get_or_create_user(user_id, interaction.user.display_name)
     limits = get_effective_limits(user_id, tier_handler, reward_db)
     
     # Check voice limits for free users
@@ -3729,7 +3729,7 @@ async def auto_translate(
     target_flag = flag_mapping.get(target_code, '🌐')
     
     # Check if user is premium for the warning
-    user = await db.get_or_create_user(user_id, interaction.user.display_name)
+    user = db.get_or_create_user(user_id, interaction.user.display_name)
     limit_warning = "" if user['is_premium'] else "\n⚠️ **Free users:** Messages over 50 characters will be skipped. Upgrade to premium for unlimited!"
     
     await interaction.response.send_message(
@@ -5371,7 +5371,7 @@ async def translation_history(interaction: discord.Interaction, limit: int = 10)
         limit = min(limit, 5)   # Free users get max 5
     
     # Get translation history using your database method
-    history = await db.get_translation_history(user_id, limit)
+    history = db.get_translation_history(user_id, limit)
     
     if not history:
         embed = discord.Embed(
