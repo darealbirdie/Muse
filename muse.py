@@ -46,10 +46,10 @@ YOUR_ADMIN_ID = 1192196672437096520
 YOUR_SERVER_ID = 1332522833326375022
 # Tier colors for embeds
 TIER_COLORS = {
-    'free': 0x95a5a6,
-    'basic': 0xcd7f32,
-    'premium': 0xc0c0c0,
-    'pro': 0xffd700
+    'free': 0x95a5a6,      # Gray
+    'basic': 0x3498db,     # Blue  
+    'premium': 0xf39c12,   # Orange
+    'pro': 0x9b59b6        # Purple
 }
 
 TIER_EMOJIS = {
@@ -165,11 +165,10 @@ class TierHandler:
         self.usage_tracking = {}    # Track daily usage per user
         self.tiers = {
             'free': {
-                'text_limit': 100,    # 100 characters per translation
+                'text_limit': 50,    # 50 characters per translation
                 'voice_limit': 1800,  # 30 minutes in seconds
                 'daily_points_min': 5,
                 'daily_points_max': 10,
-                'daily_translations': 50,
                 'features': ['basic_translation', 'voice_chat']
             },
             'basic': {
@@ -177,7 +176,6 @@ class TierHandler:
                 'voice_limit': 3600,  # 60 minutes in seconds
                 'daily_points_min': 10,
                 'daily_points_max': 15,
-                'daily_translations': 150,
                 'features': ['basic_translation', 'voice_chat', 'auto_translate']
             },
             'premium': {
@@ -185,7 +183,6 @@ class TierHandler:
                 'voice_limit': 7200,  # 2 hours in seconds
                 'daily_points_min': 15,
                 'daily_points_max': 20,
-                'daily_translations': 500,
                 'features': ['basic_translation', 'voice_chat', 'auto_translate', 'enhanced_voice', 'priority_support']
             },
             'pro': {
@@ -193,11 +190,19 @@ class TierHandler:
                 'voice_limit': float('inf'), # Unlimited voice translation
                 'daily_points_min': 25,
                 'daily_points_max': 35,
-                'daily_translations': float('inf'),
                 'features': ['all_features', 'priority_processing', 'custom_models']
             }
         }
-    
+    def get_user_tier(self, user_id: int):
+        """Get the current tier for a user"""
+        if user_id in self.pro_users:
+            return 'pro'
+        elif user_id in self.premium_users:
+            return 'premium'
+        elif user_id in self.basic_users:
+            return 'basic'
+        else:
+            return 'free'
     # ORIGINAL METHODS (from your working code)
     def get_limits(self, user_id: int):
         """Get limits for a specific user"""
@@ -991,201 +996,342 @@ def get_language_code(lang_input):
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def start(interaction: discord.Interaction):
-    await track_command_usage(interaction)  # Track usage for points
-    
-    user_id = interaction.user.id
-    guild_id = interaction.guild_id
-    
-    # Initialize user in reward system
-    user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
-    is_new_user = user_data['total_sessions'] == 0
-    
-    # Handle guild-based translator initialization
-    if guild_id:
-        if guild_id not in translation_server.translators:
-            translation_server.translators[guild_id] = {}
+    try:
+        # Step 1: Track command usage
+        try:
+            await track_command_usage(interaction)
+            print("✅ Step 1: Command usage tracked successfully")
+        except Exception as e:
+            print(f"❌ Step 1 Error - track_command_usage: {e}")
+            # Continue anyway, this isn't critical
         
-        if user_id not in translation_server.translators[guild_id]:
-            translation_server.translators[guild_id][user_id] = {}
-            translation_server.get_user_url(user_id)
-    
-    # Get current tier for display
-    current_tier = await tier_handler.get_user_tier_async(user_id)
-    tier_info = tier_handler.get_tier_info(current_tier)
-    limits = await tier_handler.get_limits_async(user_id)
-    
-    if is_new_user:
-        # Create new user welcome embed
-        embed = discord.Embed(
-            title=f"🎉 Welcome to Muse Translator! {tier_info['emoji']}",
-            description=f"Hello {interaction.user.display_name}! Your personal translator is ready to use.",
-            color=0x2ecc71
-        )
-        
-        # Add tier status for new users
-        embed.add_field(
-            name=f"⭐ Your Tier: {tier_info['name']}",
-            value=(
-                f"📝 Text Limit: {limits['text_limit'] if limits['text_limit'] != float('inf') else 'Unlimited'} chars\n"
-                f"🎤 Voice Limit: {limits['voice_limit']//60 if limits['voice_limit'] != float('inf') else 'Unlimited'} min\n"
-                f"💎 Points: {user_data['points']:,}"
-            ),
-            inline=False
-        )
-        
-        # Getting started tips for new users
-        embed.add_field(
-            name="🚀 Getting Started",
-            value=(
-                "• Use `/daily` to claim daily points\n"
-                "• Try `/texttr` for your first translation\n"
-                "• Check `/shop` for temporary upgrades\n"
-                "• Use `/help` for detailed commands"
-            ),
-            inline=False
-        )
-        
-    else:
-        # Returning user embed
-        embed = discord.Embed(
-            title=f"🚀 Welcome Back to Muse! {tier_info['emoji']}",
-            description=f"Hello {interaction.user.display_name}! Your translator is ready to use.",
-            color=tier_info['color']
-        )
-        
-        # Show user stats
-        embed.add_field(
-            name="📊 Your Stats",
-            value=(
-                f"💎 Points: {user_data['points']:,}\n"
-                f"🎯 Sessions: {user_data['total_sessions']}\n"
-                f"⏱️ Usage: {user_data['total_usage_hours']:.1f}h\n"
-                f"⭐ Tier: {tier_info['name']}"
-            ),
-            inline=True
-        )
-        
-        # Daily reward reminder
-        from datetime import datetime
-        today = datetime.now().date().isoformat()
-        if user_data['last_daily_claim'] != today:
+        # Step 2: Get user and guild info
+        try:
+            user_id = interaction.user.id
+            guild_id = interaction.guild_id
+            print(f"✅ Step 2: Got user_id={user_id}, guild_id={guild_id}")
+        except Exception as e:
+            print(f"❌ Step 2 Error - Getting user/guild info: {e}")
+            await interaction.response.send_message("❌ Error getting user information.", ephemeral=True)
+            return
+
+        # Step 3: Initialize user in reward system
+        try:
+            user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
+            is_new_user = user_data['total_sessions'] == 1  # Changed from == 0 since we increment in get_or_create_user
+            print(f"✅ Step 3: User data retrieved, is_new_user={is_new_user}, sessions={user_data['total_sessions']}")
+        except Exception as e:
+            print(f"❌ Step 3 Error - reward_db.get_or_create_user: {e}")
+            await interaction.response.send_message(f"❌ Error initializing user data: {str(e)}", ephemeral=True)
+            return
+
+        # Step 4: Handle guild-based translator initialization
+        try:
+            if guild_id:
+                if not hasattr(translation_server, 'translators'):
+                    translation_server.translators = {}
+                    print("✅ Step 4a: Created translation_server.translators")
+                
+                if guild_id not in translation_server.translators:
+                    translation_server.translators[guild_id] = {}
+                    print(f"✅ Step 4b: Created translators for guild {guild_id}")
+                
+                if user_id not in translation_server.translators[guild_id]:
+                    translation_server.translators[guild_id][user_id] = {}
+                    try:
+                        translation_server.get_user_url(user_id)
+                        print(f"✅ Step 4c: Initialized translator for user {user_id}")
+                    except Exception as url_error:
+                        print(f"⚠️ Step 4c: URL generation failed but continuing: {url_error}")
+                else:
+                    print(f"✅ Step 4c: User {user_id} already has translator")
+            else:
+                print("✅ Step 4: Skipped guild initialization (DM context)")
+        except Exception as e:
+            print(f"❌ Step 4 Error - Translation server initialization: {e}")
+            # Don't return here, translation server isn't critical for /start
+
+        # Step 5: Get current tier for display (using your TierHandler methods)
+        try:
+            # Use the synchronous methods from your TierHandler
+            current_tier = tier_handler.get_user_tier(user_id)
+            print(f"✅ Step 5a: Got current_tier={current_tier}")
+            
+            # Get tier limits
+            limits = tier_handler.get_limits(user_id)
+            print(f"✅ Step 5b: Got limits: {limits}")
+            
+            # Create tier info manually since your TierHandler doesn't have get_tier_info
+            tier_info = {
+                'name': current_tier.title(),
+                'emoji': TIER_EMOJIS.get(current_tier, '🆓'),
+                'color': TIER_COLORS.get(current_tier, 0x95a5a6),
+                'point_multiplier': {
+                    'free': '1x',
+                    'basic': '1.5x', 
+                    'premium': '2x',
+                    'pro': '3x'
+                }.get(current_tier, '1x')
+            }
+            print(f"✅ Step 5c: Created tier_info for {current_tier}")
+            
+        except Exception as e:
+            print(f"❌ Step 5 Error - Getting tier info: {e}")
+            # Use fallback values
+            current_tier = 'free'
+            tier_info = {
+                'emoji': '🆓',
+                'name': 'Free',
+                'color': 0x95a5a6,
+                'point_multiplier': '1x'
+            }
+            limits = {
+                'text_limit': 50,
+                'voice_limit': 1800
+            }
+            print(f"✅ Step 5: Using fallback tier info")
+
+        # Step 6: Create embed based on user status
+        try:
+            if is_new_user:
+                # Create new user welcome embed
+                embed = discord.Embed(
+                    title=f"🎉 Welcome to Muse Translator! {tier_info['emoji']}",
+                    description=f"Hello {interaction.user.display_name}! Your personal translator is ready to use.",
+                    color=0x2ecc71
+                )
+                
+                # Add tier status for new users
+                embed.add_field(
+                    name=f"⭐ Your Tier: {tier_info['name']}",
+                    value=(
+                        f"📝 Text Limit: {limits['text_limit'] if limits['text_limit'] != float('inf') else 'Unlimited'} chars\n"
+                        f"🎤 Voice Limit: {limits['voice_limit']//60 if limits['voice_limit'] != float('inf') else 'Unlimited'} min\n"
+                        f"💎 Points: {user_data['points']:,}"
+                    ),
+                    inline=False
+                )
+                
+                # Getting started tips for new users
+                embed.add_field(
+                    name="🚀 Getting Started",
+                    value=(
+                        "• Use `/daily` to claim daily points\n"
+                        "• Try `/texttr` for your first translation\n"
+                        "• Check `/shop` for temporary upgrades\n"
+                        "• Use `/help` for detailed commands"
+                    ),
+                    inline=False
+                )
+                print("✅ Step 6a: Created new user embed")
+            else:
+                # Returning user embed
+                embed = discord.Embed(
+                    title=f"🚀 Welcome Back to Muse! {tier_info['emoji']}",
+                    description=f"Hello {interaction.user.display_name}! Your translator is ready to use.",
+                    color=tier_info['color']
+                )
+                
+                # Show user stats
+                embed.add_field(
+                    name="📊 Your Stats",
+                    value=(
+                        f"💎 Points: {user_data['points']:,}\n"
+                        f"🎯 Sessions: {user_data['total_sessions']}\n"
+                        f"⏱️ Usage: {user_data['total_usage_hours']:.1f}h\n"
+                        f"⭐ Tier: {tier_info['name']}"
+                    ),
+                    inline=True
+                )
+                
+                # Daily reward reminder
+                from datetime import datetime
+                today = datetime.now().date().isoformat()
+                if user_data.get('last_daily_claim') != today:
+                    embed.add_field(
+                        name="🎁 Daily Reward Available",
+                        value="Use `/daily` to claim your points!",
+                        inline=True
+                    )
+                else:
+                    embed.add_field(
+                        name="✅ Daily Claimed",
+                        value="Come back tomorrow for more points!",
+                        inline=True
+                    )
+                print("✅ Step 6b: Created returning user embed")
+        except Exception as e:
+            print(f"❌ Step 6 Error - Creating main embed: {e}")
+            await interaction.response.send_message(f"❌ Error creating welcome message: {str(e)}", ephemeral=True)
+            return
+
+        # Step 7: Add command categories
+        try:
+            # Add command categories (same for both new and returning users)
             embed.add_field(
-                name="🎁 Daily Reward Available",
-                value="Use `/daily` to claim your points!",
-                inline=True
+                name="🗣️ Voice Commands",
+                value=(
+                    "`/voicechat [source] [target]` - Real-time voice chat translation\n"
+                    "`/voicechat2 [lang1] [lang2]` - Enhanced bidirectional translation\n"
+                    "`/voice [text] [source] [target]` - Text to speech translation\n"
+                    "`/speak [text] [source] [target]` - Translate and play in voice channel"
+                ),
+                inline=False
             )
-        else:
+            
             embed.add_field(
-                name="✅ Daily Claimed",
-                value="Come back tomorrow for more points!",
-                inline=True
+                name="📝 Text Commands",
+                value=(
+                    "`/texttr [text] [source] [target]` - Translate text\n"
+                    "`/autotranslate [source] [target]` - Auto-translate all your messages\n"
+                    "`/read [message_id] [target]` - Translate any sent message by ID\n"
+                    "`/dmtr [user] [text] [source] [target]` - Send translated DM"
+                ),
+                inline=False
             )
-    
-    # Add command categories (same for both new and returning users)
-    embed.add_field(
-        name="🗣️ Voice Commands",
-        value=(
-            "`/voicechat [source] [target]` - Real-time voice chat translation\n"
-            "`/voicechat2 [lang1] [lang2]` - Enhanced bidirectional translation\n"
-            "`/voice [text] [source] [target]` - Text to speech translation\n"
-            "`/speak [text] [source] [target]` - Translate and play in voice channel"
-        ),
-        inline=False
-    )
-    
-    embed.add_field(
-        name="📝 Text Commands",
-        value=(
-            "`/texttr [text] [source] [target]` - Translate text\n"
-            "`/autotranslate [source] [target]` - Auto-translate all your messages\n"
-            "`/read [message_id] [target]` - Translate any sent message by ID\n"
-            "`/dmtr [user] [text] [source] [target]` - Send translated DM"
-        ),
-        inline=False
-    )
-    
-    # Reward system commands
-    embed.add_field(
-        name="💎 Points & Rewards",
-        value=(
-            "`/daily` - Claim daily points\n"
-            "`/shop` - Browse point shop\n"
-            "`/profile` - View your profile\n"
-            "`/leaderboard` - See top users"
-            "`/transactions` - View point transaction history\n"
-        ),
-        inline=False
-    )
-    
-    embed.add_field(
-        name="⚙️ Settings & Info",
-        value=(
-            "`/hide` or `/show` - Toggle original text visibility\n"
-            "`/history` - View translation history\n"
-            "`/list` - See all supported languages\n"
-            "`/upgrade` - Unlock premium features\n"
-            "`/help` - Full command list\n"
-            "`/stop` - End translation session"
-        ),
-        inline=False
-    )
-    
-    # Add feedback & community section
-    embed.add_field(
-        name="💬 Feedback & Community",
-        value=(
-            "`/feedback` - Rate and review Muse (earn points!)\n"
-            "`/reviews` - See what other users are saying\n"
-            "`/invite` - Share Muse with friends"
-        ),
-        inline=False
-    )
-    
-    # Add tier-specific information
-    if current_tier == 'free':
-        embed.add_field(
-            name="💡 Upgrade Benefits",
-            value=(
-                "🥉 **Basic ($1/month):** 500 chars, 1h voice, history access\n"
-                "🥈 **Premium ($3/month):** 2000 chars, 2h voice, priority processing\n"
-                "🥇 **Pro ($5/month):** Unlimited everything + beta features"
-            ),
-            inline=False
-        )
-    else:
-        embed.add_field(
-            name="🎉 Premium Features Active",
-            value=(
-                f"• Enhanced limits: {limits['text_limit'] if limits['text_limit'] != float('inf') else 'Unlimited'} chars\n"
-                f"• Voice time: {limits['voice_limit']//60 if limits['voice_limit'] != float('inf') else 'Unlimited'} minutes\n"
-                f"• Point multiplier: {tier_info.get('point_multiplier', '1x')}\n"
-                "• Thank you for supporting Muse! 💖"
-            ),
-            inline=False
-        )
-    
-    # Add language format help
-    embed.add_field(
-        name="📝 Language Format",
-        value=(
-            "You can use language names or codes:\n"
-            "• Names: `English`, `Spanish`, `Japanese`\n"
-            "• Codes: `en`, `es`, `ja`\n"
-            "• Example: `/texttr text:'Hello World' source_lang:English target_lang:Spanish`"
-        ),
-        inline=False
-    )
-    
-    # Context-specific footer
-    if interaction.guild:
-        embed.set_footer(text=f"Server Mode: {interaction.guild.name} | Join our support server: discord.gg/VMpBsbhrff")
-    else:
-        embed.set_footer(text="User Mode: Perfect for DMs | Join our support server: discord.gg/VMpBsbhrff")
-    
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-    
-    # Log the initialization
-    logger.info(f"🔥 User {'initialized' if is_new_user else 'returned'}: {interaction.user.display_name} (ID: {user_id}) - Tier: {current_tier}, Points: {user_data['points']}")
+            
+            # Reward system commands
+            embed.add_field(
+                name="💎 Points & Rewards",
+                value=(
+                    "`/daily` - Claim daily points\n"
+                    "`/shop` - Browse point shop\n"
+                    "`/profile` - View your profile\n"
+                    "`/leaderboard` - See top users\n"
+                    "`/transactions` - View point transaction history"
+                ),
+                inline=False
+            )
+            
+            embed.add_field(
+                name="⚙️ Settings & Info",
+                value=(
+                    "`/hide` or `/show` - Toggle original text visibility\n"
+                    "`/history` - View translation history\n"
+                    "`/list` - See all supported languages\n"
+                    "`/upgrade` - Unlock premium features\n"
+                    "`/help` - Full command list\n"
+                    "`/stop` - End translation session"
+                ),
+                inline=False
+            )
+            
+            # Add feedback & community section
+            embed.add_field(
+                name="💬 Feedback & Community",
+                value=(
+                    "`/feedback` - Rate and review Muse (earn points!)\n"
+                    "`/reviews` - See what other users are saying\n"
+                    "`/invite` - Share Muse with friends"
+                ),
+                inline=False
+            )
+            print("✅ Step 7: Added command categories")
+        except Exception as e:
+            print(f"❌ Step 7 Error - Adding command fields: {e}")
+            # Continue anyway, basic embed is created
+
+        # Step 8: Add tier-specific information
+        try:
+            if current_tier == 'free':
+                embed.add_field(
+                    name="💡 Upgrade Benefits",
+                    value=(
+                        "🥉 **Basic ($1/month):** 500 chars, 1h voice, history access\n"
+                        "🥈 **Premium ($3/month):** 2000 chars, 2h voice, priority processing\n"
+                        "🥇 **Pro ($5/month):** Unlimited everything + beta features"
+                    ),
+                    inline=False
+                )
+            else:
+                embed.add_field(
+                    name="🎉 Premium Features Active",
+                    value=(
+                        f"• Enhanced limits: {limits['text_limit'] if limits['text_limit'] != float('inf') else 'Unlimited'} chars\n"
+                        f"• Voice time: {limits['voice_limit']//60 if limits['voice_limit'] != float('inf') else 'Unlimited'} minutes\n"
+                        f"• Point multiplier: {tier_info.get('point_multiplier', '1x')}\n"
+                        "• Thank you for supporting Muse! 💖"
+                    ),
+                    inline=False
+                )
+            print("✅ Step 8: Added tier-specific info")
+        except Exception as e:
+            print(f"❌ Step 8 Error - Adding tier info: {e}")
+            # Continue anyway
+
+        # Step 9: Add language format help and footer
+        try:
+            # Add language format help
+            embed.add_field(
+                name="📝 Language Format",
+                value=(
+                    "You can use language names or codes:\n"
+                    "• Names: `English`, `Spanish`, `Japanese`\n"
+                    "• Codes: `en`, `es`, `ja`\n"
+                    "• Example: `/texttr text:'Hello World' source_lang:English target_lang:Spanish`"
+                ),
+                inline=False
+            )
+            
+            # Context-specific footer
+            if interaction.guild:
+                embed.set_footer(text=f"Server Mode: {interaction.guild.name} | Join our support server: discord.gg/VMpBsbhrff")
+            else:
+                embed.set_footer(text="User Mode: Perfect for DMs | Join our support server: discord.gg/VMpBsbhrff")
+            print("✅ Step 9: Added language help and footer")
+        except Exception as e:
+            print(f"❌ Step 9 Error - Adding final fields: {e}")
+            # Continue anyway
+
+        # Step 10: Send the response
+        try:
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            print("✅ Step 10: Response sent successfully")
+        except Exception as e:
+            print(f"❌ Step 10 Error - Sending response: {e}")
+            # Try to send a simple error message
+            try:
+                await interaction.response.send_message(
+                    "❌ Error sending welcome message. Please try again or contact support.",
+                    ephemeral=True
+                )
+            except:
+                print("❌ Failed to send error message too")
+            return
+
+        # Step 11: Log the initialization
+        try:
+            logger.info(f"🔥 User {'initialized' if is_new_user else 'returned'}: {interaction.user.display_name} (ID: {user_id}) - Tier: {current_tier}, Points: {user_data['points']}")
+            print("✅ Step 11: Logged initialization")
+        except Exception as e:
+            print(f"❌ Step 11 Error - Logging: {e}")
+            # Not critical, continue
+
+        print("🎉 Start command completed successfully!")
+
+    except Exception as e:
+        print(f"💥 CRITICAL ERROR in start command: {e}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    f"❌ A critical error occurred: {str(e)}\n"
+                                        "Please try again or contact support.",
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    f"❌ A critical error occurred: {str(e)}\n"
+                    "Please try again or contact support.",
+                    ephemeral=True
+                )
+        except Exception as send_error:
+            print(f"💥 Failed to send error message: {send_error}")
+
+
 
 @tree.command(name="setchannel", description="Set the channel for translations")
 async def set_channel(interaction: discord.Interaction, channel_id: str):
@@ -1257,7 +1403,7 @@ async def text_translate(
         if is_premium:
             text_limit = float('inf')
         else:
-            text_limit = 150  # Free tier limit
+            text_limit = 50  # Free tier limit
         
         # Check text length
         if len(text) > text_limit:
@@ -1593,7 +1739,7 @@ async def translate_and_speak(
         # Add character count for free users
         user = await db.get_or_create_user(user_id)
         if not user['is_premium']:
-            embed.set_footer(text=f"Characters used: {len(text)}/150 • Upgrade: /upgrade")
+            embed.set_footer(text=f"Characters used: {len(text)}/50 • Upgrade: /upgrade")
         else:
             # Add context info for premium users
             if interaction.guild:
@@ -3192,7 +3338,7 @@ async def translate_and_speak_voice(
         # Add character count for free users
         user = await db.get_or_create_user(user_id)
         if not user['is_premium']:
-            embed.set_footer(text=f"Characters: {len(text)}/150 • Server: {interaction.guild.name} • /upgrade for unlimited")
+            embed.set_footer(text=f"Characters: {len(text)}/50 • Server: {interaction.guild.name} • /upgrade for unlimited")
         else:
             embed.set_footer(text=f"Server: {interaction.guild.name} • Premium User")
             
@@ -3574,7 +3720,7 @@ async def auto_translate(
     
     # Check if user is premium for the warning
     user = await db.get_or_create_user(user_id, interaction.user.display_name)
-    limit_warning = "" if user['is_premium'] else "\n⚠️ **Free users:** Messages over 150 characters will be skipped. Upgrade to premium for unlimited!"
+    limit_warning = "" if user['is_premium'] else "\n⚠️ **Free users:** Messages over 50 characters will be skipped. Upgrade to premium for unlimited!"
     
     await interaction.response.send_message(
         f"✅ Auto-translation enabled!\n"
@@ -3705,7 +3851,7 @@ async def on_message(message):
                 # Add character count for free users
                 user = await db.get_or_create_user(user_id)
                 if not user['is_premium']:
-                    embed.set_footer(text=f"Characters: {len(message.content)}/150 • Auto-translate • /upgrade for unlimited")
+                    embed.set_footer(text=f"Characters: {len(message.content)}/50 • Auto-translate • /upgrade for unlimited")
                 else:
                     embed.set_footer(text="Auto-translate • Premium User")
                 
@@ -3853,7 +3999,7 @@ async def dm_translate(
             # Add character count for free users
             sender_user = await db.get_or_create_user(sender_id)
             if not sender_user['is_premium']:
-                sender_embed.set_footer(text=f"Characters used: {len(text)}/150 • /upgrade for unlimited")
+                sender_embed.set_footer(text=f"Characters used: {len(text)}/50 • /upgrade for unlimited")
             
             await interaction.followup.send(embed=sender_embed, ephemeral=True)
             
@@ -4043,7 +4189,7 @@ async def translate_by_id(
         # Add character count for free users
         user = await db.get_or_create_user(user_id)
         if not user['is_premium']:
-            footer_text = f"Characters: {len(message_to_translate.content)}/150 • From: {message_to_translate.author.display_name} • /upgrade for unlimited"
+            footer_text = f"Characters: {len(message_to_translate.content)}/50 • From: {message_to_translate.author.display_name} • /upgrade for unlimited"
         else:
             footer_text = f"From: {message_to_translate.author.display_name} • Premium User"
         
@@ -4222,7 +4368,7 @@ async def translate_message_context(interaction: discord.Interaction, message: d
                 # Add character count for free users
                 user = await db.get_or_create_user(modal_interaction.user.id)
                 if not user['is_premium']:
-                    footer_text = f"Characters: {len(self.message_to_translate.content)}/150 • From: {self.message_to_translate.author.display_name} • /upgrade for unlimited"
+                    footer_text = f"Characters: {len(self.message_to_translate.content)}/50 • From: {self.message_to_translate.author.display_name} • /upgrade for unlimited"
                 else:
                     footer_text = f"From: {self.message_to_translate.author.display_name} • Premium User"
                 
