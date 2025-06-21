@@ -159,7 +159,7 @@ async def source_language_autocomplete(
 class TierHandler:
     def __init__(self):
         self.premium_users = set()  # Premium users
-        self.pro_users = set()      # Pro users  
+        self.pro_users = set()      # Pro users          
         self.basic_users = set()    # Basic users
         self.user_tiers = {}        # Store user tier info with expiration
         self.usage_tracking = {}    # Track daily usage per user
@@ -167,6 +167,7 @@ class TierHandler:
             'free': {
                 'text_limit': 50,    # 50 characters per translation
                 'voice_limit': 1800,  # 30 minutes in seconds
+                'daily_translations': 10,  # Added daily translation limit
                 'daily_points_min': 5,
                 'daily_points_max': 10,
                 'features': ['basic_translation', 'voice_chat']
@@ -174,6 +175,7 @@ class TierHandler:
             'basic': {
                 'text_limit': 500,    # 500 characters per translation
                 'voice_limit': 3600,  # 60 minutes in seconds
+                'daily_translations': 50,  # Added daily translation limit
                 'daily_points_min': 10,
                 'daily_points_max': 15,
                 'features': ['basic_translation', 'voice_chat', 'auto_translate']
@@ -181,6 +183,7 @@ class TierHandler:
             'premium': {
                 'text_limit': 2000,   # 2000 characters per translation
                 'voice_limit': 7200,  # 2 hours in seconds
+                'daily_translations': 200,  # Added daily translation limit
                 'daily_points_min': 15,
                 'daily_points_max': 20,
                 'features': ['basic_translation', 'voice_chat', 'auto_translate', 'enhanced_voice', 'priority_support']
@@ -188,31 +191,13 @@ class TierHandler:
             'pro': {
                 'text_limit': float('inf'),  # Unlimited characters
                 'voice_limit': float('inf'), # Unlimited voice translation
+                'daily_translations': float('inf'),  # Added unlimited daily translations
                 'daily_points_min': 25,
                 'daily_points_max': 35,
                 'features': ['all_features', 'priority_processing', 'custom_models']
             }
         }
-    def get_user_tier(self, user_id: int):
-        """Get the current tier for a user"""
-        if user_id in self.pro_users:
-            return 'pro'
-        elif user_id in self.premium_users:
-            return 'premium'
-        elif user_id in self.basic_users:
-            return 'basic'
-        else:
-            return 'free'
-    # ORIGINAL METHODS (from your working code)
-    def get_limits(self, user_id: int):
-        """Get limits for a specific user"""
-        tier = self.get_user_tier(user_id)
-        return self.tiers.get(tier, self.tiers['free'])
-    
-    def get_limits_for_tier(self, tier_name: str):
-        """Get limits for a specific tier by name"""
-        return self.tiers.get(tier_name, self.tiers['free'])
-    
+
     def get_user_tier(self, user_id: int):
         """Get user's current tier"""
         # Check if user has a stored tier with expiration
@@ -236,7 +221,17 @@ class TierHandler:
             return 'basic'
         
         return 'free'
+
+    # ORIGINAL METHODS (from your working code)
+    def get_limits(self, user_id: int):
+        """Get limits for a specific user"""
+        tier = self.get_user_tier(user_id)
+        return self.tiers.get(tier, self.tiers['free'])
     
+    def get_limits_for_tier(self, tier_name: str):
+        """Get limits for a specific tier by name"""
+        return self.tiers.get(tier_name, self.tiers['free'])
+
     def set_user_tier(self, user_id: int, tier: str, expires=None):
         """Set a user's tier with optional expiration - NOT ASYNC"""
         # Remove from all permanent tier sets first
@@ -270,31 +265,31 @@ class TierHandler:
             }
         
         return True  # Return success indicator
-    
+
     async def set_user_tier_async(self, user_id: int, tier: str, expires=None):
         """Async wrapper for set_user_tier"""
         return self.set_user_tier(user_id, tier, expires)
-    
+
     def get_tier_expiration(self, user_id: int):
         """Get when a user's tier expires (None if permanent or no tier)"""
         if user_id in self.user_tiers and 'expires' in self.user_tiers[user_id]:
             return self.user_tiers[user_id]['expires']
         return None
-    
+
     async def get_user_tier_async(self, user_id: int):
         """Async version of get_user_tier for compatibility"""
         return self.get_user_tier(user_id)
-    
+
     def add_premium_user(self, user_id: int):
         """Add a user to premium"""
         return self.set_user_tier(user_id, 'premium')
-    
+
     def remove_premium_user(self, user_id: int):
         """Remove a user from premium"""
         self.premium_users.discard(user_id)
         if user_id in self.user_tiers:
             del self.user_tiers[user_id]
-    
+
     def cleanup_expired_tiers(self):
         """Remove expired tiers"""
         from datetime import datetime
@@ -308,8 +303,8 @@ class TierHandler:
             del self.user_tiers[user_id]
         
         return len(expired_users)
-    
-    # ADDITIONAL METHODS (new functionality)
+
+    # NEW METHODS - Usage and Limit Checking
     def check_usage_limits(self, user_id: int, usage_type: str, amount: int = 1):
         """Check if user can perform an action based on their tier limits"""
         from datetime import datetime, date
@@ -344,7 +339,7 @@ class TierHandler:
                 return False, f"Daily voice limit reached ({limits['voice_limit']//60} minutes)"
         
         return True, "OK"
-    
+
     def add_usage(self, user_id: int, usage_type: str, amount: int):
         """Add usage for a user"""
         from datetime import date
@@ -361,7 +356,7 @@ class TierHandler:
         
         if usage_type in self.usage_tracking[user_id][today]:
             self.usage_tracking[user_id][today][usage_type] += amount
-    
+
     def get_usage_stats(self, user_id: int):
         """Get current usage stats for a user"""
         from datetime import date
@@ -376,7 +371,7 @@ class TierHandler:
             }
         
         return self.usage_tracking[user_id][today].copy()
-    
+
     def get_remaining_limits(self, user_id: int):
         """Get remaining limits for a user"""
         tier = self.get_user_tier(user_id)
@@ -388,40 +383,41 @@ class TierHandler:
             if limits.get(f'daily_{key}', float('inf')) == float('inf'):
                 remaining[key] = float('inf')
             else:
-                limit_key = f'daily_{key}' if key != 'voice_seconds' else 'voice_limit'
+                limit_key = f'daily_{key}' if key == 'translations' else 'voice_limit'
                 remaining[key] = max(0, limits[limit_key] - usage.get(key, 0))
         
         remaining['text_limit'] = limits['text_limit']
         return remaining
-    
+
     def has_feature(self, user_id: int, feature: str):
         """Check if user has access to a specific feature"""
         tier = self.get_user_tier(user_id)
         features = self.tiers[tier].get('features', [])
         return feature in features or 'all_features' in features
-    
+
+    # Tier Management Methods
     def add_pro_user(self, user_id: int):
         """Add a user to pro"""
         return self.set_user_tier(user_id, 'pro')
-    
+
     def remove_pro_user(self, user_id: int):
         """Remove a user from pro"""
         if hasattr(self, 'pro_users'):
             self.pro_users.discard(user_id)
         if user_id in self.user_tiers:
             del self.user_tiers[user_id]
-    
+
     def add_basic_user(self, user_id: int):
         """Add a user to basic"""
         return self.set_user_tier(user_id, 'basic')
-    
+
     def remove_basic_user(self, user_id: int):
         """Remove a user from basic"""
         if hasattr(self, 'basic_users'):
             self.basic_users.discard(user_id)
         if user_id in self.user_tiers:
             del self.user_tiers[user_id]
-    
+
     def cleanup_old_usage(self, days_to_keep: int = 7):
         """Clean up old usage data"""
         from datetime import date, timedelta
@@ -442,7 +438,7 @@ class TierHandler:
                 del self.usage_tracking[user_id]
         
         return cleaned_count
-    
+
     def get_tier_info(self, tier_name: str):
         """Get complete information about a tier"""
         if tier_name not in self.tiers:
@@ -467,7 +463,7 @@ class TierHandler:
             tier_data['translations_display'] = f"{tier_data['daily_translations']} per day"
         
         return tier_data
-    
+
     def get_user_stats(self, user_id: int):
         """Get comprehensive user statistics"""
         tier = self.get_user_tier(user_id)
@@ -485,21 +481,22 @@ class TierHandler:
             'expiration': expiration,
             'features': limits.get('features', [])
         }
-    
+
+    # Tier Status Check Methods
     def is_premium(self, user_id: int):
         """Check if user has premium or higher tier"""
         tier = self.get_user_tier(user_id)
         return tier in ['premium', 'pro']
-    
+
     def is_pro(self, user_id: int):
         """Check if user has pro tier"""
         return self.get_user_tier(user_id) == 'pro'
-    
+
     def is_basic(self, user_id: int):
         """Check if user has basic or higher tier"""
         tier = self.get_user_tier(user_id)
         return tier in ['basic', 'premium', 'pro']
-    
+
     def get_all_premium_users(self):
         """Get all users with premium or higher access"""
         all_premium = set(self.premium_users)
@@ -509,12 +506,13 @@ class TierHandler:
         # Add temporary premium/pro users
         from datetime import datetime
         for user_id, tier_info in self.user_tiers.items():
-            if (tier_info['tier'] in ['premium', 'pro'] and 
-                ('expires' not in tier_info or not tier_info['expires'] or 
+            if (tier_info['tier'] in ['premium', 'pro'] and
+                ('expires' not in tier_info or not tier_info['expires'] or
                  datetime.now() < tier_info['expires'])):
                 all_premium.add(user_id)
         
-        return all_premium    
+        return all_premium
+
     def get_tier_counts(self):
         """Get count of users in each tier"""
         from datetime import datetime
@@ -531,13 +529,13 @@ class TierHandler:
         # Count temporary users
         for user_id, tier_info in self.user_tiers.items():
             tier = tier_info['tier']
-            if ('expires' not in tier_info or not tier_info['expires'] or 
+            if ('expires' not in tier_info or not tier_info['expires'] or
                 datetime.now() < tier_info['expires']):
                 if tier in counts:
                     counts[tier] += 1
         
         return counts
-    
+
     def upgrade_user_tier(self, user_id: int, new_tier: str, expires=None):
         """Upgrade a user to a higher tier (with validation)"""
         current_tier = self.get_user_tier(user_id)
@@ -550,7 +548,7 @@ class TierHandler:
             return False, f"Cannot downgrade from {current_tier} to {new_tier}"
         
         return self.set_user_tier(user_id, new_tier, expires), f"Upgraded from {current_tier} to {new_tier}"
-    
+
     def downgrade_user_tier(self, user_id: int, new_tier: str):
         """Downgrade a user to a lower tier"""
         current_tier = self.get_user_tier(user_id)
@@ -571,7 +569,7 @@ class TierHandler:
             self.set_user_tier(user_id, new_tier)
         
         return True, f"Downgraded from {current_tier} to {new_tier}"
-    
+
     def extend_user_tier(self, user_id: int, additional_days: int):
         """Extend a user's current tier by additional days"""
         from datetime import datetime, timedelta
@@ -581,7 +579,7 @@ class TierHandler:
             return False, "Cannot extend free tier"
         
         # Check if user has permanent tier
-        if (user_id in self.premium_users or 
+        if (user_id in self.premium_users or
             (hasattr(self, 'pro_users') and user_id in self.pro_users) or
             (hasattr(self, 'basic_users') and user_id in self.basic_users)):
             return False, f"User already has permanent {current_tier} tier"
@@ -600,7 +598,7 @@ class TierHandler:
         }
         
         return True, f"Extended {current_tier} tier by {additional_days} days"
-    
+
     def get_tier_revenue_info(self):
         """Get revenue information for all tiers (for analytics)"""
         tier_prices = {
@@ -631,15 +629,17 @@ class TierHandler:
         }
         
         return revenue_info
-    
+
     def bulk_tier_operation(self, user_ids: list, operation: str, tier: str = None, days: int = None):
         """Perform bulk operations on multiple users"""
+        from datetime import datetime, timedelta
+        
         results = {'success': [], 'failed': []}
         
         for user_id in user_ids:
             try:
                 if operation == 'upgrade' and tier:
-                    success, message = self.upgrade_user_tier(user_id, tier, 
+                    success, message = self.upgrade_user_tier(user_id, tier,
                         datetime.now() + timedelta(days=days) if days else None)
                 elif operation == 'downgrade' and tier:
                     success, message = self.downgrade_user_tier(user_id, tier)
@@ -654,12 +654,12 @@ class TierHandler:
                     results['success'].append({'user_id': user_id, 'message': message})
                 else:
                     results['failed'].append({'user_id': user_id, 'error': message})
-                    
+                
             except Exception as e:
                 results['failed'].append({'user_id': user_id, 'error': str(e)})
         
         return results
-    
+
     def get_expiring_users(self, days_ahead: int = 7):
         """Get users whose tiers will expire within specified days"""
         from datetime import datetime, timedelta
@@ -668,7 +668,7 @@ class TierHandler:
         cutoff_date = datetime.now() + timedelta(days=days_ahead)
         
         for user_id, tier_info in self.user_tiers.items():
-            if ('expires' in tier_info and tier_info['expires'] and 
+            if ('expires' in tier_info and tier_info['expires'] and
                 datetime.now() < tier_info['expires'] <= cutoff_date):
                 
                 days_remaining = (tier_info['expires'] - datetime.now()).days
@@ -680,7 +680,7 @@ class TierHandler:
                 })
         
         return sorted(expiring_soon, key=lambda x: x['expires'])
-    
+
     def validate_tier_integrity(self):
         """Validate and fix any tier data inconsistencies"""
         from datetime import datetime
@@ -720,7 +720,7 @@ class TierHandler:
             'fixes_applied': fixes_applied,
             'integrity_status': 'CLEAN' if not issues_found else 'ISSUES_FIXED'
         }
-    
+
     def export_tier_data(self):
         """Export all tier data for backup/analysis"""
         from datetime import datetime
@@ -745,7 +745,7 @@ class TierHandler:
             export_data['temporary_tiers'][str(user_id)] = export_tier_info
         
         return export_data
-    
+
     def import_tier_data(self, import_data):
         """Import tier data from backup"""
         from datetime import datetime
@@ -778,7 +778,6 @@ class TierHandler:
             
         except Exception as e:
             return False, f"Failed to import tier data: {str(e)}"
-
 
 # Update tier_handler instance
 tier_handler = TierHandler()
