@@ -151,12 +151,12 @@ class TierHandler:
         self.tiers = {
             'free': {
                 'text_limit': 50,         # 50 characters per translation
-                'voice_limit': 300,       # 5 minutes total voice time (in seconds)
+                'voice_limit': 1800,       # 5 minutes total voice time (in seconds)
                 'features': ['basic_translation']
             },
             'basic': {                    # $1/month
                 'text_limit': 500,        # 500 characters per translation
-                'voice_limit': 1800,      # 30 minutes total voice time
+                'voice_limit': 3600,      # 30 minutes total voice time
                 'features': ['basic_translation', 'history', 'auto_translate']
             },
             'premium': {                  # $3/month
@@ -615,7 +615,7 @@ def get_language_code(lang_input):
     # Not found
     return None
 
-@tree.command(name="start", description="Start your personal translation bot")
+@tree.command(name="start", description="Initialize your personal translation bot")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def start(interaction: discord.Interaction):
@@ -637,37 +637,59 @@ async def start(interaction: discord.Interaction):
             translation_server.translators[guild_id][user_id] = {}
             translation_server.get_user_url(user_id)
     
-    # Award welcome bonus ONLY for truly new users
+    # Get current tier for display
+    current_tier = await tier_handler.get_user_tier_async(user_id)
+    tier_info = tier_handler.get_tier_info(current_tier)
+    limits = await tier_handler.get_limits_async(user_id)
+    
     if is_new_user:
-        welcome_bonus = 50
-        reward_db.add_points(user_id, welcome_bonus, "Welcome bonus - first time using Muse!")
-        
         # Create new user welcome embed
         embed = discord.Embed(
-            title="🎉 Welcome to Muse Translator!",
+            title=f"🎉 Welcome to Muse Translator! {tier_info['emoji']}",
             description=f"Hello {interaction.user.display_name}! Your personal translator is ready to use.",
             color=0x2ecc71
         )
         
-        # Welcome bonus notification
+        # Add tier status for new users
         embed.add_field(
-            name="🎁 Welcome Bonus",
-            value=f"You received **{welcome_bonus} points** for joining Muse!\nUse `/daily` to claim 10 more points daily!",
+            name=f"⭐ Your Tier: {tier_info['name']}",
+            value=(
+                f"📝 Text Limit: {limits['text_limit'] if limits['text_limit'] != float('inf') else 'Unlimited'} chars\n"
+                f"🎤 Voice Limit: {limits['voice_limit']//60 if limits['voice_limit'] != float('inf') else 'Unlimited'} min\n"
+                f"💎 Points: {user_data['points']:,}"
+            ),
+            inline=False
+        )
+        
+        # Getting started tips for new users
+        embed.add_field(
+            name="🚀 Getting Started",
+            value=(
+                "• Use `/daily` to claim daily points\n"
+                "• Try `/texttr` for your first translation\n"
+                "• Check `/shop` for temporary upgrades\n"
+                "• Use `/help` for detailed commands"
+            ),
             inline=False
         )
         
     else:
         # Returning user embed
         embed = discord.Embed(
-            title="🚀 Welcome Back to Muse!",
+            title=f"🚀 Welcome Back to Muse! {tier_info['emoji']}",
             description=f"Hello {interaction.user.display_name}! Your translator is ready to use.",
-            color=0x3498db
+            color=tier_info['color']
         )
         
         # Show user stats
         embed.add_field(
             name="📊 Your Stats",
-            value=f"💎 Points: {user_data['points']:,}\n🎯 Sessions: {user_data['total_sessions']}\n⏱️ Usage: {user_data['total_usage_hours']:.1f}h",
+            value=(
+                f"💎 Points: {user_data['points']:,}\n"
+                f"🎯 Sessions: {user_data['total_sessions']}\n"
+                f"⏱️ Usage: {user_data['total_usage_hours']:.1f}h\n"
+                f"⭐ Tier: {tier_info['name']}"
+            ),
             inline=True
         )
         
@@ -680,8 +702,14 @@ async def start(interaction: discord.Interaction):
                 value="Use `/daily` to claim your points!",
                 inline=True
             )
+        else:
+            embed.add_field(
+                name="✅ Daily Claimed",
+                value="Come back tomorrow for more points!",
+                inline=True
+            )
     
-    # Add command categories
+    # Add command categories (same for both new and returning users)
     embed.add_field(
         name="🗣️ Voice Commands",
         value=(
@@ -698,18 +726,19 @@ async def start(interaction: discord.Interaction):
         value=(
             "`/texttr [text] [source] [target]` - Translate text\n"
             "`/autotranslate [source] [target]` - Auto-translate all your messages\n"
-            "`/read [message_id] [target]` - Translate any sent message by ID"
+            "`/read [message_id] [target]` - Translate any sent message by ID\n"
+            "`/dmtr [user] [text] [source] [target]` - Send translated DM"
         ),
         inline=False
     )
     
     # Reward system commands
     embed.add_field(
-        name="💎 Reward System",
+        name="💎 Points & Rewards",
         value=(
             "`/daily` - Claim daily points\n"
-            "`/shop` - Browse rewards\n"
-            "`/profile` - View your stats\n"
+            "`/shop` - Browse point shop\n"
+            "`/profile` - View your profile\n"
             "`/leaderboard` - See top users"
         ),
         inline=False
@@ -719,21 +748,72 @@ async def start(interaction: discord.Interaction):
         name="⚙️ Settings & Info",
         value=(
             "`/hide` or `/show` - Toggle original text visibility\n"
+            "`/history` - View translation history\n"
             "`/list` - See all supported languages\n"
             "`/premium` - Unlock premium features\n"
-            "`/help` - Full command list"
+            "`/help` - Full command list\n"
+            "`/stop` - End translation session"
         ),
         inline=False
     )
     
-    # Add footer with server invite
-    embed.set_footer(text="Join our support server: https://discord.gg/VMpBsbhrff")
+    # Add feedback & community section
+    embed.add_field(
+        name="💬 Feedback & Community",
+        value=(
+            "`/feedback` - Rate and review Muse (earn points!)\n"
+            "`/reviews` - See what other users are saying\n"
+            "`/invite` - Share Muse with friends"
+        ),
+        inline=False
+    )
+    
+    # Add tier-specific information
+    if current_tier == 'free':
+        embed.add_field(
+            name="💡 Upgrade Benefits",
+            value=(
+                "🥉 **Basic ($1/month):** 500 chars, 1h voice, history access\n"
+                "🥈 **Premium ($3/month):** 2000 chars, 2h voice, priority processing\n"
+                "🥇 **Pro ($5/month):** Unlimited everything + beta features"
+            ),
+            inline=False
+        )
+    else:
+        embed.add_field(
+            name="🎉 Premium Features Active",
+            value=(
+                f"• Enhanced limits: {limits['text_limit'] if limits['text_limit'] != float('inf') else 'Unlimited'} chars\n"
+                f"• Voice time: {limits['voice_limit']//60 if limits['voice_limit'] != float('inf') else 'Unlimited'} minutes\n"
+                f"• Point multiplier: {tier_info.get('point_multiplier', '1x')}\n"
+                "• Thank you for supporting Muse! 💖"
+            ),
+            inline=False
+        )
+    
+    # Add language format help
+    embed.add_field(
+        name="📝 Language Format",
+        value=(
+            "You can use language names or codes:\n"
+            "• Names: `English`, `Spanish`, `Japanese`\n"
+            "• Codes: `en`, `es`, `ja`\n"
+            "• Example: `/texttr text:'Hello World' source_lang:English target_lang:Spanish`"
+        ),
+        inline=False
+    )
+    
+    # Context-specific footer
+    if interaction.guild:
+        embed.set_footer(text=f"Server Mode: {interaction.guild.name} | Join our support server: discord.gg/VMpBsbhrff")
+    else:
+        embed.set_footer(text="User Mode: Perfect for DMs | Join our support server: discord.gg/VMpBsbhrff")
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
-    print(f"🔥 User connected: {interaction.user.display_name} (New: {is_new_user}, Points: {user_data['points']})")
+    
+    # Log the initialization
+    logger.info(f"🔥 User {'initialized' if is_new_user else 'returned'}: {interaction.user.display_name} (ID: {user_id}) - Tier: {current_tier}, Points: {user_data['points']}")
 
-
-        
 @tree.command(name="setchannel", description="Set the channel for translations")
 async def set_channel(interaction: discord.Interaction, channel_id: str):
     try:
@@ -4298,7 +4378,7 @@ async def premium(interaction: discord.Interaction):
         name="🆓 Free Tier",
         value=(
             "• 50 character limit per translation\n"
-            "• 5 minutes total voice time\n"
+            "• 30 minutes total voice time\n"
             "• Basic features only\n"
         ),
         inline=True
@@ -4309,7 +4389,7 @@ async def premium(interaction: discord.Interaction):
         name="🥉 Basic - $1/month",
         value=(
             "• 500 character limit per translation\n"
-            "• 30 minutes total voice time\n"
+            "• 1 hour total voice time\n"
             "• Translation history\n"
             "• Auto-translate feature\n"
         ),
@@ -5067,6 +5147,8 @@ async def submit_feedback(
     rating: int,
     message: str = None
 ):
+    user_id = interaction.user.id
+    
     # Validate rating
     if rating < 1 or rating > 5:
         await interaction.response.send_message(
@@ -5076,47 +5158,191 @@ async def submit_feedback(
         return
     
     try:
+        # Get user data to check sessions and last feedback
+        user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
+        
+        # Check if user has enough sessions (minimum 3 sessions to leave feedback)
+        if user_data['total_sessions'] < 3:
+            sessions_needed = 3 - user_data['total_sessions']
+            await interaction.response.send_message(
+                f"📊 You need **{sessions_needed} more translation sessions** before you can leave feedback!\n"
+                f"💡 Try using `/texttr`, `/voice`, or `/voicechat` to build up your sessions.\n"
+                f"Current sessions: **{user_data['total_sessions']}/3**",
+                ephemeral=True
+            )
+            return
+        
+        # Check daily feedback limit
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        today = now.date().isoformat()
+        
+        # Get user's last feedback date
+        last_feedback = await feedback_db.get_last_feedback_date(user_id)
+        
+        if last_feedback:
+            last_feedback_date = datetime.fromisoformat(last_feedback).date()
+            if last_feedback_date >= now.date():
+                # Calculate time until next feedback allowed
+                tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+                time_left = tomorrow - now
+                hours_left = int(time_left.total_seconds() // 3600)
+                minutes_left = int((time_left.total_seconds() % 3600) // 60)
+                
+                await interaction.response.send_message(
+                    f"⏰ You can only leave feedback **once per day**!\n"
+                    f"⏳ Next feedback available in: **{hours_left}h {minutes_left}m**\n"
+                    f"📅 Come back tomorrow to share more feedback!",
+                    ephemeral=True
+                )
+                return
+        
+        # Check session-based feedback (every 3 sessions since last feedback)
+        last_feedback_session = await feedback_db.get_last_feedback_session(user_id)
+        if last_feedback_session:
+            sessions_since_feedback = user_data['total_sessions'] - last_feedback_session
+            if sessions_since_feedback < 3:
+                sessions_needed = 3 - sessions_since_feedback
+                await interaction.response.send_message(
+                    f"📈 You need **{sessions_needed} more sessions** since your last feedback!\n"
+                    f"💡 Use the bot more and come back to share your updated experience.\n"
+                    f"Sessions since last feedback: **{sessions_since_feedback}/3**",
+                    ephemeral=True
+                )
+                return
+        
         # Add feedback to database
         await feedback_db.add_feedback(
-            user_id=interaction.user.id,
+            user_id=user_id,
             username=interaction.user.display_name,
             rating=rating,
-            message=message
+            message=message,
+            session_count=user_data['total_sessions']  # Store session count when feedback was given
+        )
+        
+        # Award points for feedback (tier-based rewards)
+        current_tier = await tier_handler.get_user_tier_async(user_id)
+        feedback_points = {
+            'free': 15,
+            'basic': 20,
+            'premium': 25,
+            'pro': 30
+        }.get(current_tier, 15)
+        
+        # Bonus points for detailed feedback
+        if message and len(message.strip()) >= 20:
+            feedback_points += 10
+            detailed_bonus = True
+        else:
+            detailed_bonus = False
+        
+        # Award points
+        reward_db.add_points(
+            user_id, 
+            feedback_points, 
+            f"Feedback submission ({rating}⭐)" + (" + detailed message bonus" if detailed_bonus else "")
         )
         
         # Create response
         stars = "⭐" * rating
-        response = f"✅ Thank you for your feedback!\n{stars} **{rating}/5 stars**"
+        response_embed = discord.Embed(
+            title="✅ Thank you for your feedback!",
+            description=f"{stars} **{rating}/5 stars**",
+            color=0x00ff00 if rating >= 4 else 0xff9900 if rating == 3 else 0xff6b6b
+        )
         
         if message:
-            response += f"\n💬 Message: \"{message}\""
+            response_embed.add_field(
+                name="💬 Your Message",
+                value=f"\"{message}\"",
+                inline=False
+            )
         
-        await interaction.response.send_message(response, ephemeral=True)
+        # Points reward info
+        points_text = f"💎 **+{feedback_points} points** earned!"
+        if detailed_bonus:
+            points_text += "\n🎁 **+10 bonus** for detailed feedback!"
         
-        # Send notification to a specific channel (optional)
-        # Replace FEEDBACK_CHANNEL_ID with your channel ID
+        response_embed.add_field(
+            name="🎁 Reward",
+            value=points_text,
+            inline=False
+        )
+        
+        # Next feedback info
+        response_embed.add_field(
+            name="⏰ Next Feedback",
+            value="Available tomorrow or after 3 more sessions",
+            inline=False
+        )
+        
+        response_embed.set_footer(text="Your feedback helps improve Muse for everyone! 💖")
+        
+        await interaction.response.send_message(embed=response_embed, ephemeral=True)
+        
+        # Send notification to feedback channel (optional)
         FEEDBACK_CHANNEL_ID = 1234567890123456789  # Replace with your channel ID
         feedback_channel = client.get_channel(FEEDBACK_CHANNEL_ID)
         
         if feedback_channel:
-            embed = discord.Embed(
+            notification_embed = discord.Embed(
                 title="📝 New Feedback Received!",
-                color=0x00ff00 if rating >= 4 else 0xff9900 if rating == 3 else 0xff0000
+                color=0x00ff00 if rating >= 4 else 0xff9900 if rating == 3 else 0xff6b6b
             )
-            embed.add_field(name="User", value=interaction.user.display_name, inline=True)
-            embed.add_field(name="Rating", value=f"{stars} {rating}/5", inline=True)
-            embed.add_field(name="Server", value=interaction.guild.name if interaction.guild else "DM", inline=True)
+            
+            notification_embed.add_field(
+                name="👤 User", 
+                value=f"{interaction.user.display_name}\n`{user_id}`", 
+                inline=True
+            )
+            notification_embed.add_field(
+                name="⭐ Rating", 
+                value=f"{stars} {rating}/5", 
+                inline=True
+            )
+            notification_embed.add_field(
+                name="📊 Sessions", 
+                value=f"{user_data['total_sessions']} total", 
+                inline=True
+            )
+            notification_embed.add_field(
+                name="🌍 Context", 
+                value=interaction.guild.name if interaction.guild else "DM", 
+                inline=True
+            )
+            notification_embed.add_field(
+                name="⭐ Tier", 
+                value=current_tier.title(), 
+                inline=True
+            )
+            notification_embed.add_field(
+                name="💎 Points Awarded", 
+                value=f"{feedback_points} points", 
+                inline=True
+            )
             
             if message:
-                embed.add_field(name="Message", value=message, inline=False)
+                notification_embed.add_field(
+                    name="💬 Message", 
+                    value=message[:1000] + ("..." if len(message) > 1000 else ""), 
+                    inline=False
+                )
             
-            await feedback_channel.send(embed=embed)
+            notification_embed.timestamp = datetime.now()
+            
+            await feedback_channel.send(embed=notification_embed)
+        
+        # Track achievement for feedback
+        await reward_db.award_achievement(user_id, 'feedback_provider')
         
     except Exception as e:
+        logger.error(f"Error in feedback command: {e}")
         await interaction.response.send_message(
-            f"❌ Error saving feedback: {str(e)}",
+            f"❌ Error saving feedback: {str(e)}\n"
+            "Please try again later or contact support.",
             ephemeral=True
         )
+
 
 @tree.command(name="reviews", description="View recent feedback and ratings")
 @app_commands.allowed_installs(guilds=True, users=True)
