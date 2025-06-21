@@ -7678,73 +7678,7 @@ async def remove_points(interaction: discord.Interaction, user: discord.User, po
     
     except Exception as e:
         await interaction.response.send_message(f"❌ Error removing points: {str(e)}", ephemeral=True)
-
-
-@tree.command(name="addpremium", description="[ADMIN] Grant premium access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
-@app_commands.default_permissions(administrator=True)
-@app_commands.describe(
-    user="Any Discord user to grant premium to",
-    days="Number of days of premium (default: 30)"
-)
-async def add_premium(interaction: discord.Interaction, user: discord.User, days: int = 30):
-    # Double security: Must be admin in YOUR server AND be you
-    if interaction.user.id != YOUR_ADMIN_ID:
-        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
-        return
-    
-    try:
-        from datetime import datetime, timedelta
-        expires_at = datetime.now() + timedelta(days=days)
         
-        # Add to database (you'll need to implement this)
-        # await db.get_or_create_user(user.id, user.display_name)
-        # await db.update_user_premium(user.id, True, expires_at)
-        
-        # Add to memory
-        tier_handler.premium_users.add(user.id)
-        
-        # Success message
-        embed = discord.Embed(
-            title="✅ Premium Granted Successfully",
-            description=(
-                f"**User:** {user.display_name} (`{user.id}`)\n"
-                f"**Duration:** {days} days\n"
-                f"**Expires:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n\n"
-                f"✨ *Global premium access activated*"
-            ),
-            color=0x00ff00
-        )
-        
-        if user.avatar:
-            embed.set_thumbnail(url=user.avatar.url)
-            
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        
-        # Try to notify the user
-        try:
-            user_embed = discord.Embed(
-                title="🌟 Premium Access Granted!",
-                description=(
-                    f"You've been granted **{days} days** of premium access for Muse Translator!\n\n"
-                    f"**Expires:** {expires_at.strftime('%B %d, %Y at %H:%M UTC')}\n\n"
-                    f"**Premium Features Unlocked:**\n"
-                    f"• ♾️ Unlimited text translation\n"
-                    f"• 🎤 Extended voice translation\n"
-                    f"• ⚡ Priority support"
-                ),
-                color=0xffd700
-            )
-            await user.send(embed=user_embed)
-            
-            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
-        except discord.Forbidden:
-            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
-        except Exception as dm_error:
-            await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
-            
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Error granting premium: {str(e)}", ephemeral=True)
-
 @tree.command(name="removepremium", description="[ADMIN] Remove premium access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(user="Any Discord user to remove premium from")
