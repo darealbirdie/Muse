@@ -106,13 +106,21 @@ REWARDS = {
         'duration_hours': 48,
         'type': 'beta_feature'
     },
-    'beta_features': {
-        'name': '🧪 Beta Features Access',
-        'description': 'Access to all beta features for 24 hours',
-        'cost': 120,
+    'enhanced_voice_1d': {
+        'name': '🚀 Enhanced Voice V2 (1 Day)',
+        'description': 'Unlock advanced bidirectional voice translation for 24 hours',
+        'cost': 50,
         'duration_hours': 24,
         'type': 'beta_feature'
     },
+    'enhanced_voice_7d': {
+        'name': '🚀 Enhanced Voice V2 (7 Days)', 
+        'description': 'Unlock advanced bidirectional voice translation for 1 week',
+        'cost': 300,
+        'duration_hours': 168,  # 7 days * 24 hours
+        'type': 'beta_feature'
+    },
+
     
     # === COSMETIC & SOCIAL ===
     'custom_badge': {
@@ -1377,20 +1385,67 @@ def get_enhanced_user_limits(user_id: int, base_limits: Dict, is_premium: bool, 
     
     return limits
 
+async def handle_enhanced_voice_purchase(user_id: int, item_key: str, item_data: dict):
+    """Handle purchase of enhanced voice beta access"""
+    try:
+        user_data = reward_db.get_or_create_user(user_id, "Unknown")
+        cost = item_data['cost']
+        
+        # Check if user has enough points
+        if user_data['points'] < cost:
+            return False, f"Insufficient points! Need {cost:,}, have {user_data['points']:,}"
+        
+        from datetime import datetime, timedelta
+        duration_hours = item_data['duration_hours']
+        expires_at = datetime.now() + timedelta(hours=duration_hours)
+        
+        # Deduct points and grant access
+        reward_db.add_points(user_id, -cost, f"Purchased {item_data['name']}")
+        reward_db.set_user_data(user_id, 'enhanced_voice_access', expires_at.isoformat())
+        
+        return True, f"Enhanced Voice V2 access granted until {expires_at.strftime('%Y-%m-%d %H:%M')}"
+        
+    except Exception as e:
+        logger.error(f"Error purchasing enhanced voice access: {e}")
+        return False, "Purchase failed due to technical error"
+
+
 def has_priority_processing(user_id: int, reward_db_instance) -> bool:
     """Check if user has priority processing active"""
     return reward_db_instance.has_active_reward(user_id, 'feature') and \
            any(r['id'] == 'priority_processing' for r in reward_db_instance.get_active_rewards(user_id))
 
-def has_enhanced_voice_access(user_id: int, reward_db_instance, tier_handler) -> bool:
-    """Check if user has enhanced voice chat V2 access (premium users get permanent access)"""
-    # Premium users get permanent access
-    if user_id in tier_handler.premium_users:
-        return True
-    
-    # Non-premium users need the reward
-    return reward_db_instance.has_active_reward(user_id, 'beta_feature') and \
-           any(r['id'] == 'enhanced_voice_beta' for r in reward_db_instance.get_active_rewards(user_id))
+def has_enhanced_voice_access(user_id: int, reward_db, tier_handler) -> bool:
+    """
+    Check if user has access to enhanced voice features (voicechat2)
+    Access granted to: Premium, Pro tiers, or users with purchased enhanced voice access
+    """
+    try:
+        # Get user's current tier
+        current_tier = tier_handler.get_user_tier(user_id)
+        
+        # Premium and Pro users get unlimited access
+        if current_tier in ['premium', 'pro']:
+            return True
+        
+        # Check for purchased enhanced voice access
+        user_data = reward_db.get_or_create_user(user_id, "Unknown")
+        
+        from datetime import datetime
+        
+        # Check enhanced voice access
+        if 'enhanced_voice_access' in user_data:
+            access_expires = datetime.fromisoformat(user_data['enhanced_voice_access'])
+            if datetime.now() < access_expires:
+                return True
+        
+        # No access for free and basic tiers without purchase
+        return False
+        
+    except Exception as e:
+        logger.error(f"Error checking enhanced voice access for user {user_id}: {e}")
+        return False
+
 
 # Add this method to your RewardDatabase class:
 
