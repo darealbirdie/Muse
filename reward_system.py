@@ -10,58 +10,559 @@ logger = logging.getLogger('muse_rewards')
 
 # Update the REWARDS dictionary - replace bulk_translation with enhanced_voice
 REWARDS = {
+    # === TIER UPGRADES ===
+    'temp_basic_1d': {
+        'name': '🥉 1-Day Basic Access',
+        'description': 'Unlock Basic tier features for 24 hours (500 chars, 30min voice, history)',
+        'cost': 50,
+        'duration_hours': 24,
+        'type': 'basic'
+    },
+    'temp_basic_3d': {
+        'name': '🥉 3-Day Basic Access',
+        'description': 'Unlock Basic tier features for 3 days',
+        'cost': 120,
+        'duration_hours': 72,
+        'type': 'basic'
+    },
     'temp_premium_1d': {
-        'name': '⭐ 1-Day Premium',
-        'description': 'Unlock premium features for 24 hours',
-        'cost': 100,
+        'name': '🥈 1-Day Premium Access',
+        'description': 'Unlock Premium tier features for 24 hours (2000 chars, 2h voice, priority)',
+        'cost': 150,
         'duration_hours': 24,
         'type': 'premium'
     },
+    'temp_premium_3d': {
+        'name': '🥈 3-Day Premium Access',
+        'description': 'Unlock Premium tier features for 3 days',
+        'cost': 400,
+        'duration_hours': 72,
+        'type': 'premium'
+    },
     'temp_premium_7d': {
-        'name': '💎 7-Day Premium',
-        'description': 'Unlock premium features for 1 week',
-        'cost': 600,
+        'name': '🥈 7-Day Premium Access',
+        'description': 'Unlock Premium tier features for 1 week',
+        'cost': 800,
         'duration_hours': 168,
         'type': 'premium'
     },
+    'temp_pro_1d': {
+        'name': '🥇 1-Day Pro Access',
+        'description': 'Unlock Pro tier features for 24 hours (unlimited everything + beta access)',
+        'cost': 250,
+        'duration_hours': 24,
+        'type': 'pro'
+    },
+    'temp_pro_3d': {
+        'name': '🥇 3-Day Pro Access',
+        'description': 'Unlock Pro tier features for 3 days',
+        'cost': 650,
+        'duration_hours': 72,
+        'type': 'pro'
+    },
+    
+    # === INDIVIDUAL FEATURES ===
+    'translation_history': {
+        'name': '📚 Translation History',
+        'description': 'Access your translation history for 48 hours',
+        'cost': 40,
+        'duration_hours': 48,
+        'type': 'feature'
+    },
     'extended_limits': {
-        'name': '📈 Extended Limits',
-        'description': 'Double your character limit for 24 hours',
-        'cost': 50,
+        'name': '📈 Extended Character Limit',
+        'description': 'Increase your character limit to 1000 for 24 hours',
+        'cost': 60,
+        'duration_hours': 24,
+        'type': 'feature'
+    },
+    'extended_voice': {
+        'name': '🎤 Extended Voice Time',
+        'description': 'Get 1 hour of additional voice translation time',
+        'cost': 80,
         'duration_hours': 24,
         'type': 'feature'
     },
     'priority_processing': {
         'name': '⚡ Priority Processing',
         'description': 'Faster translation processing for 12 hours',
-        'cost': 30,
+        'cost': 35,
         'duration_hours': 12,
         'type': 'feature'
     },
+    'auto_translate_access': {
+        'name': '🔄 Auto-Translate Feature',
+        'description': 'Access auto-translate feature for 24 hours',
+        'cost': 45,
+        'duration_hours': 24,
+        'type': 'feature'
+    },
+    
+    # === BETA & SPECIAL FEATURES ===
     'enhanced_voice_beta': {
         'name': '🚀 Enhanced Voice Chat V2 (Beta)',
         'description': 'Access to advanced bidirectional voice translation for 48 hours',
-        'cost': 75,
+        'cost': 100,
         'duration_hours': 48,
         'type': 'beta_feature'
+    },
+    'beta_features': {
+        'name': '🧪 Beta Features Access',
+        'description': 'Access to all beta features for 24 hours',
+        'cost': 120,
+        'duration_hours': 24,
+        'type': 'beta_feature'
+    },
+    
+    # === COSMETIC & SOCIAL ===
+    'custom_badge': {
+        'name': '🎨 Custom Badge',
+        'description': 'Create a custom badge for your profile (permanent)',
+        'cost': 200,
+        'duration_hours': -1,  # Permanent
+        'type': 'cosmetic'
+    },
+    'profile_highlight': {
+        'name': '✨ Profile Highlight',
+        'description': 'Highlight your profile in leaderboards for 7 days',
+        'cost': 90,
+        'duration_hours': 168,
+        'type': 'cosmetic'
+    },
+    
+    # === POINT MULTIPLIERS ===
+    'point_multiplier_2x': {
+        'name': '💰 2x Point Multiplier',
+        'description': 'Earn double points from all activities for 24 hours',
+        'cost': 75,
+        'duration_hours': 24,
+        'type': 'multiplier'
+    },
+    'point_multiplier_3x': {
+        'name': '💎 3x Point Multiplier',
+        'description': 'Earn triple points from all activities for 12 hours',
+        'cost': 150,
+        'duration_hours': 12,
+        'type': 'multiplier'
+    },
+    
+    # === SPECIAL BUNDLES ===
+    'starter_bundle': {
+        'name': '🎁 Starter Bundle',
+        'description': 'Basic access + History + Extended limits for 24h',
+        'cost': 100,  # Discounted from 150
+        'duration_hours': 24,
+        'type': 'bundle',
+        'includes': ['temp_basic_1d', 'translation_history', 'extended_limits']
+    },
+    'premium_bundle': {
+        'name': '🎉 Premium Bundle',
+        'description': 'Premium access + Beta features + 2x multiplier for 24h',
+        'cost': 300,  # Discounted from 425
+        'duration_hours': 24,
+        'type': 'bundle',
+        'includes': ['temp_premium_1d', 'beta_features', 'point_multiplier_2x']
+    },
+    'ultimate_bundle': {
+        'name': '👑 Ultimate Bundle',
+        'description': 'Pro access + All features + Custom badge for 3 days',
+        'cost': 750,  # Discounted from 1000+
+        'duration_hours': 72,
+        'type': 'bundle',
+        'includes': ['temp_pro_3d', 'beta_features', 'custom_badge', 'point_multiplier_2x']
     }
 }
 
-# Auto-badges based on achievements
+# Enhanced auto-badges with new tier system
 AUTO_BADGES = {
-    'first_translation': {'emoji': '🌟', 'title': 'First Steps'},
-    'translation_10': {'emoji': '📈', 'title': 'Getting Started'},
-    'translation_50': {'emoji': '🎯', 'title': 'Dedicated'},
-    'translation_100': {'emoji': '👑', 'title': 'Master'},
-    'translation_500': {'emoji': '🏆', 'title': 'Legend'},
-    'languages_5': {'emoji': '🌍', 'title': 'Explorer'},
-    'languages_15': {'emoji': '🌎', 'title': 'Polyglot'},
-    'languages_30': {'emoji': '🌏', 'title': 'Linguist'},
-    'first_voice': {'emoji': '🎤', 'title': 'Voice User'},
-    'voice_25': {'emoji': '📻', 'title': 'Voice Veteran'},
-    'premium_supporter': {'emoji': '⭐', 'title': 'Supporter'},
-    'early_adopter': {'emoji': '🚀', 'title': 'Pioneer'}
+    # === TRANSLATION MILESTONES ===
+    'first_translation': {'emoji': '🌟', 'title': 'First Steps', 'description': 'Made your first translation'},
+    'translation_10': {'emoji': '📈', 'title': 'Getting Started', 'description': 'Completed 10 translations'},
+    'translation_25': {'emoji': '🎯', 'title': 'Regular User', 'description': 'Completed 25 translations'},
+    'translation_50': {'emoji': '🏅', 'title': 'Dedicated', 'description': 'Completed 50 translations'},
+    'translation_100': {'emoji': '👑', 'title': 'Master', 'description': 'Completed 100 translations'},
+    'translation_250': {'emoji': '🏆', 'title': 'Expert', 'description': 'Completed 250 translations'},
+    'translation_500': {'emoji': '💎', 'title': 'Legend', 'description': 'Completed 500 translations'},
+    'translation_1000': {'emoji': '🌟', 'title': 'Grandmaster', 'description': 'Completed 1000 translations'},
+    
+    # === LANGUAGE DIVERSITY ===
+    'languages_3': {'emoji': '🌍', 'title': 'Explorer', 'description': 'Used 3 different languages'},
+    'languages_5': {'emoji': '🌎', 'title': 'Traveler', 'description': 'Used 5 different languages'},
+    'languages_10': {'emoji': '🌏', 'title': 'Polyglot', 'description': 'Used 10 different languages'},
+    'languages_15': {'emoji': '🗺️', 'title': 'Linguist', 'description': 'Used 15 different languages'},
+    'languages_25': {'emoji': '🌐', 'title': 'Global Citizen', 'description': 'Used 25 different languages'},
+    'languages_50': {'emoji': '🎓', 'title': 'Language Master', 'description': 'Used 50 different languages'},
+    
+    # === VOICE FEATURES ===
+    'first_voice': {'emoji': '🎤', 'title': 'Voice User', 'description': 'Used voice translation'},
+    'voice_10': {'emoji': '📻', 'title': 'Voice Regular', 'description': 'Used voice translation 10 times'},
+    'voice_25': {'emoji': '🎙️', 'title': 'Voice Veteran', 'description': 'Used voice translation 25 times'},
+    'voice_hours_1': {'emoji': '⏰', 'title': 'Chatterbox', 'description': 'Used 1 hour of voice translation'},
+    'voice_hours_5': {'emoji': '🕐', 'title': 'Voice Enthusiast', 'description': 'Used 5 hours of voice translation'},
+    
+    # === TIER & SUBSCRIPTION ===
+    'basic_subscriber': {'emoji': '🥉', 'title': 'Basic Supporter', 'description': 'Subscribed to Basic tier'},
+    'premium_subscriber': {'emoji': '🥈', 'title': 'Premium Supporter', 'description': 'Subscribed to Premium tier'},
+    'pro_subscriber': {'emoji': '🥇', 'title': 'Pro Supporter', 'description': 'Subscribed to Pro tier'},
+    'loyal_subscriber': {'emoji': '💝', 'title': 'Loyal Supporter', 'description': 'Subscribed for 3+ months'},
+    
+    # === SPECIAL ACHIEVEMENTS ===
+    'early_adopter': {'emoji': '🚀', 'title': 'Pioneer', 'description': 'Early adopter of Muse'},
+    'beta_tester': {'emoji': '🧪', 'title': 'Beta Tester', 'description': 'Helped test beta features'},
+    'community_helper': {'emoji': '🤝', 'title': 'Helper', 'description': 'Helped other users'},
+    'feedback_provider': {'emoji': '💬', 'title': 'Contributor', 'description': 'Provided valuable feedback'},
+    
+    # === USAGE PATTERNS ===
+    'daily_user': {'emoji': '📅', 'title': 'Daily User', 'description': 'Used Muse for 7 consecutive days'},
+    'weekly_warrior': {'emoji': '🗓️', 'title': 'Weekly Warrior', 'description': 'Used Muse for 30 consecutive days'},
+    'power_user': {'emoji': '⚡', 'title': 'Power User', 'description': 'Heavy usage across all features'},
+    'night_owl': {'emoji': '🦉', 'title': 'Night Owl', 'description': 'Frequently uses Muse late at night'},
+    'early_bird': {'emoji': '🐦', 'title': 'Early Bird', 'description': 'Frequently uses Muse early morning'},
+    
+    # === SOCIAL & SHARING ===
+    'inviter': {'emoji': '📨', 'title': 'Inviter', 'description': 'Invited friends to use Muse'},
+    'social_butterfly': {'emoji': '🦋', 'title': 'Social Butterfly', 'description': 'Used DM translation features'},
+    'server_booster': {'emoji': '🚀', 'title': 'Server Booster', 'description': 'Added Muse to multiple servers'},
+    
+    # === POINT ACHIEVEMENTS ===
+    'points_100': {'emoji': '💰', 'title': 'Saver', 'description': 'Earned 100 points'},
+    'points_500': {'emoji': '💎', 'title': 'Collector', 'description': 'Earned 500 points'},
+    'points_1000': {'emoji': '👑', 'title': 'Rich', 'description': 'Earned 1000 points'},
+    'points_5000': {'emoji': '🏦', 'title': 'Wealthy', 'description': 'Earned 5000 points'},
+    'big_spender': {'emoji': '💸', 'title': 'Big Spender', 'description': 'Spent 500+ points in shop'},
+    
+    # === SPECIAL EVENTS ===
+    'holiday_user': {'emoji': '🎄', 'title': 'Holiday Spirit', 'description': 'Used Muse during holidays'},
+    'anniversary': {'emoji': '🎂', 'title': 'Anniversary', 'description': 'Been with Muse for 1 year'},
+    'milestone_witness': {'emoji': '🎉', 'title': 'Witness', 'description': 'Present during major milestones'}
 }
+
+# Reward categories for shop organization
+REWARD_CATEGORIES = {
+    'tier_upgrades': {
+        'name': '⭐ Tier Upgrades',
+        'description': 'Temporary access to higher tiers',
+        'rewards': ['temp_basic_1d', 'temp_basic_3d', 'temp_premium_1d', 'temp_premium_3d', 'temp_premium_7d', 'temp_pro_1d', 'temp_pro_3d']
+    },
+    'features': {
+        'name': '🎯 Individual Features',
+        'description': 'Unlock specific features temporarily',
+        'rewards': ['translation_history', 'extended_limits', 'extended_voice', 'priority_processing', 'auto_translate_access']
+    },
+    'beta': {
+        'name': '🧪 Beta & Experimental',
+        'description': 'Access to cutting-edge features',
+        'rewards': ['enhanced_voice_beta', 'beta_features']
+    },
+    'multipliers': {
+        'name': '💰 Point Multipliers',
+        'description': 'Earn points faster',
+        'rewards': ['point_multiplier_2x', 'point_multiplier_3x']
+    },
+    'cosmetic': {
+        'name': '🎨 Cosmetic & Social',
+        'description': 'Customize your profile',
+        'rewards': ['custom_badge', 'profile_highlight']
+    },
+    'bundles': {
+        'name': '🎁 Value Bundles',
+        'description': 'Discounted feature combinations',
+        'rewards': ['starter_bundle', 'premium_bundle', 'ultimate_bundle']
+    }
+}
+
+# Point earning rates by tier
+POINT_RATES = {
+    'free': {
+        'translation': 1,      # 1 point per translation
+        'voice_minute': 2,     # 2 points per minute of voice
+        'daily_bonus': 5,      # 5 points daily bonus
+        'achievement': 10      # 10 points per achievement
+    },
+    'basic': {
+        'translation': 2,      # 2x points for Basic users
+        'voice_minute': 4,     # 2x points for voice
+        'daily_bonus': 10,     # 2x daily bonus
+        'achievement': 15      # 1.5x achievement bonus
+    },
+    'premium': {
+        'translation': 3,      # 3x points for Premium users
+        'voice_minute': 6,     # 3x points for voice
+        'daily_bonus': 15,     # 3x daily bonus
+        'achievement': 20      # 2x achievement bonus
+    },
+    'pro': {
+        'translation': 5,      # 5x points for Pro users
+        'voice_minute': 10,    # 5x points for voice
+        'daily_bonus': 25,     # 5x daily bonus
+        'achievement': 30      # 3x achievement bonus
+    }
+}
+
+# Daily reward tiers
+DAILY_REWARDS = {
+    'free': {
+        'base_points': 5,
+        'bonus_chance': 0.1,   # 10% chance for bonus
+        'bonus_points': 15,
+        'streak_multiplier': 1.0
+    },
+    'basic': {
+        'base_points': 10,     # 2x base points
+        'bonus_chance': 0.15,  # 15% chance for bonus
+        'bonus_points': 25,
+        'streak_multiplier': 1.2
+    },
+    'premium': {
+        'base_points': 15,     # 3x base points
+        'bonus_chance': 0.2,   # 20% chance for bonus
+        'bonus_points': 40,
+        'streak_multiplier': 1.5
+    },
+    'pro': {
+        'base_points': 25,     # 5x base points
+        'bonus_chance': 0.3,   # 30% chance for bonus
+        'bonus_points': 75,
+        'streak_multiplier': 2.0
+    }
+}
+
+# Achievement point rewards
+ACHIEVEMENT_POINTS = {
+    # Translation milestones
+    'first_translation': 10,
+    'translation_10': 25,
+    'translation_25': 50,
+    'translation_50': 100,
+    'translation_100': 200,
+    'translation_250': 500,
+    'translation_500': 1000,
+    'translation_1000': 2500,
+    
+    # Language diversity
+    'languages_3': 30,
+    'languages_5': 50,
+    'languages_10': 100,
+    'languages_15': 200,
+    'languages_25': 500,
+    'languages_50': 1500,
+    
+    # Voice achievements
+    'first_voice': 20,
+    'voice_10': 75,
+    'voice_25': 150,
+    'voice_hours_1': 100,
+    'voice_hours_5': 300,
+    
+    # Tier achievements
+    'basic_subscriber': 100,
+    'premium_subscriber': 250,
+    'pro_subscriber': 500,
+    'loyal_subscriber': 1000,
+    
+    # Special achievements
+    'early_adopter': 500,
+    'beta_tester': 200,
+    'community_helper': 150,
+    'feedback_provider': 100,
+    
+    # Usage patterns
+    'daily_user': 75,
+    'weekly_warrior': 200,
+    'power_user': 300,
+    'night_owl': 50,
+    'early_bird': 50,
+    
+    # Social achievements
+    'inviter': 100,
+    'social_butterfly': 75,
+    'server_booster': 200,
+    
+    # Point milestones
+    'points_100': 25,
+    'points_500': 100,
+    'points_1000': 250,
+    'points_5000': 750,
+    'big_spender': 200,
+    
+    # Special events
+    'holiday_user': 100,
+    'anniversary': 500,
+    'milestone_witness': 300
+}
+
+# Feature access mapping for rewards
+REWARD_FEATURE_ACCESS = {
+    'temp_basic_1d': ['history', 'auto_translate'],
+    'temp_basic_3d': ['history', 'auto_translate'],
+    'temp_premium_1d': ['history', 'auto_translate', 'priority_processing', 'enhanced_voice'],
+    'temp_premium_3d': ['history', 'auto_translate', 'priority_processing', 'enhanced_voice'],
+    'temp_premium_7d': ['history', 'auto_translate', 'priority_processing', 'enhanced_voice'],
+    'temp_pro_1d': ['all_features', 'beta_access', 'priority_support'],
+    'temp_pro_3d': ['all_features', 'beta_access', 'priority_support'],
+    'translation_history': ['history'],
+    'auto_translate_access': ['auto_translate'],
+    'enhanced_voice_beta': ['enhanced_voice'],
+    'beta_features': ['beta_access'],
+    'priority_processing': ['priority_processing']
+}
+
+# Bundle contents mapping
+BUNDLE_CONTENTS = {
+    'starter_bundle': {
+        'rewards': ['temp_basic_1d', 'translation_history', 'extended_limits'],
+        'total_value': 150,
+        'discount': 50,
+        'savings': '33%'
+    },
+    'premium_bundle': {
+        'rewards': ['temp_premium_1d', 'beta_features', 'point_multiplier_2x'],
+        'total_value': 425,
+        'discount': 125,
+        'savings': '29%'
+    },
+    'ultimate_bundle': {
+        'rewards': ['temp_pro_3d', 'beta_features', 'custom_badge', 'point_multiplier_2x'],
+        'total_value': 1025,
+        'discount': 275,
+        'savings': '27%'
+    }
+}
+
+# Tier comparison for shop display
+TIER_COMPARISON = {
+    'free': {
+        'name': '🆓 Free',
+        'text_limit': '50 chars',
+        'voice_limit': '5 min total',
+        'features': ['Basic translation'],
+        'points_multiplier': '1x',
+        'daily_reward': '5 points'
+    },
+    'basic': {
+        'name': '🥉 Basic ($1/month)',
+        'text_limit': '500 chars',
+        'voice_limit': '30 min total',
+        'features': ['Translation history', 'Auto-translate', 'Basic translation'],
+        'points_multiplier': '2x',
+        'daily_reward': '10 points'
+    },
+    'premium': {
+        'name': '🥈 Premium ($3/month)',
+        'text_limit': '2000 chars',
+        'voice_limit': '2 hours total',
+        'features': ['Priority processing', 'Enhanced voice', 'All Basic features'],
+        'points_multiplier': '3x',
+        'daily_reward': '15 points'
+    },
+    'pro': {
+        'name': '🥇 Pro ($5/month)',
+        'text_limit': 'Unlimited',
+        'voice_limit': 'Unlimited',
+        'features': ['Beta access', 'Priority support', 'All features'],
+        'points_multiplier': '5x',
+        'daily_reward': '25 points'
+    }
+}
+
+# Reward rarity system
+REWARD_RARITY = {
+    'common': {
+        'color': 0x95a5a6,
+        'emoji': '⚪',
+        'rewards': ['extended_limits', 'priority_processing', 'translation_history']
+    },
+    'uncommon': {
+        'color': 0x2ecc71,
+        'emoji': '🟢',
+        'rewards': ['temp_basic_1d', 'auto_translate_access', 'extended_voice']
+    },
+    'rare': {
+        'color': 0x3498db,
+        'emoji': '🔵',
+        'rewards': ['temp_premium_1d', 'enhanced_voice_beta', 'point_multiplier_2x']
+    },
+    'epic': {
+        'color': 0x9b59b6,
+        'emoji': '🟣',
+        'rewards': ['temp_premium_7d', 'temp_pro_1d', 'beta_features']
+    },
+    'legendary': {
+        'color': 0xf39c12,
+        'emoji': '🟡',
+        'rewards': ['temp_pro_3d', 'ultimate_bundle', 'custom_badge']
+    }
+}
+
+# Helper function to get reward rarity
+def get_reward_rarity(reward_id):
+    """Get the rarity of a reward"""
+    for rarity, data in REWARD_RARITY.items():
+        if reward_id in data['rewards']:
+            return rarity, data
+    return 'common', REWARD_RARITY['common']
+
+# Helper function to check if user has access to a feature
+def user_has_feature_access(user_id, feature, reward_db, tier_handler):
+    """Check if user has access to a specific feature"""
+    # Check permanent tier access
+    current_tier = tier_handler.get_user_tier(user_id)
+    tier_features = tier_handler.tiers[current_tier].get('features', [])
+    
+    if feature in tier_features or 'all_features' in tier_features:
+        return True
+    
+    # Check temporary access from rewards
+    active_rewards = reward_db.get_active_rewards(user_id)
+    for reward in active_rewards:
+        reward_id = reward.get('reward_id', '')
+        if reward_id in REWARD_FEATURE_ACCESS:
+            reward_features = REWARD_FEATURE_ACCESS[reward_id]
+            if feature in reward_features or 'all_features' in reward_features:
+                return True
+    
+    return False
+
+# Helper function to calculate points earned
+def calculate_points_earned(user_id, action_type, amount, tier_handler):
+    """Calculate points earned for an action"""
+    current_tier = tier_handler.get_user_tier(user_id)
+    rates = POINT_RATES.get(current_tier, POINT_RATES['free'])
+    
+    if action_type == 'translation':
+        return rates['translation'] * amount
+    elif action_type == 'voice_minute':
+        return rates['voice_minute'] * amount
+    elif action_type == 'daily_bonus':
+        return rates['daily_bonus']
+    elif action_type == 'achievement':
+        return rates['achievement']
+    
+    return 0
+
+# Helper function to get daily reward
+def get_daily_reward(user_id, streak_days, tier_handler):
+    """Calculate daily reward based on tier and streak"""
+    current_tier = tier_handler.get_user_tier(user_id)
+    reward_config = DAILY_REWARDS.get(current_tier, DAILY_REWARDS['free'])
+    
+    base_points = reward_config['base_points']
+    
+    # Apply streak multiplier
+    streak_bonus = min(streak_days * 0.1, 1.0)  # Max 100% bonus at 10 day streak
+    total_multiplier = reward_config['streak_multiplier'] + streak_bonus
+    
+    final_points = int(base_points * total_multiplier)
+    
+    # Check for bonus
+    import random
+    has_bonus = random.random() < reward_config['bonus_chance']
+    if has_bonus:
+        final_points += reward_config['bonus_points']
+    
+    return final_points, has_bonus
+
+
 
 # Rank badges based on points
 RANK_BADGES = {
