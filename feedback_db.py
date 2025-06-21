@@ -74,6 +74,21 @@ class FeedbackDB:
                 "two_star": row[5],
                 "one_star": row[6]
             }
+    # Add these methods to your feedback_db class:
+
+    async def get_last_feedback_date(self, user_id: int) -> str:
+        """Get the date of user's last feedback"""
+        pass
+
+    async def get_last_feedback_session(self, user_id: int) -> int:
+        """Get session count when user last gave feedback"""
+        pass
+
+    async def add_feedback(self, user_id: int, username: str, rating: int, 
+                      message: str = None, session_count: int = 0):
+        """Add feedback with session tracking"""
+        pass
 
 # Create instance
 feedback_db = FeedbackDB()
+
