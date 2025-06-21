@@ -7678,57 +7678,7 @@ async def remove_points(interaction: discord.Interaction, user: discord.User, po
     
     except Exception as e:
         await interaction.response.send_message(f"❌ Error removing points: {str(e)}", ephemeral=True)
-        
-@tree.command(name="removepremium", description="[ADMIN] Remove premium access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
-@app_commands.default_permissions(administrator=True)
-@app_commands.describe(user="Any Discord user to remove premium from")
-async def remove_premium(interaction: discord.Interaction, user: discord.User):
-    if interaction.user.id != YOUR_ADMIN_ID:
-        await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
-        return
-    
-    try:
-        # Remove from memory
-        tier_handler.premium_users.discard(user.id)
-        
-        # Success message
-        embed = discord.Embed(
-            title="✅ Premium Removed Successfully",
-            description=(
-                f"**User:** {user.display_name} (`{user.id}`)\n"
-                f"Premium access has been revoked."
-            ),
-            color=0xff9900
-        )
-        
-        if user.avatar:
-            embed.set_thumbnail(url=user.avatar.url)
-            
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        
-        # Try to notify the user
-        try:
-            user_embed = discord.Embed(
-                title="⏰ Premium Access Ended",
-                description=(
-                    "Your premium access for Muse Translator has been removed.\n\n"
-                    "**What this means:**\n"
-                    "• Text translations limited to 100 characters\n"
-                    "• Voice translations limited to 30 minutes daily\n\n"
-                    "Use `/upgrade` to subscribe again if you'd like premium features."
-                ),
-                color=0xff9900
-            )
-            await user.send(embed=user_embed)
-            
-            await interaction.followup.send("✅ User has been notified via DM", ephemeral=True)
-        except discord.Forbidden:
-            await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
-        except Exception as dm_error:
-            await interaction.followup.send(f"⚠️ Couldn't notify user: {dm_error}", ephemeral=True)
-            
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Error removing premium: {str(e)}", ephemeral=True)
+
 
 @tree.command(name="listpremium", description="[ADMIN] List all premium users", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
