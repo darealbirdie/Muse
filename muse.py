@@ -158,549 +158,126 @@ async def source_language_autocomplete(
     return matches[:25]
 class TierHandler:
     def __init__(self):
-        # Memory-based tier tracking (for immediate access)
-        self.basic_users = {}      # {user_id: expiration_datetime} - $1/month
-        self.premium_users = {}    # {user_id: expiration_datetime} - $3/month  
-        self.pro_users = {}        # {user_id: expiration_datetime} - $5/month
-        
-        # Legacy set-based tracking (for compatibility)
-        self.basic_users_set = set()
-        self.premium_users_set = set()
-        self.pro_users_set = set()
-        
+        self.premium_users = set()  # Premium users
+        self.pro_users = set()      # Pro users (if you have this tier)
+        self.user_tiers = {}        # Store user tier info with expiration
         self.tiers = {
             'free': {
-                'text_limit': 50,         # 50 characters per translation
-                'voice_limit': 1800,      # 30 minutes total voice time (in seconds)
-                'daily_points_min': 5,
-                'daily_points_max': 10,
-                'features': ['basic_translation']
+                'text_limit': 100,    # 100 characters per translation
+                'voice_limit': 30     # 30 minutes voice translation
             },
-            'basic': {                    # $1/month
-                'text_limit': 500,        # 500 characters per translation
-                'voice_limit': 3600,      # 60 minutes total voice time
-                'daily_points_min': 10,
-                'daily_points_max': 15,
-                'features': ['basic_translation', 'history', 'auto_translate']
+            'basic': {
+                'text_limit': 500,    # 500 characters per translation
+                'voice_limit': 60     # 60 minutes voice translation
             },
-            'premium': {                  # $3/month
-                'text_limit': 2000,       # 2000 characters per translation
-                'voice_limit': 7200,      # 2 hours total voice time
-                'daily_points_min': 15,
-                'daily_points_max': 20,
-                'features': ['basic_translation', 'history', 'auto_translate', 'priority_processing', 'enhanced_voice']
+            'premium': {
+                'text_limit': float('inf'),  # Unlimited characters
+                'voice_limit': float('inf')   # infinite voice translation
             },
-            'pro': {                      # $5/month
-                'text_limit': float('inf'),  # Unlimited characters per translation
-                'voice_limit': float('inf'), # Unlimited voice time
-                'daily_points_min': 20,
-                'daily_points_max': 25,
-                'features': ['all_features', 'priority_support', 'beta_access', 'custom_integrations']
+            'pro': {
+                'text_limit': float('inf'),  # Unlimited characters
+                'voice_limit': float('inf')   # infinite voice translation
             }
         }
-    
-    def get_user_tier(self, user_id: int) -> str:
-        """Get user's current tier (synchronous)"""
-        from datetime import datetime
-        
-        # Check Pro tier first (highest priority)
-        if user_id in self.pro_users:
-            if isinstance(self.pro_users[user_id], datetime):
-                if datetime.now() < self.pro_users[user_id]:
-                    return 'pro'
-                else:
-                    # Expired, remove
-                    del self.pro_users[user_id]
-                    self.pro_users_set.discard(user_id)
-            else:
-                return 'pro'  # Permanent pro user
-        
-        # Check legacy pro users set
-        if user_id in self.pro_users_set:
-            return 'pro'
-        
-        # Check Premium tier
-        if user_id in self.premium_users:
-            if isinstance(self.premium_users[user_id], datetime):
-                if datetime.now() < self.premium_users[user_id]:
-                    return 'premium'
-                else:
-                    # Expired, remove
-                    del self.premium_users[user_id]
-                    self.premium_users_set.discard(user_id)
-            else:
-                return 'premium'  # Permanent premium user
-        
-        # Check legacy premium users set
-        if user_id in self.premium_users_set:
-            return 'premium'
-        
-        # Check Basic tier
-        if user_id in self.basic_users:
-            if isinstance(self.basic_users[user_id], datetime):
-                if datetime.now() < self.basic_users[user_id]:
-                    return 'basic'
-                else:
-                    # Expired, remove
-                    del self.basic_users[user_id]
-                    self.basic_users_set.discard(user_id)
-            else:
-                return 'basic'  # Permanent basic user
-        
-        # Check legacy basic users set
-        if user_id in self.basic_users_set:
-            return 'basic'
-        
-        # Default to free
-        return 'free'
     
     def get_limits(self, user_id: int):
-        """Get user limits (synchronous version for immediate use)"""
         tier = self.get_user_tier(user_id)
-        return self.tiers[tier]
-    
-    async def get_user_tier_async(self, user_id: int):
-        """Get user's current tier name (async version with database check)"""
-        try:
-            # First check memory-based status for speed
-            memory_tier = self.get_user_tier(user_id)
-            if memory_tier != 'free':
-                return memory_tier
-            
-            # Check database for subscription status
-            try:
-                # Only check database if db is available
-                if 'db' in globals():
-                    user = await db.get_or_create_user(user_id)
-                    if user:
-                        tier = user.get('subscription_tier', 'free')
-                        
-                        if tier == 'pro':
-                            self.pro_users_set.add(user_id)
-                            return 'pro'
-                        elif tier == 'premium':
-                            self.premium_users_set.add(user_id)
-                            return 'premium'
-                        elif tier == 'basic':
-                            self.basic_users_set.add(user_id)
-                            return 'basic'
-            except Exception as db_error:
-                logger.error(f"Database error getting tier for {user_id}: {db_error}")
-            
-            # Check for temporary premium from rewards
-            try:
-                temp_tier = await self.get_temp_tier(user_id)
-                if temp_tier and temp_tier != 'free':
-                    return temp_tier
-            except Exception as temp_error:
-                logger.error(f"Error checking temp tier: {temp_error}")
-            
-            return 'free'
-            
-        except Exception as e:
-            logger.error(f"Error in get_user_tier_async for {user_id}: {e}")
-            return self.get_user_tier(user_id)
-    
-    async def get_limits_async(self, user_id: int):
-        """Get user limits using database (async version)"""
-        try:
-            tier = await self.get_user_tier_async(user_id)
-            return self.tiers[tier]
-        except Exception as e:
-            logger.error(f"Error in get_limits_async for {user_id}: {e}")
-            return self.get_limits(user_id)
-    
-    async def set_user_tier(self, user_id: int, tier: str, expires_at=None):
-        """Set user's tier with optional expiration"""
-        from datetime import datetime, timedelta
-        
-        # Remove from all tier lists first
-        self.basic_users_set.discard(user_id)
-        self.premium_users_set.discard(user_id)
-        self.pro_users_set.discard(user_id)
-        
-        if user_id in self.basic_users:
-            del self.basic_users[user_id]
-        if user_id in self.premium_users:
-            del self.premium_users[user_id]
-        if user_id in self.pro_users:
-            del self.pro_users[user_id]
-        
-        # Add to appropriate tier
-        if tier == 'pro':
-            if expires_at is None:
-                expires_at = datetime.now() + timedelta(days=30)
-            self.pro_users[user_id] = expires_at
-            self.pro_users_set.add(user_id)
-        elif tier == 'premium':
-            if expires_at is None:
-                expires_at = datetime.now() + timedelta(days=30)
-            self.premium_users[user_id] = expires_at
-            self.premium_users_set.add(user_id)
-        elif tier == 'basic':
-            if expires_at is None:
-                expires_at = datetime.now() + timedelta(days=30)
-            self.basic_users[user_id] = expires_at
-            self.basic_users_set.add(user_id)
-        # 'free' tier doesn't need to be stored
-    
-    async def get_tier_expiration(self, user_id: int):
-        """Get when user's tier expires"""
-        if user_id in self.pro_users and isinstance(self.pro_users[user_id], datetime):
-            return self.pro_users[user_id]
-        elif user_id in self.premium_users and isinstance(self.premium_users[user_id], datetime):
-            return self.premium_users[user_id]
-        elif user_id in self.basic_users and isinstance(self.basic_users[user_id], datetime):
-            return self.basic_users[user_id]
-        return None
-    
-    def get_limits_for_tier(self, tier: str):
-        """Get limits for a specific tier"""
         return self.tiers.get(tier, self.tiers['free'])
     
-    async def check_usage_limits(self, user_id: int, text_chars: int = 0, voice_seconds: int = 0):
-        """Check if user can perform action within limits (NO DAILY LIMITS)"""
-        try:
-            # Get current tier and limits
-            current_tier = await self.get_user_tier_async(user_id)
-            limits = self.tiers[current_tier]
-            
-            # Check text limit (per translation only, no daily limit)
-            if text_chars > 0 and limits['text_limit'] != float('inf'):
-                if text_chars > limits['text_limit']:
-                    tier_names = {
-                        'free': 'Free', 
-                        'basic': 'Basic ($1/month)', 
-                        'premium': 'Premium ($3/month)', 
-                        'pro': 'Pro ($5/month)'
-                    }
-                    return False, f"Text too long! {tier_names.get(current_tier, 'Current')} tier limit: {limits['text_limit']} characters per translation"
-            
-            # Check voice limit (total accumulated, not daily)
-            if voice_seconds > 0 and limits['voice_limit'] != float('inf'):
-                try:
-                    # Get total voice usage (not daily - accumulated)
-                    if 'db' in globals():
-                        total_usage = await db.get_total_voice_usage(user_id)
-                        current_usage = total_usage.get('voice_seconds', 0) if total_usage else 0
-                        
-                        if (current_usage + voice_seconds) > limits['voice_limit']:
-                            remaining_minutes = max(0, (limits['voice_limit'] - current_usage) // 60)
-                            tier_names = {'free': 'Free', 'basic': 'Basic', 'premium': 'Premium', 'pro': 'Pro'}
-                            return False, f"{tier_names.get(current_tier, 'Current')} tier voice limit exceeded! You have {remaining_minutes} minutes remaining total"
-                except Exception as voice_error:
-                    logger.error(f"Error checking voice usage: {voice_error}")
-                    # Allow voice on database error (don't block user)
-                    pass
-            
-            return True, f"{current_tier.title()} tier - within limits"
-            
-        except Exception as e:
-            logger.error(f"Error in check_usage_limits for {user_id}: {e}")
-            # On any error, allow the action (don't block users due to bugs)
-            return True, "Limits check bypassed due to error"
+    def get_user_tier(self, user_id: int):
+        """Get user's current tier"""
+        # Check if user has a stored tier with expiration
+        if user_id in self.user_tiers:
+            tier_info = self.user_tiers[user_id]
+            # Check if tier hasn't expired
+            if 'expires' in tier_info:
+                from datetime import datetime
+                if datetime.now() < tier_info['expires']:
+                    return tier_info['tier']
+                else:
+                    # Tier expired, remove it
+                    del self.user_tiers[user_id]
+        
+        # Check permanent tiers
+        if user_id in self.premium_users:
+            return 'premium'
+        elif hasattr(self, 'pro_users') and user_id in self.pro_users:
+            return 'pro'
+        
+        return 'free'
     
-    async def get_temp_tier(self, user_id: int):
-        """Check if user has temporary tier upgrade from rewards"""
-        try:
-            # Check for active temporary tier rewards
-            if 'reward_db' in globals():
-                active_rewards = await reward_db.get_active_rewards(user_id)
-                
-                if not active_rewards:
-                    return 'free'
-                
-                # Find highest tier from active rewards
-                tier_priority = {'pro': 4, 'premium': 3, 'basic': 2, 'free': 1}
-                highest_tier = 'free'
-                
-                for reward in active_rewards:
-                    reward_type = reward.get('reward_type', '')
-                    if reward_type in ['pro', 'premium', 'basic']:
-                        if tier_priority.get(reward_type, 0) > tier_priority.get(highest_tier, 0):
-                            highest_tier = reward_type
-                
-                return highest_tier
-            
-            return 'free'
-            
-        except Exception as e:
-            logger.error(f"Error checking temp tier for {user_id}: {e}")
-            return 'free'
+    async def get_user_tier_async(self, user_id: int):
+        """Async version of get_user_tier for compatibility"""
+        return self.get_user_tier(user_id)
     
-    def has_temp_premium(self, user_id: int, reward_db):
-        """Check if user has any temporary premium tier from rewards (legacy method)"""
-        try:
-            # Check for any premium-level rewards
-            return (reward_db.has_active_reward(user_id, 'basic') or
-                   reward_db.has_active_reward(user_id, 'premium') or
-                   reward_db.has_active_reward(user_id, 'pro'))
-        except Exception as e:
-            logger.error(f"Error checking temp premium: {e}")
-            return False
-    
-    async def upgrade_user_tier(self, user_id: int, new_tier: str, permanent: bool = True):
-        """Upgrade user to a new tier"""
-        try:
-            # Remove from all tier sets first
-            self.basic_users_set.discard(user_id)
-            self.premium_users_set.discard(user_id)
-            self.pro_users_set.discard(user_id)
-            
-            if user_id in self.basic_users:
-                del self.basic_users[user_id]
-            if user_id in self.premium_users:
-                del self.premium_users[user_id]
-            if user_id in self.pro_users:
-                del self.pro_users[user_id]
-            
-            # Add to appropriate tier set
-            if new_tier == 'basic':
-                self.basic_users_set.add(user_id)
-                if not permanent:
-                    from datetime import datetime, timedelta
-                    self.basic_users[user_id] = datetime.now() + timedelta(days=30)
-            elif new_tier == 'premium':
-                self.premium_users_set.add(user_id)
-                if not permanent:
-                    from datetime import datetime, timedelta
-                    self.premium_users[user_id] = datetime.now() + timedelta(days=30)
-            elif new_tier == 'pro':
-                self.pro_users_set.add(user_id)
-                if not permanent:
-                    from datetime import datetime, timedelta
-                    self.pro_users[user_id] = datetime.now() + timedelta(days=30)
-            
-            # Update database if permanent and available
-            if permanent and 'db' in globals():
-                await db.update_user_subscription(user_id, new_tier)
-            
-            logger.info(f"User {user_id} upgraded to {new_tier} tier (permanent: {permanent})")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error upgrading user {user_id} to {new_tier}: {e}")
-            return False
-    
-    async def downgrade_user_tier(self, user_id: int, reason: str = "Subscription ended"):
-        """Downgrade user to free tier"""
-        try:
-            # Remove from all premium tier sets
-            self.basic_users_set.discard(user_id)
-            self.premium_users_set.discard(user_id)
-            self.pro_users_set.discard(user_id)
-            
-            # Remove from expiration tracking
-            if user_id in self.basic_users:
-                del self.basic_users[user_id]
-            if user_id in self.premium_users:
-                del self.premium_users[user_id]
-            if user_id in self.pro_users:
-                del self.pro_users[user_id]
-            
-            # Update database if available
-            if 'db' in globals():
-                await db.update_user_subscription(user_id, 'free')
-            
-            logger.info(f"User {user_id} downgraded to free tier: {reason}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error downgrading user {user_id}: {e}")
-            return False
-    
-    def get_tier_info(self, tier_name: str):
-        """Get display information for a tier"""
-        tier_info = {
-            'free': {'color': 0x95a5a6, 'emoji': '🆓', 'name': 'Free', 'price': '$0'},
-            'basic': {'color': 0xcd7f32, 'emoji': '🥉', 'name': 'Basic', 'price': '$1/month'},
-            'premium': {'color': 0xc0c0c0, 'emoji': '🥈', 'name': 'Premium', 'price': '$3/month'},
-            'pro': {'color': 0xffd700, 'emoji': '🥇', 'name': 'Pro', 'price': '$5/month'}
-        }
-        return tier_info.get(tier_name, tier_info['free'])
-    
-    def add_legacy_user(self, user_id: int, tier: str):
-        """Add user to legacy tier system (for backward compatibility)"""
-        try:
-            if tier == 'basic':
-                self.basic_users_set.add(user_id)
-            elif tier == 'premium':
-                self.premium_users_set.add(user_id)
+    def set_user_tier(self, user_id: int, tier: str, expires=None):
+        """Set a user's tier with optional expiration"""
+        if tier in ['premium', 'pro']:
+            # For premium/pro, add to permanent sets
+            if tier == 'premium':
+                self.premium_users.add(user_id)
+                if hasattr(self, 'pro_users'):
+                    self.pro_users.discard(user_id)
             elif tier == 'pro':
-                self.pro_users_set.add(user_id)
-            logger.info(f"Added user {user_id} to legacy {tier} tier")
-        except Exception as e:
-            logger.error(f"Error adding legacy user {user_id} to {tier}: {e}")
-    
-    def remove_legacy_user(self, user_id: int, tier: str = None):
-        """Remove user from legacy tier system"""
-        try:
-            if tier is None or tier == 'basic':
-                self.basic_users_set.discard(user_id)
-            if tier is None or tier == 'premium':
-                self.premium_users_set.discard(user_id)
-            if tier is None or tier == 'pro':
-                self.pro_users_set.discard(user_id)
-            logger.info(f"Removed user {user_id} from legacy tier system")
-        except Exception as e:
-            logger.error(f"Error removing legacy user {user_id}: {e}")
-    
-    async def cleanup_expired_tiers(self):
-        """Clean up expired tier memberships"""
-        try:
-            from datetime import datetime
-            current_time = datetime.now()
-            expired_users = []
+                if not hasattr(self, 'pro_users'):
+                    self.pro_users = set()
+                self.pro_users.add(user_id)
+                self.premium_users.discard(user_id)
             
-            # Check basic users
-            for user_id, expiry in list(self.basic_users.items()):
-                if isinstance(expiry, datetime) and current_time >= expiry:
-                    expired_users.append((user_id, 'basic'))
-                    del self.basic_users[user_id]
-                    self.basic_users_set.discard(user_id)
-            
-            # Check premium users
-            for user_id, expiry in list(self.premium_users.items()):
-                if isinstance(expiry, datetime) and current_time >= expiry:
-                    expired_users.append((user_id, 'premium'))
-                    del self.premium_users[user_id]
-                    self.premium_users_set.discard(user_id)
-            
-            # Check pro users
-            for user_id, expiry in list(self.pro_users.items()):
-                if isinstance(expiry, datetime) and current_time >= expiry:
-                    expired_users.append((user_id, 'pro'))
-                    del self.pro_users[user_id]
-                    self.pro_users_set.discard(user_id)
-            
-            if expired_users:
-                logger.info(f"Cleaned up {len(expired_users)} expired tier memberships")
-                
-            return expired_users
-            
-        except Exception as e:
-            logger.error(f"Error cleaning up expired tiers: {e}")
-            return []
-    
-    def get_all_premium_users(self):
-        """Get all users with any premium tier (for notifications, etc.)"""
-        try:
-            all_premium = set()
-            
-            # Add from expiration tracking
-            all_premium.update(self.basic_users.keys())
-            all_premium.update(self.premium_users.keys())
-            all_premium.update(self.pro_users.keys())
-            
-            # Add from legacy sets
-            all_premium.update(self.basic_users_set)
-            all_premium.update(self.premium_users_set)
-            all_premium.update(self.pro_users_set)
-            
-            return list(all_premium)
-            
-        except Exception as e:
-            logger.error(f"Error getting all premium users: {e}")
-            return []
-    
-    def get_tier_stats(self):
-        """Get statistics about tier distribution"""
-        try:
-            stats = {
-                'basic': len(set(list(self.basic_users.keys()) + list(self.basic_users_set))),
-                'premium': len(set(list(self.premium_users.keys()) + list(self.premium_users_set))),
-                'pro': len(set(list(self.pro_users.keys()) + list(self.pro_users_set))),
-                'total_premium': 0
+            # Remove from temporary tiers if exists
+            if user_id in self.user_tiers:
+                del self.user_tiers[user_id]
+        else:
+            # For temporary tiers (basic, etc.)
+            self.user_tiers[user_id] = {
+                'tier': tier,
+                'expires': expires
             }
-            
-            stats['total_premium'] = stats['basic'] + stats['premium'] + stats['pro']
-            
-            return stats
-            
-        except Exception as e:
-            logger.error(f"Error getting tier stats: {e}")
-            return {'basic': 0, 'premium': 0, 'pro': 0, 'total_premium': 0}
+            # Remove from permanent tiers
+            self.premium_users.discard(user_id)
+            if hasattr(self, 'pro_users'):
+                self.pro_users.discard(user_id)
     
-    async def migrate_legacy_users(self):
-        """Migrate users from legacy set system to new expiration system"""
-        try:
-            from datetime import datetime, timedelta
-            migrated_count = 0
-            
-            # Migrate basic users
-            for user_id in list(self.basic_users_set):
-                if user_id not in self.basic_users:
-                    # Give them 30 days from now
-                    self.basic_users[user_id] = datetime.now() + timedelta(days=30)
-                    migrated_count += 1
-            
-            # Migrate premium users
-            for user_id in list(self.premium_users_set):
-                if user_id not in self.premium_users:
-                    self.premium_users[user_id] = datetime.now() + timedelta(days=30)
-                    migrated_count += 1
-            
-            # Migrate pro users
-            for user_id in list(self.pro_users_set):
-                if user_id not in self.pro_users:
-                    self.pro_users[user_id] = datetime.now() + timedelta(days=30)
-                    migrated_count += 1
-            
-            if migrated_count > 0:
-                logger.info(f"Migrated {migrated_count} legacy users to expiration system")
-            
-            return migrated_count
-            
-        except Exception as e:
-            logger.error(f"Error migrating legacy users: {e}")
-            return 0
+    def get_tier_expiration(self, user_id: int):
+        """Get when a user's tier expires (None if permanent or no tier)"""
+        if user_id in self.user_tiers and 'expires' in self.user_tiers[user_id]:
+            return self.user_tiers[user_id]['expires']
+        return None
     
-    def has_feature(self, user_id: int, feature: str):
-        """Check if user has access to a specific feature"""
-        try:
-            tier = self.get_user_tier(user_id)
-            tier_features = self.tiers[tier].get('features', [])
-            
-            # Pro tier has all features
-            if tier == 'pro' or 'all_features' in tier_features:
-                return True
-            
-            # Check specific feature
-            return feature in tier_features
-            
-        except Exception as e:
-            logger.error(f"Error checking feature {feature} for user {user_id}: {e}")
-            return False
+    def add_premium_user(self, user_id: int):
+        """Add a user to premium"""
+        self.set_user_tier(user_id, 'premium')
     
-    async def notify_expiring_users(self, days_before: int = 3):
-        """Get users whose subscriptions are expiring soon"""
-        try:
-            from datetime import datetime, timedelta
-            expiring_soon = []
-            warning_time = datetime.now() + timedelta(days=days_before)
-            
-            # Check all tiers for expiring users
-            for tier_name, tier_dict in [
-                ('basic', self.basic_users),
-                ('premium', self.premium_users),
-                ('pro', self.pro_users)
-            ]:
-                for user_id, expiry in tier_dict.items():
-                    if isinstance(expiry, datetime) and expiry <= warning_time:
-                        expiring_soon.append({
-                            'user_id': user_id,
-                            'tier': tier_name,
-                            'expires_at': expiry,
-                            'days_remaining': (expiry - datetime.now()).days
-                        })
-            
-            return expiring_soon
-            
-        except Exception as e:
-            logger.error(f"Error getting expiring users: {e}")
-            return []
-
-
+    def remove_premium_user(self, user_id: int):
+        """Remove a user from premium"""
+        self.premium_users.discard(user_id)
+        if user_id in self.user_tiers:
+            del self.user_tiers[user_id]
+    
+    def add_pro_user(self, user_id: int):
+        """Add a user to pro"""
+        self.set_user_tier(user_id, 'pro')
+    
+    def remove_pro_user(self, user_id: int):
+        """Remove a user from pro"""
+        if hasattr(self, 'pro_users'):
+            self.pro_users.discard(user_id)
+        if user_id in self.user_tiers:
+            del self.user_tiers[user_id]
+    
+    def cleanup_expired_tiers(self):
+        """Remove expired tiers"""
+        from datetime import datetime
+        expired_users = []
+        
+        for user_id, tier_info in self.user_tiers.items():
+            if 'expires' in tier_info and datetime.now() >= tier_info['expires']:
+                expired_users.append(user_id)
+        
+        for user_id in expired_users:
+            del self.user_tiers[user_id]
+        
+        return len(expired_users)
 
 # Update tier_handler instance
 tier_handler = TierHandler()
