@@ -91,4 +91,3 @@ class FeedbackDB:
 
 # Create instance
 feedback_db = FeedbackDB()
-
