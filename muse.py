@@ -7208,7 +7208,7 @@ async def add_basic(interaction: discord.Interaction, user: discord.User, days: 
 
 ### ➖ **Remove Basic Tier**
 
-@tree.command(name="removebasic", description="[ADMIN] Remove Basic tier access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@tree.command(name="removebasic", description="[ADMIN] Remove Basic tier access from any Discord user")
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     user="Discord user to remove Basic tier from",
@@ -7221,19 +7221,21 @@ async def remove_basic(interaction: discord.Interaction, user: discord.User, rea
     
     try:
         # Check if user has Basic tier
-        current_tier = await tier_handler.get_user_tier_async(user.id)
-        if current_tier != 'basic':
+        if user.id not in tier_handler.basic_users:
             await interaction.response.send_message(
-                f"❌ User {user.display_name} doesn't have Basic tier! Current tier: {current_tier.title()}",
+                f"❌ User {user.display_name} doesn't have Basic tier!",
                 ephemeral=True
             )
             return
         
-        # Get expiration info before removal
-        expires_at = await tier_handler.get_tier_expiration(user.id)
+        # Remove from basic tier
+        tier_handler.basic_users.discard(user.id)
         
-        # Remove Basic tier (downgrade to free)
-        await tier_handler.downgrade_user_tier(user.id, reason)
+        # Update database
+        try:
+            await db.update_user_premium(user.id, False, None)
+        except Exception as db_error:
+            print(f"Database update error: {db_error}")
         
         # Success message
         embed = discord.Embed(
@@ -7246,9 +7248,6 @@ async def remove_basic(interaction: discord.Interaction, user: discord.User, rea
             ),
             color=0xff6b6b
         )
-        
-        if expires_at:
-            embed.description += f"**Was set to expire:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n"
         
         if user.avatar:
             embed.set_thumbnail(url=user.avatar.url)
@@ -7279,8 +7278,11 @@ async def remove_basic(interaction: discord.Interaction, user: discord.User, rea
             await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
     
     except Exception as e:
-        await interaction.response.send_message(f"❌ Error removing Basic tier: {str(e)}", ephemeral=True)
-
+        print(f"Error in remove_basic: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"❌ Error removing Basic tier: {str(e)}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"❌ Error removing Basic tier: {str(e)}", ephemeral=True)
 
 @tree.command(name="addpremium", description="[ADMIN] Grant Premium tier access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
@@ -7386,7 +7388,7 @@ async def add_premium(interaction: discord.Interaction, user: discord.User, days
 
 ### ➖ **Remove Premium Tier**
 
-@tree.command(name="removepremium", description="[ADMIN] Remove Premium tier access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@tree.command(name="removepremium", description="[ADMIN] Remove Premium tier access from any Discord user")
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     user="Discord user to remove Premium tier from",
@@ -7399,17 +7401,21 @@ async def remove_premium(interaction: discord.Interaction, user: discord.User, r
     
     try:
         # Check if user has Premium tier
-        current_tier = await tier_handler.get_user_tier_async(user.id)
-        if current_tier != 'premium':
+        if user.id not in tier_handler.premium_users:
             await interaction.response.send_message(
-                f"❌ User {user.display_name} doesn't have Premium tier! Current tier: {current_tier.title()}",
-                ephemeral=True)
+                f"❌ User {user.display_name} doesn't have Premium tier!",
+                ephemeral=True
+            )
             return
-                # Get expiration info before removal
-        expires_at = await tier_handler.get_tier_expiration(user.id)
         
-        # Remove Premium tier (downgrade to free)
-        await tier_handler.downgrade_user_tier(user.id, reason)
+        # Remove from premium tier
+        tier_handler.premium_users.discard(user.id)
+        
+        # Update database
+        try:
+            await db.update_user_premium(user.id, False, None)
+        except Exception as db_error:
+            print(f"Database update error: {db_error}")
         
         # Success message
         embed = discord.Embed(
@@ -7422,9 +7428,6 @@ async def remove_premium(interaction: discord.Interaction, user: discord.User, r
             ),
             color=0xff6b6b
         )
-        
-        if expires_at:
-            embed.description += f"**Was set to expire:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n"
         
         if user.avatar:
             embed.set_thumbnail(url=user.avatar.url)
@@ -7455,7 +7458,11 @@ async def remove_premium(interaction: discord.Interaction, user: discord.User, r
             await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
     
     except Exception as e:
-        await interaction.response.send_message(f"❌ Error removing Premium tier: {str(e)}", ephemeral=True)
+        print(f"Error in remove_premium: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"❌ Error removing Premium tier: {str(e)}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"❌ Error removing Premium tier: {str(e)}", ephemeral=True)
 
 @tree.command(name="addpro", description="[ADMIN] Grant Pro tier access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
@@ -7562,7 +7569,7 @@ async def add_pro(interaction: discord.Interaction, user: discord.User, days: in
 
 ### ➖ **Remove Pro Tier**
 
-@tree.command(name="removepro", description="[ADMIN] Remove Pro tier access from any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
+@tree.command(name="removepro", description="[ADMIN] Remove Pro tier access from any Discord user")
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     user="Discord user to remove Pro tier from",
@@ -7575,19 +7582,21 @@ async def remove_pro(interaction: discord.Interaction, user: discord.User, reaso
     
     try:
         # Check if user has Pro tier
-        current_tier = await tier_handler.get_user_tier_async(user.id)
-        if current_tier != 'pro':
+        if user.id not in tier_handler.pro_users:
             await interaction.response.send_message(
-                f"❌ User {user.display_name} doesn't have Pro tier! Current tier: {current_tier.title()}",
+                f"❌ User {user.display_name} doesn't have Pro tier!",
                 ephemeral=True
             )
             return
         
-        # Get expiration info before removal
-        expires_at = await tier_handler.get_tier_expiration(user.id)
+        # Remove from pro tier
+        tier_handler.pro_users.discard(user.id)
         
-        # Remove Pro tier (downgrade to free)
-        await tier_handler.downgrade_user_tier(user.id, reason)
+        # Update database
+        try:
+            await db.update_user_premium(user.id, False, None)
+        except Exception as db_error:
+            print(f"Database update error: {db_error}")
         
         # Success message
         embed = discord.Embed(
@@ -7600,9 +7609,6 @@ async def remove_pro(interaction: discord.Interaction, user: discord.User, reaso
             ),
             color=0xff6b6b
         )
-        
-        if expires_at:
-            embed.description += f"**Was set to expire:** {expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n"
         
         if user.avatar:
             embed.set_thumbnail(url=user.avatar.url)
@@ -7633,9 +7639,14 @@ async def remove_pro(interaction: discord.Interaction, user: discord.User, reaso
             await interaction.followup.send("⚠️ Couldn't notify user (DMs disabled)", ephemeral=True)
     
     except Exception as e:
-        await interaction.response.send_message(f"❌ Error removing Pro tier: {str(e)}", ephemeral=True)
-        
-@tree.command(name="checktier", description="[ADMIN] Check any user's current tier and expiration", guild=discord.Object(id=YOUR_SERVER_ID))
+        print(f"Error in remove_pro: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"❌ Error removing Pro tier: {str(e)}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"❌ Error removing Pro tier: {str(e)}", ephemeral=True)
+
+# Bonus: Add a command to check what tier a user has
+@tree.command(name="checktier", description="[ADMIN] Check what tier a user currently has")
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(user="Discord user to check tier for")
 async def check_tier(interaction: discord.Interaction, user: discord.User):
@@ -7643,87 +7654,41 @@ async def check_tier(interaction: discord.Interaction, user: discord.User):
         await interaction.response.send_message("❌ Bot owner only!", ephemeral=True)
         return
     
-    try:
-        # Get user's current tier
-        current_tier = await tier_handler.get_user_tier_async(user.id)
-        limits = tier_handler.get_limits(user.id)
-        expires_at = await tier_handler.get_tier_expiration(user.id)
-        tier_info = tier_handler.get_tier_info(current_tier)
-        
-        # Create detailed embed
-        embed = discord.Embed(
-            title=f"📊 Tier Information: {user.display_name}",
-            description=f"**User ID:** `{user.id}`",
-            color=tier_info['color']
-        )
-        
-        # Current tier info
-        embed.add_field(
-            name=f"{tier_info['emoji']} Current Tier",
-            value=f"**{tier_info['name']}** ({tier_info['price']})",
-            inline=True
-        )
-        
-        # Expiration info
-        if expires_at:
-            from datetime import datetime
-            days_remaining = (expires_at - datetime.now()).days
-            if days_remaining > 0:
-                expiry_text = f"{expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n({days_remaining} days remaining)"
-                expiry_color = "🟢" if days_remaining > 7 else "🟡" if days_remaining > 3 else "🔴"
-            else:
-                expiry_text = f"{expires_at.strftime('%Y-%m-%d %H:%M UTC')}\n🔴 **EXPIRED**"
-                expiry_color = "🔴"
-            
-            embed.add_field(
-                name=f"{expiry_color} Expiration",
-                value=expiry_text,
-                inline=True
-            )
-        else:
-            embed.add_field(
-                name="⏰ Expiration",
-                value="Permanent / No expiration",
-                inline=True
-            )
-        
-        # Tier limits
-        text_limit = "Unlimited" if limits['text_limit'] == float('inf') else f"{limits['text_limit']:,} chars"
-        voice_limit = "Unlimited" if limits['voice_limit'] == float('inf') else f"{limits['voice_limit']//60} minutes"
-        
-        embed.add_field(
-            name="📋 Current Limits",
-            value=(
-                f"**Text:** {text_limit}\n"
-                f"**Voice:** {voice_limit}\n"
-                f"**Daily Points:** {limits['daily_points_min']}-{limits['daily_points_max']}"
-            ),
-            inline=False
-        )
-        
-        # Features
-        features = limits.get('features', [])
-        if features:
-            feature_text = "\n".join([f"• {feature.replace('_', ' ').title()}" for feature in features])
-            embed.add_field(
-                name="🎯 Available Features",
-                value=feature_text,
-                inline=False
-            )
-        
-        if user.avatar:
-            embed.set_thumbnail(url=user.avatar.url)
-        
-        embed.set_footer(text=f"Checked by {interaction.user.display_name}")
-        
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+    # Check user's current tier
+    if user.id in tier_handler.pro_users:
+        current_tier = "Pro"
+        emoji = TIER_EMOJIS['pro']
+        color = 0x9b59b6
+    elif user.id in tier_handler.premium_users:
+        current_tier = "Premium"
+        emoji = TIER_EMOJIS['premium']
+        color = 0xf39c12
+    elif user.id in tier_handler.basic_users:
+        current_tier = "Basic"
+        emoji = TIER_EMOJIS['basic']
+        color = 0x3498db
+    else:
+        current_tier = "Free"
+        emoji = TIER_EMOJIS['free']
+        color = 0x95a5a6
     
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Error checking tier: {str(e)}", ephemeral=True)
+    embed = discord.Embed(
+        title=f"🔍 Tier Check: {user.display_name}",
+        description=f"**Current Tier:** {emoji} {current_tier}",
+        color=color
+    )
+    
+    if user.avatar:
+        embed.set_thumbnail(url=user.avatar.url)
+    
+    embed.add_field(name="User ID", value=f"`{user.id}`", inline=True)
+    embed.set_footer(text=f"Checked by {interaction.user.display_name}")
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 ### 📈 **Tier Statistics**
 
-@tree.command(name="tierstats", description="[ADMIN] View tier distribution statistics", guild=discord.Object(id=YOUR_SERVER_ID))
+@tree.command(name="tierstats", description="[ADMIN] View tier distribution statistics")
 @app_commands.default_permissions(administrator=True)
 async def tier_stats(interaction: discord.Interaction):
     if interaction.user.id != YOUR_ADMIN_ID:
@@ -7731,8 +7696,25 @@ async def tier_stats(interaction: discord.Interaction):
         return
     
     try:
-        # Get tier statistics
-        stats = tier_handler.get_tier_stats()
+        # Get tier counts directly from the sets
+        basic_count = len(tier_handler.basic_users)
+        premium_count = len(tier_handler.premium_users)
+        pro_count = len(tier_handler.pro_users)
+        
+        # Calculate totals
+        total_premium = basic_count + premium_count + pro_count
+        
+        # Get database stats if available
+        try:
+            # Try to get total registered users from database
+            async with aiosqlite.connect(db.db_path) as database:
+                async with database.execute("SELECT COUNT(*) FROM users") as cursor:
+                    result = await cursor.fetchone()
+                    total_users = result[0] if result else 0
+        except:
+            total_users = total_premium  # Fallback if database query fails
+        
+        free_users = max(0, total_users - total_premium)
         
         # Create statistics embed
         embed = discord.Embed(
@@ -7741,50 +7723,95 @@ async def tier_stats(interaction: discord.Interaction):
             color=0x3498db
         )
         
-        # Add tier counts
+        # Add tier counts with percentages
+        if total_users > 0:
+            basic_percent = (basic_count / total_users) * 100
+            premium_percent = (premium_count / total_users) * 100
+            pro_percent = (pro_count / total_users) * 100
+            free_percent = (free_users / total_users) * 100
+        else:
+            basic_percent = premium_percent = pro_percent = free_percent = 0
+        
+        embed.add_field(
+            name=f"{TIER_EMOJIS['free']} Free Tier",
+            value=f"**{free_users}** users ({free_percent:.1f}%)",
+            inline=True
+        )
+        
         embed.add_field(
             name=f"{TIER_EMOJIS['basic']} Basic Tier",
-            value=f"**{stats['basic']}** users",
+            value=f"**{basic_count}** users ({basic_percent:.1f}%)",
             inline=True
         )
         
         embed.add_field(
             name=f"{TIER_EMOJIS['premium']} Premium Tier",
-            value=f"**{stats['premium']}** users",
+            value=f"**{premium_count}** users ({premium_percent:.1f}%)",
             inline=True
         )
         
         embed.add_field(
             name=f"{TIER_EMOJIS['pro']} Pro Tier",
-            value=f"**{stats['pro']}** users",
+            value=f"**{pro_count}** users ({pro_percent:.1f}%)",
+            inline=True
+        )
+        
+        # Total users
+        embed.add_field(
+            name="👥 Total Users",
+            value=f"**{total_users}** registered",
             inline=True
         )
         
         # Total premium users
         embed.add_field(
             name="💎 Total Premium Users",
-            value=f"**{stats['total_premium']}** users",
-            inline=False
-        )
-        
-        # Revenue estimation (rough)
-        estimated_revenue = (stats['basic'] * 1) + (stats['premium'] * 3) + (stats['pro'] * 5)
-        embed.add_field(
-            name="💰 Estimated Monthly Revenue",
-            value=f"**${estimated_revenue}** USD",
+            value=f"**{total_premium}** users",
             inline=True
         )
         
-        embed.set_footer(text=f"Generated by {interaction.user.display_name}")
+        # Revenue estimation
+        estimated_revenue = (basic_count * 1) + (premium_count * 3) + (pro_count * 5)
+        embed.add_field(
+            name="💰 Estimated Monthly Revenue",
+            value=f"**${estimated_revenue}** USD",
+            inline=False
+        )
+        
+        # Conversion rate
+        if total_users > 0:
+            conversion_rate = (total_premium / total_users) * 100
+            embed.add_field(
+                name="📊 Premium Conversion Rate",
+                value=f"**{conversion_rate:.1f}%**",
+                inline=True
+            )
+        
+        # Add visual progress bar for premium users
+        if total_users > 0:
+            premium_ratio = total_premium / total_users
+            bar_length = 20
+            filled_length = int(bar_length * premium_ratio)
+            bar = "█" * filled_length + "░" * (bar_length - filled_length)
+            embed.add_field(
+                name="📈 Premium User Distribution",
+                value=f"`{bar}` {premium_ratio:.1%}",
+                inline=False
+            )
+        
+        embed.set_footer(text=f"Generated by {interaction.user.display_name} • Last updated")
+        embed.timestamp = discord.utils.utcnow()
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
     
     except Exception as e:
+        print(f"Tier stats error: {e}")
         await interaction.response.send_message(f"❌ Error getting tier stats: {str(e)}", ephemeral=True)
+
 
 ### 🧹 **Cleanup Expired Tiers**
 
-@tree.command(name="cleanupexpired", description="[ADMIN] Clean up expired tier memberships", guild=discord.Object(id=YOUR_SERVER_ID))
+@tree.command(name="cleanupexpired", description="[ADMIN] Clean up expired tier memberships")
 @app_commands.default_permissions(administrator=True)
 async def cleanup_expired(interaction: discord.Interaction):
     if interaction.user.id != YOUR_ADMIN_ID:
@@ -7794,10 +7821,63 @@ async def cleanup_expired(interaction: discord.Interaction):
     try:
         await interaction.response.defer(ephemeral=True)
         
-        # Clean up expired tiers
-        expired_users = await tier_handler.cleanup_expired_tiers()
+        expired_users = []
+        current_time = datetime.now()
         
-        if not expired_users:
+        # Check database for expired premium subscriptions
+        try:
+            async with aiosqlite.connect(db.db_path) as database:
+                # Get users with expired premium status
+                async with database.execute('''
+                    SELECT user_id, premium_expires, username 
+                    FROM users 
+                    WHERE is_premium = TRUE 
+                    AND premium_expires IS NOT NULL 
+                    AND premium_expires < ?
+                ''', (current_time.isoformat(),)) as cursor:
+                    expired_db_users = await cursor.fetchall()
+                
+                # Process expired users
+                for user_id, expires_at, username in expired_db_users:
+                    user_tier = None
+                    
+                    # Determine which tier they had and remove them
+                    if user_id in tier_handler.pro_users:
+                        tier_handler.pro_users.discard(user_id)
+                        user_tier = 'pro'
+                    elif user_id in tier_handler.premium_users:
+                        tier_handler.premium_users.discard(user_id)
+                        user_tier = 'premium'
+                    elif user_id in tier_handler.basic_users:
+                        tier_handler.basic_users.discard(user_id)
+                        user_tier = 'basic'
+                    
+                    if user_tier:
+                        expired_users.append((user_id, user_tier, username, expires_at))
+                
+                # Update database - set expired users to non-premium
+                if expired_db_users:
+                    user_ids = [str(user[0]) for user in expired_db_users]
+                    placeholders = ','.join(['?' for _ in user_ids])
+                    await database.execute(f'''
+                        UPDATE users 
+                        SET is_premium = FALSE, premium_expires = NULL 
+                        WHERE user_id IN ({placeholders})
+                    ''', user_ids)
+                    await database.commit()
+        
+        except Exception as db_error:
+            print(f"Database cleanup error: {db_error}")
+            # Continue with manual cleanup if database fails
+        
+        # Manual cleanup for users without database entries
+        # (This is a fallback - you might want to implement expiration tracking)
+        manual_expired = 0
+        
+        # If you have any manual expiration logic, add it here
+        # For now, we'll just report database cleanup results
+        
+        if not expired_users and manual_expired == 0:
             embed = discord.Embed(
                 title="✅ Cleanup Complete",
                 description="No expired tier memberships found.",
@@ -7805,9 +7885,10 @@ async def cleanup_expired(interaction: discord.Interaction):
             )
         else:
             # Create summary of cleaned up users
+            total_cleaned = len(expired_users) + manual_expired
             embed = discord.Embed(
                 title="🧹 Cleanup Complete",
-                description=f"Cleaned up **{len(expired_users)}** expired tier memberships:",
+                description=f"Cleaned up **{total_cleaned}** expired tier memberships:",
                 color=0xf39c12
             )
             
@@ -7836,13 +7917,70 @@ async def cleanup_expired(interaction: discord.Interaction):
                     value=f"**{len(pro_expired)}** users",
                     inline=True
                 )
+            
+            # Add details of expired users (limit to prevent embed overflow)
+            if expired_users:
+                details = []
+                for user_id, tier, username, expires_at in expired_users[:10]:  # Limit to 10
+                    tier_emoji = TIER_EMOJIS.get(tier, '❓')
+                    details.append(f"{tier_emoji} {username or f'User {user_id}'} (expired: {expires_at[:10]})")
+                
+                if len(expired_users) > 10:
+                    details.append(f"... and {len(expired_users) - 10} more")
+                
+                embed.add_field(
+                    name="📋 Expired Users Details",
+                    value="\n".join(details) if details else "None",
+                    inline=False
+                )
         
         embed.set_footer(text=f"Cleanup performed by {interaction.user.display_name}")
+        embed.timestamp = discord.utils.utcnow()
         
         await interaction.followup.send(embed=embed, ephemeral=True)
+        
+        # Optional: Notify expired users
+        if expired_users:
+            notification_count = 0
+            for user_id, tier, username, expires_at in expired_users:
+                try:
+                    user = await client.fetch_user(user_id)
+                    if user:
+                        tier_name = tier.title()
+                        tier_emoji = TIER_EMOJIS.get(tier, '❓')
+                        
+                        notify_embed = discord.Embed(
+                            title=f"{tier_emoji} {tier_name} Tier Expired",
+                            description=(
+                                f"Your {tier_name} tier access for Muse Translator has expired.\n\n"
+                                f"**Expired on:** {expires_at[:10]}\n"
+                                f"**Current Tier:** Free\n\n"
+                                f"**Free Tier Limits:**\n"
+                                f"• 📝 50 character text translations\n"
+                                f"• 🎤 30-minute voice translations\n"
+                                f"• 💎 5-10 daily points\n\n"
+                                f"💡 *Use `/premium` to renew your subscription!*"
+                            ),
+                            color=0xff6b6b
+                        )
+                        
+                        await user.send(embed=notify_embed)
+                        notification_count += 1
+                except:
+                    continue  # Skip if can't notify user
+            
+            if notification_count > 0:
+                await interaction.followup.send(
+                    f"✅ Notified {notification_count} users about their expired subscriptions",
+                    ephemeral=True
+                )
     
     except Exception as e:
-        await interaction.followup.send(f"❌ Error during cleanup: {str(e)}", ephemeral=True)
+        print(f"Cleanup error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"❌ Error during cleanup: {str(e)}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"❌ Error during cleanup: {str(e)}", ephemeral=True)
 
 @tree.command(name="grantpoints", description="[ADMIN] Grant points to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
