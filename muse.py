@@ -58,6 +58,275 @@ TIER_EMOJIS = {
     'premium': '🥈',
     'pro': '🥇'
 }
+# Pro Tier Processing Function
+async def process_kofi_pro_tier(user_id: int, days: int, kofi_data, tier_name: str):
+    """Process Ko-fi pro tier subscription with achievement tracking"""
+    try:
+        from datetime import datetime, timedelta
+        expires_at = datetime.now() + timedelta(days=days)
+        
+        # Create user if doesn't exist
+        await db.get_or_create_user(user_id, f"Ko-fi User {user_id}")
+        
+        # Add to pro tier (highest tier)
+        tier_handler.pro_users.add(user_id)
+        
+        # Update database
+        await db.update_user_premium(user_id, True, expires_at)
+        
+        # 🏆 TRACK PRO TIER ACHIEVEMENT
+        try:
+            achievement_db.track_premium_purchase(user_id)
+            
+            # Check for new achievements
+            new_achievements = achievement_db.check_achievements(user_id)
+            if new_achievements:
+                await send_achievement_notification(client, user_id, new_achievements)
+        except Exception as e:
+            logger.error(f"Error tracking pro achievements: {e}")
+        
+        # Notify user
+        await send_tier_notification(user_id, "Pro", tier_name, kofi_data, expires_at, days, "🚀")
+        logger.info(f"✅ Successfully granted {days} days pro tier to user {user_id}")
+        
+    except Exception as e:
+        logger.error(f"❌ Error processing Ko-fi pro tier for user {user_id}: {e}")
+
+# Premium Tier Processing Function
+async def process_kofi_premium_tier(user_id: int, days: int, kofi_data, tier_name: str):
+    """Process Ko-fi premium tier subscription with achievement tracking"""
+    try:
+        from datetime import datetime, timedelta
+        expires_at = datetime.now() + timedelta(days=days)
+        
+        # Create user if doesn't exist
+        await db.get_or_create_user(user_id, f"Ko-fi User {user_id}")
+        
+        # Add to premium tier
+        tier_handler.premium_users.add(user_id)
+        
+        # Update database
+        await db.update_user_premium(user_id, True, expires_at)
+        
+        # 🏆 TRACK PREMIUM ACHIEVEMENT
+        try:
+            achievement_db.track_premium_purchase(user_id)
+            
+            # Check for new achievements
+            new_achievements = achievement_db.check_achievements(user_id)
+            if new_achievements:
+                await send_achievement_notification(client, user_id, new_achievements)
+        except Exception as e:
+            logger.error(f"Error tracking premium achievements: {e}")
+        
+        # Notify user
+        await send_tier_notification(user_id, "Premium", tier_name, kofi_data, expires_at, days, "⭐")
+        logger.info(f"✅ Successfully granted {days} days premium tier to user {user_id}")
+        
+    except Exception as e:
+        logger.error(f"❌ Error processing Ko-fi premium tier for user {user_id}: {e}")
+
+# Basic Tier Processing Function
+async def process_kofi_basic_tier(user_id: int, days: int, kofi_data, tier_name: str):
+    """Process Ko-fi basic tier subscription with achievement tracking"""
+    try:
+        from datetime import datetime, timedelta
+        expires_at = datetime.now() + timedelta(days=days)
+        
+        # Create user if doesn't exist
+        await db.get_or_create_user(user_id, f"Ko-fi User {user_id}")
+        
+        # Add to basic tier
+        tier_handler.basic_users.add(user_id)
+        
+        # Update database
+        await db.update_user_premium(user_id, True, expires_at)
+        
+        # 🏆 TRACK BASIC TIER ACHIEVEMENT
+        try:
+            achievement_db.track_premium_purchase(user_id)
+            
+            # Check for new achievements
+            new_achievements = achievement_db.check_achievements(user_id)
+            if new_achievements:
+                await send_achievement_notification(client, user_id, new_achievements)
+        except Exception as e:
+            logger.error(f"Error tracking basic achievements: {e}")
+        
+        # Notify user
+        await send_tier_notification(user_id, "Basic", tier_name, kofi_data, expires_at, days, "💎")
+        logger.info(f"✅ Successfully granted {days} days basic tier to user {user_id}")
+        
+    except Exception as e:
+        logger.error(f"❌ Error processing Ko-fi basic tier for user {user_id}: {e}")
+
+# Unified tier notification function
+async def send_tier_notification(user_id: int, tier: str, tier_name: str, kofi_data, expires_at, days: int, emoji: str):
+    """Send notification to user about their new tier subscription"""
+    try:
+        user = await client.fetch_user(user_id)
+        
+        # Tier-specific colors
+        colors = {
+            "Pro": 0x9b59b6,      # Purple for Pro ($5/month)
+            "Premium": 0xf39c12,  # Orange for Premium ($3/month)  
+            "Basic": 0x3498db     # Blue for Basic ($1/month)
+        }
+        
+        embed = discord.Embed(
+            title=f"{emoji} {tier} Subscription Activated!",
+            description=(
+                f"Thank you for your **{tier_name}** subscription!\n\n"
+                f"**Amount:** ${kofi_data['amount']}\n"
+                f"**Duration:** {days} days\n"
+                f"**Expires:** {expires_at.strftime('%B %d, %Y')}\n\n"
+                f"✨ All {tier.lower()} features are now active!"
+            ),
+            color=colors.get(tier, 0x95a5a6)
+        )
+        
+        # Tier-specific features with correct pricing
+        if tier == "Pro":
+            features = (
+                "• Unlimited everything\n"
+                "• Max 20 translation history\n" 
+                "• Priority support\n"
+                "• All achievements unlocked! 🏆\n"
+                "• **Worth $5/month!**"
+            )
+        elif tier == "Premium":
+            features = (
+                "• Extended translation limits\n"
+                "• Max 15 translation history\n"
+                "• Premium support\n" 
+                "• Premium achievements unlocked! 🏆\n"
+                "• **Worth $3/month!**"
+            )
+        else:  # Basic
+            features = (
+                "• Basic premium features\n"
+                "• Max 10 translation history\n"
+                "• Basic support\n"
+                "• Achievement unlocked! 🏆\n"
+                "• **Worth $1/month!**"
+            )
+        
+        embed.add_field(
+            name=f"{emoji} {tier} Features Unlocked",
+            value=features,
+            inline=False
+        )
+        
+        # Add upgrade path
+        if tier == "Basic":
+            embed.add_field(
+                name="🚀 Want More?",
+                value="Upgrade to Premium ($3/month) or Pro ($5/month) for even more features!",
+                inline=False
+            )
+        elif tier == "Premium":
+            embed.add_field(
+                name="🚀 Want Everything?",
+                value="Upgrade to Pro ($5/month) for unlimited access to all features!",
+                inline=False
+            )
+        
+        embed.add_field(
+            name="🎯 What's Next?",
+            value="Use `/achievements` to see your new achievements!",
+            inline=False
+        )
+        
+        await user.send(embed=embed)
+        logger.info(f"✅ Notified user {user_id} about {tier} subscription")
+    except Exception as notify_error:
+        logger.error(f"⚠️ Couldn't notify user {user_id}: {notify_error}")
+
+# Updated points-only notification
+async def send_points_only_notification(user_id: int, points: int, amount: float):
+    """Send notification for one-time point purchases"""
+    try:
+        user = await client.fetch_user(user_id)
+        if user:
+            embed = discord.Embed(
+                title="💎 Points Purchased!",
+                description=f"Thank you for your ${amount:.2f} donation!",
+                color=0x9b59b6
+            )
+            embed.add_field(
+                name="💰 Points Awarded",
+                value=f"**{points:,} points** added to your account!",
+                inline=False
+            )
+            embed.add_field(
+                name="💰 Point Packages",
+                value=(
+                    "💵 **$1** = 50 points\n"
+                    "💵 **$2** = 110 points *(10% bonus)*\n"
+                    "💵 **$3** = 180 points *(20% bonus)*\n"
+                    "💵 **$5** = 325 points *(30% bonus)*\n"
+                    "💵 **$10** = 700 points *(40% bonus)*\n"
+                    "💵 **$20** = 1,500 points *(50% bonus)*"
+                ),
+                inline=False
+            )
+            embed.add_field(
+                name="⭐ Want Subscription Benefits?",
+                value=(
+                    "**Basic Tier:** $1/month - Basic features\n"
+                    "**Premium Tier:** $3/month - Extended features\n"
+                    "**Pro Tier:** $5/month - Unlimited everything!"
+                ),
+                inline=False
+            )
+            embed.add_field(
+                name="🎯 Use Your Points",
+                value="Use `/shop` to see what you can buy with points!",
+                inline=False
+            )
+            embed.set_footer(text="💡 Subscriptions unlock features, donations give points!")
+            await user.send(embed=embed)
+    except Exception as e:
+        logger.error(f"Failed to send points notification: {e}")
+
+# Consolation notification for small donations
+async def send_consolation_notification(user_id: int, points: int, amount: float):
+    """Send notification for small donations under $1"""
+    try:
+        user = await client.fetch_user(user_id)
+        if user:
+            embed = discord.Embed(
+                title="🙏 Thank You!",
+                description=f"Thanks for your ${amount:.2f} donation!",
+                color=0x95a5a6
+            )
+            embed.add_field(
+                name="💝 Consolation Points",
+                value=f"**{points} points** awarded as a thank you!",
+                inline=False
+            )
+            embed.add_field(
+                name="💡 How to Get More",
+                value=(
+                    "**For Points:** Donate $1+ one-time\n"
+                    "**For Basic:** Subscribe $1/month\n"
+                    "**For Premium:** Subscribe $3/month\n"
+                    "**For Pro:** Subscribe $5/month"
+                ),
+                inline=False
+            )
+            embed.add_field(
+                name="🎯 Your Options",
+                value=(
+                    "• Use `/achievements` to track progress\n"
+                    "• Use `/texttr` to earn achievement points\n"
+                    "• Upgrade anytime on Ko-fi!"
+                ),
+                inline=False
+            )
+            await user.send(embed=embed)
+    except Exception as e:
+        logger.error(f"Failed to send consolation notification: {e}")
 
 # Language name mapping
 languages = {
@@ -1441,6 +1710,13 @@ async def text_translate(
         # Track for achievements (SYNC - no await)
         achievement_db.track_translation(user_id, source_code, target_code, is_premium)
         achievement_db.check_achievements(user_id)
+
+        await safe_track_translation_achievement(
+            user_id=interaction.user.id,
+            username=interaction.user.display_name,
+            source_lang=source_code,
+            target_lang=target_code
+        )
         
         # Get proper language names and flags
         source_name = languages.get(source_code, source_code)
@@ -1918,6 +2194,11 @@ async def voice_chat_translate(
                 # Track for achievements (SYNC - no await)
                 achievement_db.track_translation(user_id, detected_lang or self.source_language, self.target_language, is_premium)
                 achievement_db.check_achievements(user_id)
+
+                await safe_track_voice_achievement(
+                    user_id=interaction.user.id,
+                    username=interaction.user.display_name
+                )
             
                 # Get source language - either detected or specified
                 source_lang = detected_lang if detected_lang else self.source_language
@@ -3192,6 +3473,11 @@ async def translate_and_speak_voice(
         achievement_db.track_translation(user_id, source_code, target_code, is_premium)
         achievement_db.check_achievements(user_id)
 
+        await safe_track_voice_achievement(
+            user_id=interaction.user.id,
+            username=interaction.user.display_name
+        )
+
         # Create temporary file using BytesIO
         mp3_fp = io.BytesIO()
         tts = gTTS(text=translated_text, lang=target_code)
@@ -4090,6 +4376,12 @@ async def translate_by_id(
         achievement_db.track_translation(user_id, source_lang, target_code, is_premium)
         achievement_db.check_achievements(user_id)
         
+        await safe_track_translation_achievement(
+            user_id=interaction.user.id,
+            username=interaction.user.display_name,
+            source_lang=source_lang,
+            target_lang=target_code
+        )
         # Get proper language names and flags
         source_name = languages.get(source_lang, source_lang)
         target_name = languages.get(target_code, target_code)
@@ -4282,6 +4574,12 @@ async def translate_message_context(interaction: discord.Interaction, message: d
                 # Track for achievements (SYNC - no await)
                 achievement_db.track_translation(self.user_id, source_lang, target_code, self.is_premium)
                 achievement_db.check_achievements(self.user_id)
+
+                await safe_track_translation_achievement(
+                    user_id=message.author.id,
+                    username=message.author.display_name,
+                    target_lang=target_code
+                )
                 
                 # Get proper language names and flags
                 source_name = languages.get(source_lang, source_lang)
@@ -4366,163 +4664,174 @@ async def achievements(interaction: discord.Interaction):
         user_id = interaction.user.id
         username = interaction.user.display_name
         
-        # Get user data from both systems
+        # Get user data from reward system (this always exists)
         user_data = reward_db.get_or_create_user(user_id, username)
-        stats = achievement_db.get_user_stats(user_id) if 'achievement_db' in globals() else user_data
-        achievements = reward_db.get_user_achievements(user_id)
-        badges = reward_db.get_user_badges(user_id, achievements, user_data['points'])
         
-        # Get user rank
+        # Safely get achievement data
+        achievement_stats = {}
+        user_achievements = []
+        
+        try:
+            if 'achievement_db' in globals() and hasattr(achievement_db, 'get_user_stats'):
+                achievement_stats = achievement_db.get_user_stats(user_id) or {}
+                user_achievements = achievement_db.get_user_achievements(user_id) or []
+        except Exception as e:
+            logger.error(f"Error getting achievement data: {e}")
+        
+        # Fallback stats from reward system
+        if not achievement_stats:
+            achievement_stats = {
+                'total_translations': user_data.get('total_sessions', 0),
+                'voice_sessions': 0,
+                'unique_languages': 0,
+                'is_premium': (user_id in tier_handler.premium_users or 
+                              user_id in tier_handler.basic_users or 
+                              user_id in tier_handler.pro_users),
+                'is_early_user': False
+            }
+        
+        # Get rank info
         rank_info = get_rank_from_points(user_data['points'])
         
         # Create main embed
         embed = discord.Embed(
-            title=f"🏆 {username}'s Achievements & Badges",
+            title=f"🏆 {username}'s Achievements & Progress",
             color=rank_info.get('color', 0xf1c40f)
         )
         
         # Add rank and points section
         embed.add_field(
-            name="📊 Rank & Points",
-            value=f"{rank_info.get('name', 'Unranked')}\n**{user_data['points']:,}** total points",
+            name="📊 Current Rank",
+            value=f"{rank_info.get('emoji', '🆕')} **{rank_info.get('name', 'Newcomer')}**\n💎 **{user_data['points']:,}** points",
             inline=True
         )
         
-        # Add achievement count
-        total_achievements = len(ALL_ACHIEVEMENTS) if 'ALL_ACHIEVEMENTS' in globals() else 12
+        # Calculate achievement count safely
+        total_possible = 25  # Set a reasonable default
+        try:
+            if 'ACHIEVEMENTS' in globals() and ACHIEVEMENTS:
+                total_possible = len(ACHIEVEMENTS)
+        except:
+            pass
+        
+        achievement_count = len(user_achievements)
         embed.add_field(
             name="🎯 Achievements",
-            value=f"**{len(achievements)}** / **{total_achievements}** unlocked",
+            value=f"**{achievement_count}** / **{total_possible}** unlocked\n🏅 **{achievement_count * 25}** achievement points",
             inline=True
         )
         
         # Add stats summary
         embed.add_field(
-            name="📈 Statistics",
+            name="📈 Your Statistics",
             value=(
-                f"**{user_data.get('total_translations', 0)}** translations\n"
-                f"**{user_data.get('total_sessions', 0)}** sessions\n"
-                f"**{len(user_data.get('languages_used', []))}** languages used"
+                f"📝 **{achievement_stats.get('total_translations', 0)}** translations\n"
+                f"🎤 **{achievement_stats.get('voice_sessions', 0)}** voice sessions\n"
+                f"🌍 **{achievement_stats.get('unique_languages', 0)}** languages used"
             ),
             inline=True
         )
         
-        # Show unlocked badges
-        if badges:
-            badge_text = ""
-            for badge in badges[:5]:  # Show first 5 badges
-                badge_text += f"{badge['emoji']} **{badge['title']}**"
-                if badge['type'] == 'rank':
-                    badge_text += " (Rank Badge)\n"
-                else:
-                    badge_text += " (Achievement Badge)\n"
-            
-            embed.add_field(
-                name="🎖️ Unlocked Badges",
-                value=badge_text,
-                inline=False
-            )
-        
-        # Show recent achievements
-        if achievements:
-            recent_achievements = achievements[-3:]  # Last 3 achievements
+        # Show recent achievements (if any)
+        if user_achievements:
+            recent_achievements = user_achievements[-3:] if len(user_achievements) >= 3 else user_achievements
             achievement_text = ""
             
-            for ach in recent_achievements:
-                # Get achievement data
-                ach_data = ALL_ACHIEVEMENTS.get(ach, {}) if 'ALL_ACHIEVEMENTS' in globals() else {}
-                rarity_info = RARITY_INFO.get(ach_data.get('rarity', 'common'), {}) if 'RARITY_INFO' in globals() else {}
-                
-                achievement_text += f"{rarity_info.get('emoji', '⭐')} **{ach_data.get('name', ach)}**\n"
+            for ach_data in recent_achievements:
+                try:
+                    # Handle both dict and tuple formats
+                    if isinstance(ach_data, dict):
+                        ach_name = ach_data.get('name', 'Unknown Achievement')
+                        ach_id = ach_data.get('id', '')
+                    else:
+                        # If it's a tuple/list from database
+                        ach_name = str(ach_data[1]) if len(ach_data) > 1 else 'Unknown Achievement'
+                        ach_id = str(ach_data[0]) if len(ach_data) > 0 else ''
+                    
+                    # Get rarity emoji safely
+                    rarity_emoji = '⭐'
+                    try:
+                        if 'ACHIEVEMENTS' in globals() and ach_id in ACHIEVEMENTS:
+                            rarity = ACHIEVEMENTS[ach_id].get('rarity', 'Common')
+                            if 'RARITY_INFO' in globals() and rarity in RARITY_INFO:
+                                rarity_emoji = RARITY_INFO[rarity].get('emoji', '⭐')
+                    except:
+                        pass
+                    
+                    achievement_text += f"{rarity_emoji} **{ach_name}**\n"
+                    
+                except Exception as e:
+                    logger.error(f"Error processing achievement: {e}")
+                    achievement_text += "⭐ **Achievement Unlocked**\n"
             
-            embed.add_field(
-                name="🎉 Recent Achievements",
-                value=achievement_text,
-                inline=False
-            )
+            if achievement_text:
+                embed.add_field(
+                    name="🎉 Recent Achievements",
+                    value=achievement_text,
+                    inline=False
+                )
         
         # Show progress towards next achievements
-        locked_achievements = []
-        all_achievements = {
-            'first_translation': {'name': '🌟 First Steps', 'desc': 'Complete your first translation', 'requirement': 1, 'stat': 'translations'},
-            'translation_10': {'name': '📈 Getting Started', 'desc': 'Complete 10 translations', 'requirement': 10, 'stat': 'translations'},
-            'translation_50': {'name': '🎯 Dedicated', 'desc': 'Complete 50 translations', 'requirement': 50, 'stat': 'translations'},
-            'translation_100': {'name': '👑 Master', 'desc': 'Complete 100 translations', 'requirement': 100, 'stat': 'translations'},
-            'translation_500': {'name': '🏆 Legend', 'desc': 'Complete 500 translations', 'requirement': 500, 'stat': 'translations'},
-            'languages_5': {'name': '🌍 Explorer', 'desc': 'Use 5 different languages', 'requirement': 5, 'stat': 'languages'},
-            'languages_15': {'name': '🌎 Polyglot', 'desc': 'Use 15 different languages', 'requirement': 15, 'stat': 'languages'},
-            'languages_30': {'name': '🌏 Linguist', 'desc': 'Use 30 different languages', 'requirement': 30, 'stat': 'languages'},
-            'first_voice': {'name': '🎤 Voice User', 'desc': 'Use voice translation', 'requirement': 1, 'stat': 'voice'},
-            'voice_25': {'name': '📻 Voice Veteran', 'desc': 'Use voice translation 25 times', 'requirement': 25, 'stat': 'voice'},
-            'premium_supporter': {'name': '⭐ Supporter', 'desc': 'Purchase premium', 'requirement': 'premium', 'stat': 'premium'},
-            'early_adopter': {'name': '🚀 Pioneer', 'desc': 'Early bot user', 'requirement': 'early', 'stat': 'early'}
-        }
+        progress_text = ""
+        unlocked_ids = []
         
-        # Find next achievable achievements
-        for ach_id, ach_data in all_achievements.items():
-            if ach_id not in achievements:
-                current_progress = 0
-                requirement = ach_data['requirement']
-                
-                if ach_data['stat'] == 'translations':
-                    current_progress = user_data.get('total_translations', 0)
-                elif ach_data['stat'] == 'languages':
-                    current_progress = len(user_data.get('languages_used', []))
-                elif ach_data['stat'] == 'voice':
-                    current_progress = user_data.get('total_sessions', 0)
-                elif ach_data['stat'] == 'premium':
-                    if user_id in tier_handler.premium_users:
-                        continue  # Should be unlocked
-                    else:
-                        locked_achievements.append(f"🔒 {ach_data['name']} - {ach_data['desc']}")
-                        continue
-                elif ach_data['stat'] == 'early':
-                    locked_achievements.append(f"🔒 {ach_data['name']} - {ach_data['desc']}")
-                    continue
-                
-                if isinstance(requirement, int) and current_progress < requirement:
-                    progress_bar = "█" * min(5, int((current_progress / requirement) * 5))
+        try:
+            unlocked_ids = [str(ach.get('id', '')) if isinstance(ach, dict) else str(ach[0]) for ach in user_achievements]
+        except:
+            pass
+        
+        # Define simple progress tracking
+        progress_achievements = [
+            ('first_translation', '🌟 First Steps', achievement_stats.get('total_translations', 0), 1),
+            ('translation_5', '📈 Getting Started', achievement_stats.get('total_translations', 0), 5),
+            ('translation_25', '🎯 Regular User', achievement_stats.get('total_translations', 0), 25),
+            ('translation_100', '👑 Translation Expert', achievement_stats.get('total_translations', 0), 100),
+            ('first_voice', '🎤 Voice Debut', achievement_stats.get('voice_sessions', 0), 1),
+            ('voice_5', '🎙️ Voice User', achievement_stats.get('voice_sessions', 0), 5),
+        ]
+        
+        shown_progress = 0
+        for ach_id, name, current, requirement in progress_achievements:
+            if ach_id not in unlocked_ids and shown_progress < 3:
+                if current < requirement:
+                    progress_percentage = min(100, int((current / requirement) * 100))
+                    progress_bar = "█" * min(5, int((current / requirement) * 5))
                     progress_bar += "░" * (5 - len(progress_bar))
-                    locked_achievements.append(f"🔓 {ach_data['name']} - {progress_bar} {current_progress}/{requirement}")
+                    
+                    progress_text += f"{name}\n`{progress_bar}` {current}/{requirement} ({progress_percentage}%)\n\n"
+                    shown_progress += 1
         
-        if locked_achievements:
+        if progress_text:
             embed.add_field(
                 name="🎯 Next Achievements",
-                value="\n".join(locked_achievements[:4]),  # Show first 4
+                value=progress_text,
                 inline=False
             )
         
         # Show rank progression
-        current_rank = None
-        next_rank = None
+        try:
+            if 'RANK_BADGES' in globals() and RANK_BADGES:
+                next_rank = None
+                for min_points in sorted(RANK_BADGES.keys()):
+                    if user_data['points'] < min_points:
+                        next_rank = RANK_BADGES[min_points]
+                        points_needed = min_points - user_data['points']
+                        break
+                
+                if next_rank:
+                    embed.add_field(
+                        name="📈 Next Rank",
+                        value=f"{next_rank['emoji']} **{next_rank['name']}**\nNeed **{points_needed:,}** more points",
+                        inline=True
+                    )
+        except Exception as e:
+            logger.error(f"Error calculating next rank: {e}")
         
-        if 'RANK_BADGES' in globals():
-            for min_points in sorted(RANK_BADGES.keys(), reverse=True):
-                if user_data['points'] >= min_points:
-                    current_rank = RANK_BADGES[min_points]
-                    break
-            
-            for min_points in sorted(RANK_BADGES.keys()):
-                if user_data['points'] < min_points:
-                    next_rank = RANK_BADGES[min_points]
-                    points_needed = min_points - user_data['points']
-                    break
-            
-            if next_rank:
-                embed.add_field(
-                    name="📈 Next Rank",
-                    value=f"{next_rank['emoji']} {next_rank['title']}\nNeed {points_needed:,} more points",
-                    inline=True
-                )
+        # Add footer
+        embed.set_footer(text="🏆 Use the buttons below to explore more details!")
         
-        # Add context info
-        if interaction.guild:
-            embed.set_footer(text=f"Server: {interaction.guild.name} • Use buttons below for more details")
-        else:
-            embed.set_footer(text="🏆 Achievement System • Use buttons below for more details")
-        
-        # Create view with buttons
-        view = IntegratedAchievementView(user_id)
+        # Create view with buttons (simplified)
+        view = SafeAchievementView(user_id)
         
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         
@@ -4533,7 +4842,9 @@ async def achievements(interaction: discord.Interaction):
             ephemeral=True
         )
 
-class IntegratedAchievementView(discord.ui.View):
+
+# Simplified and safe achievement view
+class SafeAchievementView(discord.ui.View):
     def __init__(self, user_id: int):
         super().__init__(timeout=300)
         self.user_id = user_id
@@ -4541,115 +4852,141 @@ class IntegratedAchievementView(discord.ui.View):
     @discord.ui.button(label="📋 All Achievements", style=discord.ButtonStyle.primary)
     async def all_achievements(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
-            user_data = reward_db.get_or_create_user(self.user_id, interaction.user.display_name)
-            achievements = reward_db.get_user_achievements(self.user_id)
+            # Get user achievements safely
+            user_achievements = []
+            unlocked_ids = []
+            
+            try:
+                if 'achievement_db' in globals() and hasattr(achievement_db, 'get_user_achievements'):
+                    user_achievements = achievement_db.get_user_achievements(self.user_id) or []
+                    unlocked_ids = [str(ach.get('id', '')) if isinstance(ach, dict) else str(ach[0]) for ach in user_achievements]
+            except Exception as e:
+                logger.error(f"Error getting achievements: {e}")
             
             embed = discord.Embed(
                 title="📋 All Achievements",
-                description="Your complete achievement collection:",
+                description="Complete achievement collection:",
                 color=0x3498db
             )
             
-            # Define all achievements with categories
-            achievement_categories = {
-                "🌟 Translation Milestones": {
-                    'first_translation': {'name': '🌟 First Steps', 'desc': 'Complete your first translation', 'points': 25},
-                    'translation_10': {'name': '📈 Getting Started', 'desc': 'Complete 10 translations', 'points': 50},
-                    'translation_50': {'name': '🎯 Dedicated', 'desc': 'Complete 50 translations', 'points': 100},
-                    'translation_100': {'name': '👑 Master', 'desc': 'Complete 100 translations', 'points': 200},
-                    'translation_500': {'name': '🏆 Legend', 'desc': 'Complete 500 translations', 'points': 500}
-                },
-                "🌍 Language Explorer": {
-                    'languages_5': {'name': '🌍 Explorer', 'desc': 'Use 5 different languages', 'points': 75},
-                    'languages_15': {'name': '🌎 Polyglot', 'desc': 'Use 15 different languages', 'points': 150},
-                    'languages_30': {'name': '🌏 Linguist', 'desc': 'Use 30 different languages', 'points': 300}
-                },
-                "🎤 Voice Features": {
-                    'first_voice': {'name': '🎤 Voice User', 'desc': 'Use voice translation', 'points': 50},
-                    'voice_25': {'name': '📻 Voice Veteran', 'desc': 'Use voice translation 25 times', 'points': 200}
-                },
-                "⭐ Special": {
-                    'premium_supporter': {'name': '⭐ Supporter', 'desc': 'Purchase premium', 'points': 500},
-                    'early_adopter': {'name': '🚀 Pioneer', 'desc': 'Early bot user', 'points': 100}
-                }
-            }
+            # Define a simple achievement list if ACHIEVEMENTS isn't available
+            simple_achievements = [
+                ("first_translation", "🌟 First Steps", "Complete your first translation", 10),
+                ("translation_5", "📈 Getting Started", "Complete 5 translations", 20),
+                ("translation_25", "🎯 Regular User", "Complete 25 translations", 50),
+                ("translation_100", "👑 Translation Expert", "Complete 100 translations", 150),
+                ("first_voice", "🎤 Voice Debut", "Use voice translation", 15),
+                ("voice_5", "🎙️ Voice User", "Use voice translation 5 times", 30),
+                ("basic_supporter", "💎 Basic Supporter", "Subscribe to Basic tier", 100),
+                ("premium_supporter", "⭐ Premium Supporter", "Subscribe to Premium tier", 200),
+                ("pro_supporter", "🚀 Pro Supporter", "Subscribe to Pro tier", 350),
+            ]
             
-            # Add fields for each category
-            for category, ach_list in achievement_categories.items():
-                category_text = ""
-                for ach_id, ach_data in ach_list.items():
-                    status = "✅" if ach_id in achievements else "❌"
-                    category_text += f"{status} **{ach_data['name']}** ({ach_data['points']} pts)\n    {ach_data['desc']}\n\n"
-                
-                embed.add_field(
-                    name=category,
-                    value=category_text,
-                    inline=False
-                )
+            achievement_text = ""
+            
+            # Use ACHIEVEMENTS if available, otherwise use simple list
+            try:
+                if 'ACHIEVEMENTS' in globals() and ACHIEVEMENTS:
+                    for ach_id, ach_data in list(ACHIEVEMENTS.items())[:15]:  # Limit to prevent embed overflow
+                        status = "✅" if ach_id in unlocked_ids else "❌"
+                        name = ach_data.get('name', ach_id)
+                        desc = ach_data.get('description', 'No description')
+                        points = ach_data.get('points', 25)
+                        
+                        achievement_text += f"{status} **{name}** ({points} pts)\n    {desc}\n\n"
+                else:
+                    # Fallback to simple achievements
+                    for ach_id, name, desc, points in simple_achievements:
+                        status = "✅" if ach_id in unlocked_ids else "❌"
+                        achievement_text += f"{status} **{name}** ({points} pts)\n    {desc}\n\n"
+            except Exception as e:
+                logger.error(f"Error building achievement list: {e}")
+                achievement_text = "Error loading achievements. Please try again later."
+            
+            embed.add_field(
+                name="🏆 Available Achievements",
+                value=achievement_text or "No achievements available",
+                inline=False
+            )
             
             await interaction.response.send_message(embed=embed, ephemeral=True)
             
         except Exception as e:
-            logger.error(f"All achievements error: {e}")
+            logger.error(f"All achievements button error: {e}")
             await interaction.response.send_message("❌ Error loading achievements.", ephemeral=True)
 
-    @discord.ui.button(label="🎯 Progress", style=discord.ButtonStyle.secondary)
-    async def progress(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="📊 Stats", style=discord.ButtonStyle.secondary)
+    async def stats(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
+            # Get user data safely
             user_data = reward_db.get_or_create_user(self.user_id, interaction.user.display_name)
-            achievements = reward_db.get_user_achievements(self.user_id)
+            
+            # Get achievement stats safely
+            achievement_stats = {}
+            try:
+                if 'achievement_db' in globals() and hasattr(achievement_db, 'get_user_stats'):
+                    achievement_stats = achievement_db.get_user_stats(self.user_id) or {}
+            except:
+                pass
             
             embed = discord.Embed(
-                title="🎯 Achievement Progress",
-                description="Your progress towards unearned achievements:",
+                title="📊 Your Statistics",
+                description="Detailed breakdown of your activity:",
                 color=0x2ecc71
             )
             
-            # Progress tracking
-            progress_data = [
-                ('first_translation', 'First Steps', user_data.get('total_translations', 0), 1),
-                ('translation_10', 'Getting Started', user_data.get('total_translations', 0), 10),
-                ('translation_50', 'Dedicated', user_data.get('total_translations', 0), 50),
-                ('translation_100', 'Master', user_data.get('total_translations', 0), 100),
-                ('translation_500', 'Legend', user_data.get('total_translations', 0), 500),
-                ('languages_5', 'Explorer', len(user_data.get('languages_used', [])), 5),
-                ('languages_15', 'Polyglot', len(user_data.get('languages_used', [])), 15),
-                ('languages_30', 'Linguist', len(user_data.get('languages_used', [])), 30),
-                ('first_voice', 'Voice User', user_data.get('total_sessions', 0), 1),
-                ('voice_25', 'Voice Veteran', user_data.get('total_sessions', 0), 25)
-            ]
+            # Basic stats
+            embed.add_field(
+                name="💎 Points & Rank",
+                value=(
+                    f"**{user_data['points']:,}** total points\n"
+                    f"**{user_data.get('total_sessions', 0)}** total sessions\n"
+                    f"**{len(achievement_stats)}** tracked stats"
+                ),
+                inline=True
+            )
             
-            progress_text = ""
-            shown_count = 0
+            # Translation stats
+            embed.add_field(
+                name="📝 Translation Activity",
+                value=(
+                    f"**{achievement_stats.get('total_translations', 0)}** translations completed\n"
+                    f"**{achievement_stats.get('unique_languages', 0)}** languages used\n"
+                    f"**{achievement_stats.get('voice_sessions', 0)}** voice sessions"
+                ),
+                inline=True
+            )
             
-            for ach_id, name, current, requirement in progress_data:
-                if ach_id in achievements or shown_count >= 8:
-                    continue
-                
-                progress_percentage = min(100, int((current / requirement) * 100))
-                progress_bar = "█" * min(10, int((current / requirement) * 10))
-                progress_bar += "░" * (10 - len(progress_bar))
-                
-                progress_text += f"**{name}**\n{progress_bar} {current}/{requirement} ({progress_percentage}%)\n\n"
-                shown_count += 1
+            # Premium status
+            is_premium = (self.user_id in tier_handler.premium_users or 
+                         self.user_id in tier_handler.basic_users or 
+                         self.user_id in tier_handler.pro_users)
             
-            # Add special achievements
-            if 'premium_supporter' not in achievements:
-                premium_status = "✅ Ready to unlock!" if self.user_id in tier_handler.premium_users else "❌ Premium required"
-                progress_text += f"**⭐ Premium Supporter**\n{premium_status}\n\n"
+            tier_name = "Free"
+            if self.user_id in tier_handler.pro_users:
+                tier_name = "Pro"
+            elif self.user_id in tier_handler.premium_users:
+                tier_name = "Premium"
+            elif self.user_id in tier_handler.basic_users:
+                tier_name = "Basic"
             
-            if progress_text:
-                embed.description = progress_text
-            else:
-                embed.description = "🎉 All trackable achievements unlocked! Amazing work!"
+            embed.add_field(
+                name="⭐ Account Status",
+                value=(
+                    f"**{tier_name}** tier\n"
+                    f"Premium: {'Yes' if is_premium else 'No'}\n"
+                    f"Member since: Recently"
+                ),
+                inline=True
+            )
             
             await interaction.response.send_message(embed=embed, ephemeral=True)
             
         except Exception as e:
-            logger.error(f"Progress error: {e}")
-            await interaction.response.send_message("❌ Error loading progress.", ephemeral=True)
+            logger.error(f"Stats button error: {e}")
+            await interaction.response.send_message("❌ Error loading stats.", ephemeral=True)
 
-    @discord.ui.button(label="📊 Leaderboard", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="🏆 Leaderboard", style=discord.ButtonStyle.success)
     async def leaderboard(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             # Get top users from reward database
@@ -4670,7 +5007,7 @@ class IntegratedAchievementView(discord.ui.View):
             for i, user_data in enumerate(top_users, 1):
                 user_id = user_data['user_id']
                 points = user_data['points']
-                translations = user_data.get('total_translations', 0)
+                sessions = user_data.get('total_sessions', 0)
                 
                 try:
                     user = await client.fetch_user(user_id)
@@ -4678,24 +5015,34 @@ class IntegratedAchievementView(discord.ui.View):
                 except:
                     username = f"User {user_id}"
                 
-                # Get rank info
-                rank_info = get_rank_from_points(points)
-                medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
+                # Get rank info safely
+                try:
+                    rank_info = get_rank_from_points(points)
+                    rank_emoji = rank_info.get('emoji', '🆕')
+                    rank_name = rank_info.get('name', 'Newcomer')
+                except:
+                    rank_emoji = '🆕'
+                    rank_name = 'Newcomer'
                 
-                leaderboard_text += f"{medal} **{username}** - {points:,} pts\n"
-                leaderboard_text += f"    {rank_info.get('name', 'Unranked')} • {translations} translations\n\n"
+                medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"#{i}"
+                
+                leaderboard_text += f"{medal} **{username}**\n"
+                leaderboard_text += f"    {rank_emoji} {rank_name} • {points:,} pts • {sessions} sessions\n\n"
             
             embed.description = leaderboard_text
             
             # Add user's position if not in top 10
-            user_position = reward_db.get_user_rank(self.user_id)
-            if user_position and user_position > 10:
-                user_data = reward_db.get_or_create_user(self.user_id, interaction.user.display_name)
-                embed.add_field(
-                    name="📍 Your Position",
-                    value=f"#{user_position} - {user_data['points']:,} points",
-                    inline=False
-                )
+            try:
+                user_position = reward_db.get_user_rank(self.user_id)
+                if user_position and user_position > 10:
+                    user_data = reward_db.get_or_create_user(self.user_id, interaction.user.display_name)
+                    embed.add_field(
+                        name="📍 Your Position",
+                        value=f"#{user_position} - {user_data['points']:,} points",
+                        inline=False
+                    )
+            except Exception as e:
+                logger.error(f"Error getting user position: {e}")
             
             await interaction.response.send_message(embed=embed, ephemeral=True)
             
@@ -4703,109 +5050,208 @@ class IntegratedAchievementView(discord.ui.View):
             logger.error(f"Leaderboard error: {e}")
             await interaction.response.send_message("❌ Error loading leaderboard.", ephemeral=True)
 
-    @discord.ui.button(label="🎖️ Badges", style=discord.ButtonStyle.secondary)
-    async def badges(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            user_data = reward_db.get_or_create_user(self.user_id, interaction.user.display_name)
-            achievements = reward_db.get_user_achievements(self.user_id)
-            badges = reward_db.get_user_badges(self.user_id, achievements, user_data['points'])
-            
-            embed = discord.Embed(
-                title="🎖️ Your Badge Collection",
-                description="All your earned badges and ranks:",
-                color=0x9b59b6
-            )
-            
-            if not badges:
-                embed.description = "No badges earned yet. Complete achievements and gain points to unlock badges!"
-                embed.add_field(
-                    name="💡 How to Earn Badges",
-                    value=(
-                        "🏅 **Rank Badges** - Earned by accumulating points\n"
-                        "🎯 **Achievement Badges** - Earned by completing specific achievements\n"
-                        "⭐ **Special Badges** - Earned through premium or special events"
-                    ),
-                    inline=False
-                )
-            else:
-                # Separate badges by type
-                rank_badges = [b for b in badges if b['type'] == 'rank']
-                achievement_badges = [b for b in badges if b['type'] == 'achievement']
-                special_badges = [b for b in badges if b['type'] == 'special']
-                
-                if rank_badges:
-                    rank_text = ""
-                    for badge in rank_badges:
-                        rank_text += f"{badge['emoji']} **{badge['title']}**\n    {badge.get('description', 'Rank badge')}\n\n"
-                    embed.add_field(name="🏅 Rank Badges", value=rank_text, inline=False)
-                
-                if achievement_badges:
-                    ach_text = ""
-                    for badge in achievement_badges[:5]:  # Limit to 5 to avoid embed limits
-                        ach_text += f"{badge['emoji']} **{badge['title']}**\n    {badge.get('description', 'Achievement badge')}\n\n"
-                    if len(achievement_badges) > 5:
-                        ach_text += f"... and {len(achievement_badges) - 5} more!"
-                    embed.add_field(name="🎯 Achievement Badges", value=ach_text, inline=False)
-                
-                if special_badges:
-                    special_text = ""
-                    for badge in special_badges:
-                        special_text += f"{badge['emoji']} **{badge['title']}**\n    {badge.get('description', 'Special badge')}\n\n"
-                    embed.add_field(name="⭐ Special Badges", value=special_text, inline=False)
-            
-            # Add badge count
-            embed.add_field(
-                name="📊 Badge Stats",
-                value=f"**{len(badges)}** total badges earned\n**{user_data['points']:,}** achievement points",
-                inline=True
-            )
-            
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"Badges error: {e}")
-            await interaction.response.send_message("❌ Error loading badges.", ephemeral=True)
-
     async def on_timeout(self):
         # Disable all buttons when the view times out
         for item in self.children:
             item.disabled = True
 
 
-def get_rank_from_points(points):
-    """Get rank information based on points with safe fallback"""
+# Safe achievement tracking functions
+async def safe_track_translation_achievement(user_id: int, username: str, source_lang: str = None, target_lang: str = None):
+    """Safely track translation for achievements"""
     try:
-        # Define basic ranks if not already defined
-        global RANK_BADGES
-        if 'RANK_BADGES' not in globals():
-            RANK_BADGES = {
-                0: {'name': '🆕 Newcomer', 'emoji': '🆕', 'color': 0x95a5a6},
-                50: {'name': '🌱 Beginner', 'emoji': '🌱', 'color': 0x2ecc71},
-                150: {'name': '📈 Learner', 'emoji': '📈', 'color': 0x3498db},
-                300: {'name': '🎯 Dedicated', 'emoji': '🎯', 'color': 0x9b59b6},
-                500: {'name': '⭐ Expert', 'emoji': '⭐', 'color': 0xf1c40f},
-                1000: {'name': '👑 Master', 'emoji': '👑', 'color': 0xe67e22},
-                2000: {'name': '🏆 Legend', 'emoji': '🏆', 'color': 0xe74c3c},
-                5000: {'name': '💎 Grandmaster', 'emoji': '💎', 'color': 0x1abc9c}
-            }
+        # Track in achievement system if available
+        if 'achievement_db' in globals() and hasattr(achievement_db, 'track_translation'):
+            is_premium = (user_id in tier_handler.premium_users or 
+                         user_id in tier_handler.basic_users or 
+                         user_id in tier_handler.pro_users)
+            achievement_db.track_translation(user_id, source_lang or 'auto', target_lang or 'en', is_premium)
         
-        current_rank = RANK_BADGES[0]  # Default to lowest rank
+        # Always track in reward system
+        reward_db.add_session(user_id, username)
         
-        for min_points in sorted(RANK_BADGES.keys(), reverse=True):
-            if points >= min_points:
-                current_rank = RANK_BADGES[min_points]
-                break
-        
-        return current_rank
+        # Check for new achievements
+        await safe_check_and_award_achievements(user_id, username, 'translation')
         
     except Exception as e:
-        logger.error(f"Error getting rank from points: {e}")
-        # Return safe fallback
-        return {
-            'name': '🆕 Newcomer',
-            'emoji': '🆕',
-            'color': 0x95a5a6
-        }
+        logger.error(f"Error tracking translation achievement: {e}")
+
+
+async def safe_track_voice_achievement(user_id: int, username: str):
+    """Safely track voice usage for achievements"""
+    try:
+        # Track in achievement system if available
+        if 'achievement_db' in globals() and hasattr(achievement_db, 'track_voice_session'):
+            is_premium = (user_id in tier_handler.premium_users or 
+                         user_id in tier_handler.basic_users or 
+                         user_id in tier_handler.pro_users)
+            achievement_db.track_voice_session(user_id, is_premium)
+        
+        # Track in reward system
+        reward_db.add_session(user_id, username)
+        
+        # Check for new achievements
+        await safe_check_and_award_achievements(user_id, username, 'voice')
+        
+    except Exception as e:
+        logger.error(f"Error tracking voice achievement: {e}")
+
+
+async def safe_check_and_award_achievements(user_id: int, username: str, action_type: str = None):
+    """Safely check for new achievements and award them"""
+    try:
+        # Get current stats safely
+        stats = {}
+        current_achievements = []
+        
+        try:
+            if 'achievement_db' in globals() and hasattr(achievement_db, 'get_user_stats'):
+                stats = achievement_db.get_user_stats(user_id) or {}
+                user_achievements = achievement_db.get_user_achievements(user_id) or []
+                current_achievements = [str(ach.get('id', '')) if isinstance(ach, dict) else str(ach[0]) for ach in user_achievements]
+        except:
+            pass
+        
+        # Fallback to reward system
+        if not stats:
+            user_data = reward_db.get_or_create_user(user_id, username)
+            stats = {
+                'total_translations': user_data.get('total_sessions', 0),
+                'voice_sessions': 0,
+                'unique_languages': 0,
+                'is_premium': (user_id in tier_handler.premium_users or 
+                              user_id in tier_handler.basic_users or 
+                              user_id in tier_handler.pro_users),
+                'is_early_user': False
+            }
+        
+        new_achievements = []
+        
+        # Define simple achievement checks
+        simple_achievement_checks = [
+            ('first_translation', 'First Steps', stats.get('total_translations', 0) >= 1, 10),
+            ('translation_5', 'Getting Started', stats.get('total_translations', 0) >= 5, 20),
+            ('translation_25', 'Regular User', stats.get('total_translations', 0) >= 25, 50),
+            ('translation_100', 'Translation Expert', stats.get('total_translations', 0) >= 100, 150),
+            ('first_voice', 'Voice Debut', stats.get('voice_sessions', 0) >= 1, 15),
+            ('voice_5', 'Voice User', stats.get('voice_sessions', 0) >= 5, 30),
+            ('premium_supporter', 'Premium Supporter', stats.get('is_premium', False), 200),
+        ]
+        
+        # Check simple achievements
+        for ach_id, ach_name, condition, points in simple_achievement_checks:
+            if ach_id not in current_achievements and condition:
+                # Award the achievement
+                try:
+                    if 'achievement_db' in globals() and hasattr(achievement_db, 'award_achievement'):
+                        achievement_db.award_achievement(user_id, ach_id, points)
+                except:
+                    pass
+                
+                # Add points to reward system
+                reward_db.add_points(user_id, points, f"Achievement: {ach_name}")
+                
+                new_achievements.append((ach_id, {'name': ach_name, 'points': points}))
+        
+        # Check ACHIEVEMENTS if available
+        try:
+            if 'ACHIEVEMENTS' in globals() and ACHIEVEMENTS:
+                for ach_id, ach_data in ACHIEVEMENTS.items():
+                    if ach_id in current_achievements:
+                        continue
+                    
+                    # Check if achievement should be unlocked
+                    earned = False
+                    stat_type = ach_data.get('stat', '')
+                    requirement = ach_data.get('requirement', 0)
+                    
+                    if stat_type == 'translations':
+                        earned = stats.get('total_translations', 0) >= requirement
+                    elif stat_type == 'voice_sessions':
+                        earned = stats.get('voice_sessions', 0) >= requirement
+                    elif stat_type == 'unique_languages':
+                        earned = stats.get('unique_languages', 0) >= requirement
+                    elif stat_type == 'premium':
+                        earned = stats.get('is_premium', False)
+                    elif stat_type == 'early_user':
+                        earned = stats.get('is_early_user', False)
+                    
+                    if earned:
+                        # Award the achievement
+                        try:
+                            if 'achievement_db' in globals() and hasattr(achievement_db, 'award_achievement'):
+                                achievement_db.award_achievement(user_id, ach_id, ach_data.get('points', 0))
+                        except:
+                            pass
+                        
+                        # Add points to reward system
+                        points = ach_data.get('points', 25)
+                        reward_db.add_points(user_id, points, f"Achievement: {ach_data.get('name', ach_id)}")
+                        
+                        new_achievements.append((ach_id, ach_data))
+        except Exception as e:
+            logger.error(f"Error checking ACHIEVEMENTS: {e}")
+        
+        # Send notifications for new achievements
+        if new_achievements:
+            await safe_send_achievement_notifications(user_id, new_achievements)
+        
+        return new_achievements
+        
+    except Exception as e:
+        logger.error(f"Error checking achievements for user {user_id}: {e}")
+        return []
+
+
+async def safe_send_achievement_notifications(user_id: int, achievements: list):
+    """Safely send achievement unlock notifications"""
+    try:
+        user = await client.fetch_user(user_id)
+        if not user:
+            return
+        
+        for ach_id, ach_data in achievements:
+            # Get rarity info safely
+            rarity = ach_data.get('rarity', 'Common')
+            rarity_info = {'color': 0x95a5a6, 'emoji': '⚪'}
+            
+            try:
+                if 'RARITY_INFO' in globals() and rarity in RARITY_INFO:
+                    rarity_info = RARITY_INFO[rarity]
+            except:
+                pass
+            
+            embed = discord.Embed(
+                title="🎉 Achievement Unlocked!",
+                description=f"{rarity_info.get('emoji', '⚪')} **{ach_data.get('name', 'Unknown Achievement')}**\n\n*{ach_data.get('description', 'Achievement completed!')}*",
+                color=rarity_info.get('color', 0x95a5a6)
+            )
+            
+            embed.add_field(
+                name="💎 Reward",
+                value=f"+{ach_data.get('points', 25)} points",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="🏅 Rarity",
+                value=f"{rarity_info.get('emoji', '⚪')} {rarity}",
+                inline=True
+            )
+            
+            embed.set_footer(text="Use /achievements to see all your progress!")
+            embed.timestamp = discord.utils.utcnow()
+            
+            try:
+                await user.send(embed=embed)
+            except discord.Forbidden:
+                # User has DMs disabled, skip notification
+                pass
+            except Exception as e:
+                logger.error(f"Error sending achievement notification: {e}")
+                
+    except Exception as e:
+        logger.error(f"Error sending achievement notifications: {e}")
 
 
 # Add missing database methods to RewardDatabase class
@@ -4934,35 +5380,91 @@ def handle_kofi_donation():
             logger.error(f"Invalid Discord ID in Ko-fi message: {message}")
             return jsonify({'status': 'error', 'message': 'Invalid Discord ID format'})
         
-        # 🌟 PREMIUM ACCESS: Only Ko-fi Subscriptions of $1+
-        if donation_type == 'Subscription' and amount >= 1.00:
-            # Calculate premium days based on amount
-            if amount >= 12.00:  # Annual subscription
-                premium_days = 365
-            elif amount >= 6.00:  # 6-month subscription  
-                premium_days = 180
-            elif amount >= 3.00:  # 3-month subscription
-                premium_days = 90
-            else:  # Monthly subscription ($1+)
-                premium_days = 30
+        # 🚀 PRO TIER: $5+ monthly subscriptions
+        if donation_type == 'Subscription' and amount >= 5.00:
+            # Calculate pro days based on amount
+            if amount >= 60.00:  # Annual pro subscription ($5 x 12)
+                pro_days = 365
+                tier_name = "Annual Pro"
+            elif amount >= 30.00:  # 6-month pro subscription ($5 x 6)
+                pro_days = 180
+                tier_name = "6-Month Pro"
+            elif amount >= 15.00:  # 3-month pro subscription ($5 x 3)
+                pro_days = 90
+                tier_name = "3-Month Pro"
+            else:  # Monthly pro subscription ($5+)
+                pro_days = 30
+                tier_name = "Monthly Pro"
             
-            # Process premium in background
+            # Process pro tier in background
             asyncio.run_coroutine_threadsafe(
-                process_kofi_premium(user_id, premium_days, data),
+                process_kofi_pro_tier(user_id, pro_days, data, tier_name),
+                client.loop
+            )
+            
+            logger.info(f"Pro subscription processed for user {user_id}: {pro_days} days")
+            return jsonify({'status': 'success', 'message': f'Pro subscription activated for {pro_days} days'})
+        
+        # ⭐ PREMIUM TIER: $3+ monthly subscriptions
+        elif donation_type == 'Subscription' and amount >= 3.00:
+            # Calculate premium days based on amount
+            if amount >= 36.00:  # Annual premium subscription ($3 x 12)
+                premium_days = 365
+                tier_name = "Annual Premium"
+            elif amount >= 18.00:  # 6-month premium subscription ($3 x 6)
+                premium_days = 180
+                tier_name = "6-Month Premium"
+            elif amount >= 9.00:  # 3-month premium subscription ($3 x 3)
+                premium_days = 90
+                tier_name = "3-Month Premium"
+            else:  # Monthly premium subscription ($3+)
+                premium_days = 30
+                tier_name = "Monthly Premium"
+            
+            # Process premium tier in background
+            asyncio.run_coroutine_threadsafe(
+                process_kofi_premium_tier(user_id, premium_days, data, tier_name),
                 client.loop
             )
             
             logger.info(f"Premium subscription processed for user {user_id}: {premium_days} days")
             return jsonify({'status': 'success', 'message': f'Premium subscription activated for {premium_days} days'})
         
-        # 💎 POINTS ONLY: One-time donations (no premium access)
+        # 💎 BASIC TIER: $1+ monthly subscriptions
+        elif donation_type == 'Subscription' and amount >= 1.00:
+            # Calculate basic days based on amount
+            if amount >= 12.00:  # Annual basic subscription ($1 x 12)
+                basic_days = 365
+                tier_name = "Annual Basic"
+            elif amount >= 6.00:  # 6-month basic subscription ($1 x 6)
+                basic_days = 180
+                tier_name = "6-Month Basic"
+            elif amount >= 3.00:  # 3-month basic subscription ($1 x 3)
+                basic_days = 90
+                tier_name = "3-Month Basic"
+            else:  # Monthly basic subscription ($1+)
+                basic_days = 30
+                tier_name = "Monthly Basic"
+            
+            # Process basic tier in background
+            asyncio.run_coroutine_threadsafe(
+                process_kofi_basic_tier(user_id, basic_days, data, tier_name),
+                client.loop
+            )
+            
+            logger.info(f"Basic subscription processed for user {user_id}: {basic_days} days")
+            return jsonify({'status': 'success', 'message': f'Basic subscription activated for {basic_days} days'})
+        
+        # 💰 ONE-TIME POINT PURCHASES: One-time donations (no tier upgrade)
         elif donation_type == 'Donation' and amount >= 1.00:
             # Point conversion rates for one-time purchases
             point_packages = {
                 1.00: 50,    # $1 = 50 points
                 2.00: 110,   # $2 = 110 points (10% bonus)
-                5.00: 300,   # $5 = 300 points (20% bonus)
-                10.00: 650,  # $10 = 650 points (30% bonus)
+                3.00: 180,   # $3 = 180 points (20% bonus)
+                5.00: 325,   # $5 = 325 points (30% bonus)
+                10.00: 700,  # $10 = 700 points (40% bonus)
+                20.00: 1500, # $20 = 1500 points (50% bonus)
             }
             
             # Calculate points
@@ -4973,14 +5475,18 @@ def handle_kofi_donation():
                 points_to_award = int(amount * 50)  # Base: $1 = 50 points
                 
                 # Bonus for larger amounts
-                if amount >= 10:
-                    points_to_award = int(points_to_award * 1.3)  # 30% bonus
+                if amount >= 20:
+                    points_to_award = int(points_to_award * 1.5)  # 50% bonus
+                elif amount >= 10:
+                    points_to_award = int(points_to_award * 1.4)  # 40% bonus
                 elif amount >= 5:
+                    points_to_award = int(points_to_award * 1.3)  # 30% bonus
+                elif amount >= 3:
                     points_to_award = int(points_to_award * 1.2)  # 20% bonus
                 elif amount >= 2:
                     points_to_award = int(points_to_award * 1.1)  # 10% bonus
             
-            # Award points only (no premium)
+            # Award points only (no tier upgrade)
             safe_db_operation(reward_db.add_points, user_id, points_to_award, f"Ko-fi donation (${amount})")
             
             # Send points notification
@@ -4989,61 +5495,112 @@ def handle_kofi_donation():
                 client.loop
             )
             
-            logger.info(f"Awarded {points_to_award} points to user {user_id} for ${amount} donation (no premium)")
+            logger.info(f"Awarded {points_to_award} points to user {user_id} for ${amount} donation (no tier upgrade)")
             return jsonify({'status': 'success', 'message': f'{points_to_award} points awarded'})
         
+        # 🆓 FREE TIER: Amounts under $1.00 or invalid types (stays free - $0/month)
         else:
-            return jsonify({'status': 'ignored', 'message': 'Amount too low or invalid type'})
-            
+            # Still award small amount of points for any donation attempt
+            if donation_type == 'Donation' and 0.50 <= amount < 1.00:
+                # Small consolation points for donations under $1
+                consolation_points = int(amount * 25)  # $0.50 = 12 points, etc.
+                safe_db_operation(reward_db.add_points, user_id, consolation_points, f"Small Ko-fi donation (${amount})")
+                
+                asyncio.run_coroutine_threadsafe(
+                    send_consolation_notification(user_id, consolation_points, amount),
+                    client.loop
+                )
+                
+                return jsonify({'status': 'success', 'message': f'{consolation_points} consolation points awarded'})
+            else:
+                return jsonify({'status': 'ignored', 'message': 'Amount too low or invalid type'})
+        
     except Exception as e:
         logger.error(f"Ko-fi webhook error: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
 
-# Keep your existing process_kofi_premium function as-is
-async def process_kofi_premium(user_id: int, days: int, kofi_data):
-    """Process Ko-fi premium in background"""
+# Updated tier notification function with correct pricing
+async def send_tier_notification(user_id: int, tier: str, tier_name: str, kofi_data, expires_at, days: int, emoji: str):
     try:
-        from datetime import datetime, timedelta
-        expires_at = datetime.now() + timedelta(days=days)
+        user = await client.fetch_user(user_id)
         
-        # Create user if doesn't exist
-        await db.get_or_create_user(user_id, f"Ko-fi User {user_id}")
+        # Tier-specific colors
+        colors = {
+            "Pro": 0xff6b6b,      # Red for Pro ($5/month)
+            "Premium": 0xf1c40f,  # Gold for Premium ($3/month)  
+            "Basic": 0x3498db     # Blue for Basic ($1/month)
+        }
         
-        # Add premium to database
-        await db.update_user_premium(user_id, True, expires_at)
+        embed = discord.Embed(
+            title=f"{emoji} {tier} Subscription Activated!",
+            description=(
+                f"Thank you for your **{tier_name}** subscription!\n\n"
+                f"**Amount:** ${kofi_data['amount']}\n"
+                f"**Duration:** {days} days\n"
+                f"**Expires:** {expires_at.strftime('%B %d, %Y')}\n\n"
+                f"✨ All {tier.lower()} features are now active!"
+            ),
+            color=colors.get(tier, 0x95a5a6)
+        )
         
-        # Add to memory for immediate effect
-        tier_handler.premium_users.add(user_id)
-        
-        # Try to notify the user
-        try:
-            user = await client.fetch_user(user_id)
-            embed = discord.Embed(
-                title="🌟 Premium Subscription Activated!",
-                description=(
-                    f"Thank you for your ${kofi_data['amount']} subscription!\n\n"
-                    f"**Premium Duration:** {days} days\n"
-                    f"**Expires:** {expires_at.strftime('%B %d, %Y')}\n\n"
-                    f"✨ All premium features are now active!"
-                ),
-                color=0x29abe0
+        # Tier-specific features with correct pricing
+        if tier == "Pro":
+            features = (
+                "• Unlimited everything\n"
+                "• Max 20 translation history\n" 
+                "• Priority support\n"
+                "• All achievements unlocked! 🏆\n"
+                "• **Worth $5/month!**"
             )
+        elif tier == "Premium":
+            features = (
+                "• Extended translation limits\n"
+                "• Max 15 translation history\n"
+                "• Premium support\n" 
+                "• Premium achievements unlocked! 🏆\n"
+                "• **Worth $3/month!**"
+            )
+        else:  # Basic
+            features = (
+                "• Basic premium features\n"
+                "• Max 10 translation history\n"
+                "• Basic support\n"
+                "• Achievement unlocked! 🏆\n"
+                "• **Worth $1/month!**"
+            )
+        
+        embed.add_field(
+            name=f"{emoji} {tier} Features Unlocked",
+            value=features,
+            inline=False
+        )
+        
+        # Add upgrade path
+        if tier == "Basic":
             embed.add_field(
-                name="⭐ Premium Features",
-                value="• Unlimited character translation\n• Extended voice translation\n• Priority support",
+                name="🚀 Want More?",
+                value="Upgrade to Premium ($3/month) or Pro ($5/month) for even more features!",
                 inline=False
             )
-            await user.send(embed=embed)
-            print(f"✅ Notified user {user_id} about premium subscription")
-        except Exception as notify_error:
-            print(f"⚠️ Couldn't notify user {user_id}: {notify_error}")
+        elif tier == "Premium":
+            embed.add_field(
+                name="🚀 Want Everything?",
+                value="Upgrade to Pro ($5/month) for unlimited access to all features!",
+                inline=False
+            )
         
-        print(f"✅ Successfully granted {days} days premium to user {user_id}")
+        embed.add_field(
+            name="🎯 What's Next?",
+            value="Use `/achievements` to see your new achievements!",
+            inline=False
+        )
         
-    except Exception as e:
-        print(f"❌ Error processing Ko-fi premium for user {user_id}: {e}")
+        await user.send(embed=embed)
+        logger.info(f"✅ Notified user {user_id} about {tier} subscription")
+    except Exception as notify_error:
+        logger.error(f"⚠️ Couldn't notify user {user_id}: {notify_error}")
 
-# Add this new notification function for points-only purchases
+# Updated points notification to show correct tier pricing
 async def send_points_only_notification(user_id: int, points: int, amount: float):
     try:
         user = await client.fetch_user(user_id)
@@ -5051,7 +5608,7 @@ async def send_points_only_notification(user_id: int, points: int, amount: float
             embed = discord.Embed(
                 title="💎 Points Purchased!",
                 description=f"Thank you for your ${amount:.2f} donation!",
-                color=0x3498db
+                color=0x9b59b6
             )
             embed.add_field(
                 name="💰 Points Awarded",
@@ -5059,8 +5616,12 @@ async def send_points_only_notification(user_id: int, points: int, amount: float
                 inline=False
             )
             embed.add_field(
-                name="⭐ Want Premium Access?",
-                value="Set up a **$1/month subscription** on Ko-fi for unlimited features!",
+                name="⭐ Want Subscription Benefits?",
+                value=(
+                    "**Basic Tier:** $1/month - Basic features\n"
+                    "**Premium Tier:** $3/month - Extended features\n"
+                    "**Pro Tier:** $5/month - Unlimited everything!"
+                ),
                 inline=False
             )
             embed.add_field(
@@ -5068,6 +5629,7 @@ async def send_points_only_notification(user_id: int, points: int, amount: float
                 value="Use `/shop` to see what you can buy with points!",
                 inline=False
             )
+            embed.set_footer(text="💡 Subscriptions unlock features, donations give points!")
             await user.send(embed=embed)
     except Exception as e:
         logger.error(f"Failed to send points notification: {e}")
@@ -5179,11 +5741,13 @@ async def buy_points(interaction: discord.Interaction):
         value=(
             "💵 **$1** = 50 points\n"
             "💵 **$2** = 110 points *(10% bonus)*\n"
-            "💵 **$5** = 300 points *(20% bonus)*\n"
-            "💵 **$10** = 650 points *(30% bonus)*"
+            "💵 **$3** = 180 points *(20% bonus)*\n"
+            "💵 **$5** = 325 points *(30% bonus)*\n"
+            "💵 **$10** = 700 points *(40% bonus)*\n"
+            "💵 **$20** = 1,500 points *(50% bonus)*"
         ),
-        inline=False
-    )
+    inline=False
+)
     
     embed.add_field(
         name="⚠️ Points vs Premium",
