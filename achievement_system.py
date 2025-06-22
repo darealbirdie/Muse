@@ -4,12 +4,13 @@ import json
 import logging
 from datetime import datetime, date
 from typing import Dict, List, Optional
+import discord
 
 logger = logging.getLogger('muse_achievements')
 
 # Achievement definitions
 ACHIEVEMENTS = {
-    # Translation Achievements
+    # Translation Achievements (Easy to track)
     'first_translation': {
         'name': '🌟 First Steps',
         'description': 'Complete your first translation',
@@ -19,26 +20,26 @@ ACHIEVEMENTS = {
         'requirement': 1,
         'stat': 'translations'
     },
-    'translation_10': {
-        'name': '📈 Getting Started',
-        'description': 'Complete 10 translations',
+    'translation_5': {
+        'name': '📝 Getting the Hang of It',
+        'description': 'Complete 5 translations',
         'category': 'Translation',
         'rarity': 'Common',
-        'points': 25,
-        'requirement': 10,
+        'points': 20,
+        'requirement': 5,
         'stat': 'translations'
     },
-    'translation_50': {
-        'name': '🎯 Dedicated Translator',
-        'description': 'Complete 50 translations',
+    'translation_25': {
+        'name': '🎯 Regular User',
+        'description': 'Complete 25 translations',
         'category': 'Translation',
         'rarity': 'Uncommon',
-        'points': 75,
-        'requirement': 50,
+        'points': 50,
+        'requirement': 25,
         'stat': 'translations'
     },
     'translation_100': {
-        'name': '👑 Translation Master',
+        'name': '👑 Translation Expert',
         'description': 'Complete 100 translations',
         'category': 'Translation',
         'rarity': 'Rare',
@@ -46,46 +47,17 @@ ACHIEVEMENTS = {
         'requirement': 100,
         'stat': 'translations'
     },
-    'translation_500': {
-        'name': '🏆 Translation Legend',
-        'description': 'Complete 500 translations',
+    'translation_250': {
+        'name': '🏆 Translation Master',
+        'description': 'Complete 250 translations',
         'category': 'Translation',
         'rarity': 'Epic',
         'points': 300,
-        'requirement': 500,
+        'requirement': 250,
         'stat': 'translations'
     },
     
-    # Language Achievements
-    'languages_5': {
-        'name': '🌍 Language Explorer',
-        'description': 'Use 5 different languages',
-        'category': 'Languages',
-        'rarity': 'Common',
-        'points': 30,
-        'requirement': 5,
-        'stat': 'unique_languages'
-    },
-    'languages_15': {
-        'name': '🌎 Polyglot',
-        'description': 'Use 15 different languages',
-        'category': 'Languages',
-        'rarity': 'Rare',
-        'points': 100,
-        'requirement': 15,
-        'stat': 'unique_languages'
-    },
-    'languages_30': {
-        'name': '🌏 Master Linguist',
-        'description': 'Use 30 different languages',
-        'category': 'Languages',
-        'rarity': 'Epic',
-        'points': 200,
-        'requirement': 30,
-        'stat': 'unique_languages'
-    },
-    
-    # Voice Achievements
+    # Voice Achievements (Simple session tracking)
     'first_voice': {
         'name': '🎤 Voice Debut',
         'description': 'Use voice translation for the first time',
@@ -95,45 +67,211 @@ ACHIEVEMENTS = {
         'requirement': 1,
         'stat': 'voice_sessions'
     },
-    'voice_10': {
-        'name': '🎙️ Voice Enthusiast',
-        'description': 'Use voice translation 10 times',
+    'voice_5': {
+        'name': '🎙️ Voice User',
+        'description': 'Use voice translation 5 times',
         'category': 'Voice',
-        'rarity': 'Uncommon',
-        'points': 50,
-        'requirement': 10,
+        'rarity': 'Common',
+        'points': 30,
+        'requirement': 5,
         'stat': 'voice_sessions'
     },
-    'voice_25': {
-        'name': '📻 Voice Veteran',
-        'description': 'Use voice translation 25 times',
+    'voice_15': {
+        'name': '📻 Voice Enthusiast',
+        'description': 'Use voice translation 15 times',
+        'category': 'Voice',
+        'rarity': 'Uncommon',
+        'points': 75,
+        'requirement': 15,
+        'stat': 'voice_sessions'
+    },
+    'voice_50': {
+        'name': '🎵 Voice Master',
+        'description': 'Use voice translation 50 times',
         'category': 'Voice',
         'rarity': 'Rare',
-        'points': 100,
-        'requirement': 25,
+        'points': 200,
+        'requirement': 50,
         'stat': 'voice_sessions'
     },
     
-    # Special Achievements
+    # Command Usage Achievements (Track specific features)
+    'auto_translate_user': {
+        'name': '🔄 Auto Pilot',
+        'description': 'Use auto-translation feature',
+        'category': 'Features',
+        'rarity': 'Common',
+        'points': 25,
+        'requirement': 1,
+        'stat': 'auto_translate_used'
+    },
+    'dm_translator': {
+        'name': '💌 Message Bridge',
+        'description': 'Send 5 translated DMs',
+        'category': 'Features',
+        'rarity': 'Uncommon',
+        'points': 40,
+        'requirement': 5,
+        'stat': 'dm_translations'
+    },
+    'context_menu_user': {
+        'name': '📱 Right-Click Pro',
+        'description': 'Use context menu translation 10 times',
+        'category': 'Features',
+        'rarity': 'Uncommon',
+        'points': 35,
+        'requirement': 10,
+        'stat': 'context_menu_used'
+    },
+    
+    # Tier-Based Achievements (Easy to track with your tier system)
+    'basic_supporter': {
+        'name': '💎 Basic Supporter',
+        'description': 'Subscribe to Basic tier ($1/month)',
+        'category': 'Support',
+        'rarity': 'Uncommon',
+        'points': 100,
+        'requirement': 'basic',
+        'stat': 'tier_basic'
+    },
     'premium_supporter': {
         'name': '⭐ Premium Supporter',
-        'description': 'Support Muse with premium',
-        'category': 'Special',
-        'rarity': 'Epic',
+        'description': 'Subscribe to Premium tier ($3/month)',
+        'category': 'Support',
+        'rarity': 'Rare',
         'points': 200,
         'requirement': 'premium',
-        'stat': 'premium'
+        'stat': 'tier_premium'
     },
-    'early_adopter': {
-        'name': '🚀 Early Adopter',
-        'description': 'One of the first 100 users',
-        'category': 'Special',
-        'rarity': 'Legendary',
+    'pro_supporter': {
+        'name': '🚀 Pro Supporter',
+        'description': 'Subscribe to Pro tier ($5/month)',
+        'category': 'Support',
+        'rarity': 'Epic',
+        'points': 350,
+        'requirement': 'pro',
+        'stat': 'tier_pro'
+    },
+    'loyal_supporter': {
+        'name': '💖 Loyal Supporter',
+        'description': 'Maintain any paid tier for 30+ days',
+        'category': 'Support',
+        'rarity': 'Epic',
+        'points': 250,
+        'requirement': 30,
+        'stat': 'days_subscribed'
+    },
+    
+    # Point Purchase Achievements (Track Ko-fi donations)
+    'first_donation': {
+        'name': '🎁 First Donation',
+        'description': 'Make your first point purchase',
+        'category': 'Support',
+        'rarity': 'Common',
+        'points': 50,
+        'requirement': 1,
+        'stat': 'point_purchases'
+    },
+    'generous_donor': {
+        'name': '💰 Generous Donor',
+        'description': 'Purchase $20+ worth of points',
+        'category': 'Support',
+        'rarity': 'Rare',
+        'points': 150,
+        'requirement': 20,
+        'stat': 'total_donated'
+    },
+    
+    # Language Diversity (Simplified tracking)
+    'language_explorer': {
+        'name': '🌍 Language Explorer',
+        'description': 'Translate to/from 3 different languages',
+        'category': 'Languages',
+        'rarity': 'Common',
+        'points': 30,
+        'requirement': 3,
+        'stat': 'unique_languages'
+    },
+    'polyglot': {
+        'name': '🌎 Polyglot',
+        'description': 'Translate to/from 10 different languages',
+        'category': 'Languages',
+        'rarity': 'Uncommon',
+        'points': 80,
+        'requirement': 10,
+        'stat': 'unique_languages'
+    },
+    'master_linguist': {
+        'name': '🌏 Master Linguist',
+        'description': 'Translate to/from 20 different languages',
+        'category': 'Languages',
+        'rarity': 'Rare',
+        'points': 180,
+        'requirement': 20,
+        'stat': 'unique_languages'
+    },
+    
+    # Time-Based Achievements (Simple date tracking)
+    'daily_user': {
+        'name': '📅 Daily User',
+        'description': 'Use Muse for 7 different days',
+        'category': 'Consistency',
+        'rarity': 'Common',
+        'points': 40,
+        'requirement': 7,
+        'stat': 'active_days'
+    },
+    'weekly_warrior': {
+        'name': '🗓️ Weekly Warrior',
+        'description': 'Use Muse for 30 different days',
+        'category': 'Consistency',
+        'rarity': 'Uncommon',
+        'points': 100,
+        'requirement': 30,
+        'stat': 'active_days'
+    },
+    
+    # Special/Fun Achievements
+    'feedback_giver': {
+        'name': '💬 Feedback Hero',
+        'description': 'Provide feedback to help improve Muse',
+        'category': 'Community',
+        'rarity': 'Uncommon',
+        'points': 60,
+        'requirement': 1,
+        'stat': 'feedback_given'
+    },
+    'server_inviter': {
+        'name': '📢 Muse Ambassador',
+        'description': 'Invite Muse to a new server',
+        'category': 'Community',
+        'rarity': 'Rare',
+        'points': 120,
+        'requirement': 1,
+        'stat': 'servers_invited'
+    },
+    
+    # Milestone Achievements
+    'power_user': {
+        'name': '⚡ Power User',
+        'description': 'Reach 1000 total achievement points',
+        'category': 'Milestones',
+        'rarity': 'Epic',
         'points': 500,
-        'requirement': 'early',
-        'stat': 'early_user'
+        'requirement': 1000,
+        'stat': 'total_achievement_points'
+    },
+    'muse_legend': {
+        'name': '👑 Muse Legend',
+        'description': 'Unlock 15 different achievements',
+        'category': 'Milestones',
+        'rarity': 'Legendary',
+        'points': 750,
+        'requirement': 15,
+        'stat': 'achievements_unlocked'
     }
 }
+
 
 # Rarity system
 RARITY_INFO = {
@@ -217,7 +355,26 @@ class AchievementDatabase:
         except Exception as e:
             logger.error(f"Error getting user stats: {e}")
             return {}
-    
+        
+    def debug_database_schema(self):
+        """Debug function to check database schema"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+            
+                # Check if achievements table exists and its structure
+                cursor.execute("PRAGMA table_info(achievements)")
+                columns = cursor.fetchall()
+                print("Achievements table columns:", columns)
+            
+                # Check sample data
+                cursor.execute("SELECT * FROM achievements LIMIT 3")
+                sample_data = cursor.fetchall()
+                print("Sample achievement data:", sample_data)
+            
+        except Exception as e:
+            print(f"Debug error: {e}")
+
     def create_user(self, user_id: int) -> Dict:
         """Create a new user in the database"""
         try:
