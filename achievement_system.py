@@ -572,20 +572,58 @@ class AchievementDatabase:
 # Global achievement database instance
 achievement_db = AchievementDatabase()
 
-def get_rank_from_points(points: int) -> Dict:
-    """Get user rank based on points"""
-    if points >= 1000:
-        return {'name': '🏆 Legend', 'color': 0xf1c40f}
-    elif points >= 500:
-        return {'name': '💎 Master', 'color': 0x9b59b6}
-    elif points >= 250:
-        return {'name': '🥇 Expert', 'color': 0xe67e22}
-    elif points >= 100:
-        return {'name': '🥈 Advanced', 'color': 0x3498db}
-    elif points >= 50:
-        return {'name': '🥉 Intermediate', 'color': 0x2ecc71}
-    else:
-        return {'name': '🌱 Beginner', 'color': 0x95a5a6}
+def get_rank_from_points(points: int) -> dict:
+    """Get rank information based on points - with safe fallbacks"""
+    try:
+        # Define rank system if RANK_BADGES doesn't exist
+        default_ranks = {
+            0: {'name': 'Newcomer', 'emoji': '🆕', 'color': 0x95a5a6},
+            50: {'name': 'Beginner', 'emoji': '🌱', 'color': 0x2ecc71},
+            150: {'name': 'Regular', 'emoji': '⭐', 'color': 0x3498db},
+            300: {'name': 'Advanced', 'emoji': '🎯', 'color': 0x9b59b6},
+            500: {'name': 'Expert', 'emoji': '💎', 'color': 0xe74c3c},
+            1000: {'name': 'Master', 'emoji': '👑', 'color': 0xf1c40f},
+            2000: {'name': 'Legend', 'emoji': '🏆', 'color': 0xff6b35},
+        }
+        
+        # Use RANK_BADGES if available, otherwise use default
+        ranks_to_use = default_ranks
+        try:
+            if 'RANK_BADGES' in globals() and RANK_BADGES:
+                ranks_to_use = RANK_BADGES
+        except:
+            pass
+        
+        # Find the appropriate rank
+        current_rank = None
+        for min_points in sorted(ranks_to_use.keys(), reverse=True):
+            if points >= min_points:
+                current_rank = ranks_to_use[min_points].copy()
+                break
+        
+        # Fallback if no rank found
+        if not current_rank:
+            current_rank = {
+                'name': 'Newcomer',
+                'emoji': '🆕', 
+                'color': 0x95a5a6
+            }
+        
+        # Ensure all required keys exist
+        current_rank.setdefault('name', 'Unknown')
+        current_rank.setdefault('emoji', '🎖️')
+        current_rank.setdefault('color', 0x95a5a6)
+        
+        return current_rank
+        
+    except Exception as e:
+        logger.error(f"Error in get_rank_from_points: {e}")
+        # Return safe fallback
+        return {
+            'name': 'Newcomer',
+            'emoji': '🆕',
+            'color': 0x95a5a6
+        }
 
 async def send_achievement_notification(client, user_id: int, achievement_ids: List[str]):
     """Send achievement notification to user"""
