@@ -41,7 +41,7 @@ from reward_system import (
     has_enhanced_voice_access,
     reward_db  
 )
-
+new_achievements = []
 YOUR_ADMIN_ID = 1192196672437096520
 YOUR_SERVER_ID = 1332522833326375022
 # Tier colors for embeds
@@ -5160,7 +5160,7 @@ class SafeAchievementView(discord.ui.View):
 
 # Safe achievement tracking functions
 async def safe_track_translation_achievement(user_id: int, username: str, source_lang: str = None, target_lang: str = None):
-    """Safely track translation for achievements"""
+    """Safely track translation for achievements - FIXED"""
     try:
         # Track in achievement system if available
         if 'achievement_db' in globals() and hasattr(achievement_db, 'track_translation'):
@@ -5169,8 +5169,13 @@ async def safe_track_translation_achievement(user_id: int, username: str, source
                          user_id in tier_handler.pro_users)
             achievement_db.track_translation(user_id, source_lang or 'auto', target_lang or 'en', is_premium)
         
-        # Always track in reward system
-        reward_db.add_session(user_id, username)
+        # FIXED: Use correct reward_db methods
+        try:
+            # Just create user and add points - don't use add_session
+            reward_db.get_or_create_user(user_id, username)
+            reward_db.add_points(user_id, 5, "Translation completed")
+        except Exception as e:
+            logger.debug(f"Reward tracking failed (non-critical): {e}")
         
         # Check for new achievements
         await safe_check_and_award_achievements(user_id, username, 'translation')
@@ -5180,7 +5185,7 @@ async def safe_track_translation_achievement(user_id: int, username: str, source
 
 
 async def safe_track_voice_achievement(user_id: int, username: str):
-    """Safely track voice usage for achievements"""
+    """Safely track voice usage for achievements - FIXED"""
     try:
         # Track in achievement system if available
         if 'achievement_db' in globals() and hasattr(achievement_db, 'track_voice_session'):
@@ -5189,15 +5194,19 @@ async def safe_track_voice_achievement(user_id: int, username: str):
                          user_id in tier_handler.pro_users)
             achievement_db.track_voice_session(user_id, is_premium)
         
-        # Track in reward system
-        reward_db.add_session(user_id, username)
+        # FIXED: Use correct reward_db methods
+        try:
+            # Just create user and add points - don't use add_session
+            reward_db.get_or_create_user(user_id, username)
+            reward_db.add_points(user_id, 10, "Voice session completed")
+        except Exception as e:
+            logger.debug(f"Reward tracking failed (non-critical): {e}")
         
         # Check for new achievements
         await safe_check_and_award_achievements(user_id, username, 'voice')
         
     except Exception as e:
         logger.error(f"Error tracking voice achievement: {e}")
-
 
 async def safe_check_and_award_achievements(user_id: int, username: str, action_type: str = None):
     """Safely check for new achievements and award them"""
@@ -5213,7 +5222,7 @@ async def safe_check_and_award_achievements(user_id: int, username: str, action_
                 current_achievements = [str(ach.get('id', '')) if isinstance(ach, dict) else str(ach[0]) for ach in user_achievements]
         except:
             pass
-        
+    
         # Fallback to reward system
         if not stats:
             user_data = reward_db.get_or_create_user(user_id, username)
@@ -5227,7 +5236,7 @@ async def safe_check_and_award_achievements(user_id: int, username: str, action_
                 'is_early_user': False
             }
         
-        new_achievements = []
+        
         
         # Define simple achievement checks
         simple_achievement_checks = [
@@ -5294,12 +5303,11 @@ async def safe_check_and_award_achievements(user_id: int, username: str, action_
         except Exception as e:
             logger.error(f"Error checking ACHIEVEMENTS: {e}")
         
-        # Send notifications for new achievements
         if new_achievements:
-            await safe_send_achievement_notifications(user_id, new_achievements)
-        
+            for ach_id, ach_data in new_achievements:
+                await notify_achievement_earned(user_id, ach_data)
+            logger.info(f"🎉 Notified {username} about achievement: {ach_data.get('name', 'Unknown')}")
         return new_achievements
-        
     except Exception as e:
         logger.error(f"Error checking achievements for user {user_id}: {e}")
         return []
@@ -5354,6 +5362,188 @@ async def safe_send_achievement_notifications(user_id: int, achievements: list):
                 
     except Exception as e:
         logger.error(f"Error sending achievement notifications: {e}")
+
+# FIND and REPLACE this problematic function:
+def get_rank_from_points(points: int) -> dict:
+    """FIXED - Get rank information based on points"""
+    try:
+        # Make sure RANK_BADGES is defined
+        if 'RANK_BADGES' not in globals():
+            # Define it here as fallback
+            RANK_BADGES = {
+                0: {'name': '🆕 Newcomer', 'emoji': '🆕', 'color': 0x95a5a6},
+                50: {'name': '🌱 Beginner', 'emoji': '🌱', 'color': 0x2ecc71},
+                150: {'name': '📈 Learner', 'emoji': '📈', 'color': 0x3498db},
+                300: {'name': '🎯 Dedicated', 'emoji': '🎯', 'color': 0x9b59b6},
+                500: {'name': '⭐ Expert', 'emoji': '⭐', 'color': 0xf1c40f},
+                1000: {'name': '👑 Master', 'emoji': '👑', 'color': 0xe67e22},
+                2000: {'name': '🏆 Legend', 'emoji': '🏆', 'color': 0xe74c3c},
+                5000: {'name': '💎 Grandmaster', 'emoji': '💎', 'color': 0x1abc9c}
+            }
+        
+        # Find the appropriate rank
+        current_rank = None
+        for min_points in sorted(RANK_BADGES.keys(), reverse=True):
+            if points >= min_points:
+                current_rank = RANK_BADGES[min_points].copy()
+                break
+        
+        # SAFE FALLBACK if no rank found
+        if not current_rank:
+            current_rank = {
+                'name': '🆕 Newcomer',
+                'emoji': '🆕', 
+                'color': 0x95a5a6
+            }
+        
+        # ENSURE all required keys exist
+        if 'name' not in current_rank:
+            current_rank['name'] = '🆕 Newcomer'
+        if 'emoji' not in current_rank:
+            current_rank['emoji'] = '🆕'
+        if 'color' not in current_rank:
+            current_rank['color'] = 0x95a5a6
+            
+        # Calculate next rank info
+        current_threshold = 0
+        for threshold, rank_data in RANK_BADGES.items():
+            if rank_data.get('name') == current_rank.get('name'):
+                current_threshold = threshold
+                break
+        
+        # Find next rank
+        next_threshold = None
+        next_rank_name = 'Max Level!'
+        
+        for threshold in sorted(RANK_BADGES.keys()):
+            if threshold > current_threshold:
+                next_threshold = threshold
+                next_rank_name = RANK_BADGES[threshold].get('name', 'Next Rank')
+                break
+        
+        if next_threshold:
+            current_rank['next_rank'] = next_rank_name
+            current_rank['points_needed'] = next_threshold - points
+        else:
+            current_rank['next_rank'] = 'Max Level!'
+            current_rank['points_needed'] = 0
+            
+        return current_rank
+        
+    except Exception as e:
+        logger.error(f"Error in get_rank_from_points: {e}")
+        # ULTRA SAFE FALLBACK
+        return {
+            'name': '🆕 Newcomer',
+            'emoji': '🆕',
+            'color': 0x95a5a6,
+            'next_rank': '🌱 Beginner',
+            'points_needed': 50
+        }
+
+async def notify_achievement_earned(user_id: int, achievement_data: dict):
+    """Send DM notification when achievement is earned"""
+    try:
+        user = await client.fetch_user(user_id)
+        if not user:
+            logger.info(f"Could not fetch user {user_id} for achievement notification")
+            return
+        
+        # Extract achievement info safely
+        ach_name = achievement_data.get('name', 'Unknown Achievement')
+        ach_desc = achievement_data.get('description', 'Achievement unlocked!')
+        ach_points = achievement_data.get('points', 25)
+        ach_rarity = achievement_data.get('rarity', 'Common')
+        
+        # Create embed
+        embed = discord.Embed(
+            title="🎉 Achievement Unlocked!",
+            description=f"🏆 **{ach_name}**\n\n*{ach_desc}*",
+            color=0xf1c40f
+        )
+        
+        embed.add_field(
+            name="💎 Reward",
+            value=f"+{ach_points} points",
+            inline=True
+        )
+        
+        embed.add_field(
+            name="🏅 Rarity",
+            value=f"{ach_rarity}",
+            inline=True
+        )
+        
+        embed.set_footer(text="Use /achievements to see your progress!")
+        embed.timestamp = discord.utils.utcnow()
+        
+        # Try to send DM
+        try:
+            await user.send(embed=embed)
+            logger.info(f"✅ Achievement notification sent to {user.display_name}: {ach_name}")
+        except discord.Forbidden:
+            logger.info(f"❌ User {user.display_name} has DMs disabled")
+        except Exception as e:
+            logger.error(f"Error sending achievement DM: {e}")
+            
+    except Exception as e:
+        logger.error(f"Error in notify_achievement_earned: {e}")
+
+
+async def notify_rank_up(user_id: int, old_rank: str, new_rank: str, total_points: int):
+    """Send DM notification when user ranks up"""
+    try:
+        user = await client.fetch_user(user_id)
+        if not user:
+            return
+        
+        # Get rank info for styling
+        rank_info = get_rank_from_points(total_points)
+        rank_emoji = rank_info.get('emoji', '🎖️')
+        rank_color = rank_info.get('color', 0xf1c40f)
+        
+        embed = discord.Embed(
+            title="🎊 Rank Up!",
+            description=f"{rank_emoji} **Congratulations!**\n\nYou've been promoted from **{old_rank}** to **{new_rank}**!",
+            color=rank_color
+        )
+        
+        embed.add_field(
+            name="🏅 New Rank",
+            value=f"{rank_emoji} {new_rank}",
+            inline=True
+        )
+        
+        embed.add_field(
+            name="💎 Total Points",
+            value=f"{total_points:,} points",
+            inline=True
+        )
+        
+        # Show progress to next rank
+        next_rank_info = rank_info.get('next_rank', 'Max Level')
+        points_needed = rank_info.get('points_needed', 0)
+        
+        if points_needed > 0:
+            embed.add_field(
+                name="🎯 Next Goal",
+                value=f"{next_rank_info} ({points_needed:,} points to go)",
+                inline=False
+            )
+        
+        embed.set_footer(text="Keep translating to reach the next rank!")
+        embed.timestamp = discord.utils.utcnow()
+        
+        try:
+            await user.send(embed=embed)
+            logger.info(f"✅ Rank up notification sent to {user.display_name}: {old_rank} → {new_rank}")
+        except discord.Forbidden:
+            logger.info(f"❌ User {user.display_name} has DMs disabled for rank up")
+        except Exception as e:
+            logger.error(f"Error sending rank up DM: {e}")
+            
+    except Exception as e:
+        logger.error(f"Error in notify_rank_up: {e}")
 
 
 # Add missing database methods to RewardDatabase class
