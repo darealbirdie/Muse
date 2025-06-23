@@ -501,6 +501,30 @@ REWARD_RARITY = {
         'rewards': ['temp_pro_3d', 'ultimate_bundle', 'custom_badge']
     }
 }
+# Add this method to your RewardDatabase class
+def get_user_rank(self, user_id: int) -> int:
+    """Get user's rank position on leaderboard"""
+    try:
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            
+            # Get user's position by counting users with more points
+            cursor.execute('''
+                SELECT COUNT(*) + 1 as rank
+                FROM users 
+                WHERE points > (
+                    SELECT points 
+                    FROM users 
+                    WHERE user_id = ?
+                )
+            ''', (user_id,))
+            
+            result = cursor.fetchone()
+            return result[0] if result else None
+            
+    except Exception as e:
+        logger.error(f"Error getting user rank: {e}")
+        return None
 
 # Helper function to get reward rarity
 def get_reward_rarity(reward_id):
@@ -1446,6 +1470,29 @@ def has_enhanced_voice_access(user_id: int, reward_db, tier_handler) -> bool:
         logger.error(f"Error checking enhanced voice access for user {user_id}: {e}")
         return False
 
+# Add this method to your RewardDatabase class
+def add_session(self, user_id: int, username: str = None):
+    """Add a session count for the user"""
+    try:
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            
+            # Get or create user first
+            user_data = self.get_or_create_user(user_id, username)
+            
+            # Increment session count
+            cursor.execute('''
+                UPDATE users 
+                SET total_sessions = total_sessions + 1,
+                    last_active = ?
+                WHERE user_id = ?
+            ''', (datetime.now().isoformat(), user_id))
+            
+            conn.commit()
+            logger.info(f"Added session for user {user_id}")
+            
+    except Exception as e:
+        logger.error(f"Error adding session for user {user_id}: {e}")
 
 # Add this method to your RewardDatabase class:
 
