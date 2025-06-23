@@ -35,7 +35,6 @@ from reward_system import (
     RewardDatabase, 
     REWARDS, 
     AUTO_BADGES, 
-    RANK_BADGES,
     get_enhanced_user_limits,
     has_priority_processing,
     has_enhanced_voice_access,
