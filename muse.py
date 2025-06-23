@@ -4841,8 +4841,110 @@ async def achievements(interaction: discord.Interaction):
             "❌ An error occurred while fetching your achievements. Please try again later.",
             ephemeral=True
         )
+# Add this after your existing achievement functions
+async def notify_achievement_earned(user_id: int, achievement_data: dict):
+    """Send DM notification when achievement is earned"""
+    try:
+        user = await client.fetch_user(user_id)
+        if not user:
+            logger.info(f"Could not fetch user {user_id} for achievement notification")
+            return
+        
+        # Extract achievement info
+        ach_name = achievement_data.get('name', 'Unknown Achievement')
+        ach_desc = achievement_data.get('description', 'Achievement unlocked!')
+        ach_points = achievement_data.get('points', 25)
+        ach_rarity = achievement_data.get('rarity', 'Common')
+        
+        # Create embed
+        embed = discord.Embed(
+            title="🎉 Achievement Unlocked!",
+            description=f"🏆 **{ach_name}**\n\n*{ach_desc}*",
+            color=0xf1c40f
+        )
+        
+        embed.add_field(
+            name="💎 Reward",
+            value=f"+{ach_points} points",
+            inline=True
+        )
+        
+        embed.add_field(
+            name="🏅 Rarity",
+            value=f"{ach_rarity}",
+            inline=True
+        )
+        
+        embed.set_footer(text="Use /achievements to see your progress!")
+        embed.timestamp = discord.utils.utcnow()
+        
+        # Try to send DM
+        try:
+            await user.send(embed=embed)
+            logger.info(f"✅ Achievement notification sent to {user.display_name}: {ach_name}")
+        except discord.Forbidden:
+            logger.info(f"❌ User {user.display_name} has DMs disabled")
+        except Exception as e:
+            logger.error(f"Error sending achievement DM: {e}")
+            
+    except Exception as e:
+        logger.error(f"Error in notify_achievement_earned: {e}")
 
 
+async def notify_rank_up(user_id: int, old_rank: str, new_rank: str, total_points: int):
+    """Send DM notification when user ranks up"""
+    try:
+        user = await client.fetch_user(user_id)
+        if not user:
+            return
+        
+        # Get rank info for styling
+        rank_info = get_rank_from_points(total_points)
+        rank_emoji = rank_info.get('emoji', '🎖️')
+        rank_color = rank_info.get('color', 0xf1c40f)
+        
+        embed = discord.Embed(
+            title="🎊 Rank Up!",
+            description=f"{rank_emoji} **Congratulations!**\n\nYou've been promoted from **{old_rank}** to **{new_rank}**!",
+            color=rank_color
+        )
+        
+        embed.add_field(
+            name="🏅 New Rank",
+            value=f"{rank_emoji} {new_rank}",
+            inline=True
+        )
+        
+        embed.add_field(
+            name="💎 Total Points",
+            value=f"{total_points:,} points",
+            inline=True
+        )
+        
+        # Show progress to next rank
+        next_rank_info = rank_info.get('next_rank', 'Max Level')
+        points_needed = rank_info.get('points_needed', 0)
+        
+        if points_needed > 0:
+            embed.add_field(
+                name="🎯 Next Goal",
+                value=f"{next_rank_info} ({points_needed:,} points to go)",
+                inline=False
+            )
+        
+        embed.set_footer(text="Keep translating to reach the next rank!")
+        embed.timestamp = discord.utils.utcnow()
+        
+        try:
+            await user.send(embed=embed)
+            logger.info(f"✅ Rank up notification sent to {user.display_name}: {old_rank} → {new_rank}")
+        except discord.Forbidden:
+            logger.info(f"❌ User {user.display_name} has DMs disabled for rank up")
+        except Exception as e:
+            logger.error(f"Error sending rank up DM: {e}")
+            
+    except Exception as e:
+        logger.error(f"Error in notify_rank_up: {e}")
 # Simplified and safe achievement view
 class SafeAchievementView(discord.ui.View):
     def __init__(self, user_id: int):
