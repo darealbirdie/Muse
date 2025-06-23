@@ -58,6 +58,17 @@ TIER_EMOJIS = {
     'premium': '🥈',
     'pro': '🥇'
 }
+# Add this after your imports and before your classes
+RANK_BADGES = {
+    0: {'name': '🆕 Newcomer', 'emoji': '🆕', 'color': 0x95a5a6},
+    50: {'name': '🌱 Beginner', 'emoji': '🌱', 'color': 0x2ecc71},
+    150: {'name': '📈 Learner', 'emoji': '📈', 'color': 0x3498db},
+    300: {'name': '🎯 Dedicated', 'emoji': '🎯', 'color': 0x9b59b6},
+    500: {'name': '⭐ Expert', 'emoji': '⭐', 'color': 0xf1c40f},
+    1000: {'name': '👑 Master', 'emoji': '👑', 'color': 0xe67e22},
+    2000: {'name': '🏆 Legend', 'emoji': '🏆', 'color': 0xe74c3c},
+    5000: {'name': '💎 Grandmaster', 'emoji': '💎', 'color': 0x1abc9c}
+}
 # Pro Tier Processing Function
 async def process_kofi_pro_tier(user_id: int, days: int, kofi_data, tier_name: str):
     """Process Ko-fi pro tier subscription with achievement tracking"""
