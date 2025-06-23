@@ -4674,10 +4674,19 @@ async def achievements(interaction: discord.Interaction):
         user_id = interaction.user.id
         username = interaction.user.display_name
         
-        # Get user data from reward system (this always exists)
+        # Get user data from reward system
         user_data = reward_db.get_or_create_user(user_id, username)
+        total_points = user_data.get('points', 0)
         
-        # Safely get achievement data
+        # Get current rank info
+        rank_info = get_rank_from_points(total_points)
+        current_rank_name = rank_info.get('name', 'Newcomer')
+        current_rank_emoji = rank_info.get('emoji', '🆕')
+        next_rank_name = rank_info.get('next_rank', 'Beginner')
+        points_needed = rank_info.get('points_needed', 50)
+        rank_color = rank_info.get('color', 0xf1c40f)
+        
+        # Get achievement data safely
         achievement_stats = {}
         user_achievements = []
         
@@ -4688,50 +4697,41 @@ async def achievements(interaction: discord.Interaction):
         except Exception as e:
             logger.error(f"Error getting achievement data: {e}")
         
-        # Fallback stats from reward system
+        # Fallback stats if achievement system not available
         if not achievement_stats:
             achievement_stats = {
                 'total_translations': user_data.get('total_sessions', 0),
                 'voice_sessions': 0,
                 'unique_languages': 0,
-                'is_premium': (user_id in tier_handler.premium_users or 
-                              user_id in tier_handler.basic_users or 
-                              user_id in tier_handler.pro_users),
+                'is_premium': user_id in tier_handler.premium_users,
                 'is_early_user': False
             }
-        
-        # Get rank info
-        rank_info = get_rank_from_points(user_data['points'])
         
         # Create main embed
         embed = discord.Embed(
             title=f"🏆 {username}'s Achievements & Progress",
-            color=rank_info.get('color', 0xf1c40f)
+            color=rank_color
         )
         
-        # Add rank and points section
+        # Current Rank (NO emoji duplication)
         embed.add_field(
             name="📊 Current Rank",
-            value=f"{rank_info.get('emoji', '🆕')} **{rank_info.get('name', 'Newcomer')}**\n💎 **{user_data['points']:,}** points",
+            value=f"{current_rank_emoji} **{current_rank_name}**\n💎 **{total_points:,}** points",
             inline=True
         )
         
-        # Calculate achievement count safely
-        total_possible = 25  # Set a reasonable default
-        try:
-            if 'ACHIEVEMENTS' in globals() and ACHIEVEMENTS:
-                total_possible = len(ACHIEVEMENTS)
-        except:
-            pass
-        
+        # Achievement count
+        total_possible = 27  # Your total achievements
         achievement_count = len(user_achievements)
+        achievement_points = achievement_count * 25  # Assuming 25 points per achievement
+        
         embed.add_field(
             name="🎯 Achievements",
-            value=f"**{achievement_count}** / **{total_possible}** unlocked\n🏅 **{achievement_count * 25}** achievement points",
+            value=f"**{achievement_count}** / **{total_possible}** unlocked\n🏅 **{achievement_points}** achievement points",
             inline=True
         )
         
-        # Add stats summary
+        # Statistics
         embed.add_field(
             name="📈 Your Statistics",
             value=(
@@ -4742,34 +4742,19 @@ async def achievements(interaction: discord.Interaction):
             inline=True
         )
         
-        # Show recent achievements (if any)
+        # Recent Achievements
         if user_achievements:
-            recent_achievements = user_achievements[-3:] if len(user_achievements) >= 3 else user_achievements
+            recent_achievements = user_achievements[-3:]  # Last 3 achievements
             achievement_text = ""
             
             for ach_data in recent_achievements:
                 try:
-                    # Handle both dict and tuple formats
                     if isinstance(ach_data, dict):
                         ach_name = ach_data.get('name', 'Unknown Achievement')
-                        ach_id = ach_data.get('id', '')
                     else:
-                        # If it's a tuple/list from database
                         ach_name = str(ach_data[1]) if len(ach_data) > 1 else 'Unknown Achievement'
-                        ach_id = str(ach_data[0]) if len(ach_data) > 0 else ''
                     
-                    # Get rarity emoji safely
-                    rarity_emoji = '⭐'
-                    try:
-                        if 'ACHIEVEMENTS' in globals() and ach_id in ACHIEVEMENTS:
-                            rarity = ACHIEVEMENTS[ach_id].get('rarity', 'Common')
-                            if 'RARITY_INFO' in globals() and rarity in RARITY_INFO:
-                                rarity_emoji = RARITY_INFO[rarity].get('emoji', '⭐')
-                    except:
-                        pass
-                    
-                    achievement_text += f"{rarity_emoji} **{ach_name}**\n"
-                    
+                    achievement_text += f"⭐ **{ach_name}**\n"
                 except Exception as e:
                     logger.error(f"Error processing achievement: {e}")
                     achievement_text += "⭐ **Achievement Unlocked**\n"
@@ -4781,23 +4766,24 @@ async def achievements(interaction: discord.Interaction):
                     inline=False
                 )
         
-        # Show progress towards next achievements
+        # Progress towards next achievements
         progress_text = ""
         unlocked_ids = []
         
         try:
-            unlocked_ids = [str(ach.get('id', '')) if isinstance(ach, dict) else str(ach[0]) for ach in user_achievements]
+            unlocked_ids = [
+                str(ach.get('id', '')) if isinstance(ach, dict) else str(ach[0]) 
+                for ach in user_achievements
+            ]
         except:
             pass
         
-        # Define simple progress tracking
+        # Simple progress tracking
         progress_achievements = [
             ('first_translation', '🌟 First Steps', achievement_stats.get('total_translations', 0), 1),
             ('translation_5', '📈 Getting Started', achievement_stats.get('total_translations', 0), 5),
             ('translation_25', '🎯 Regular User', achievement_stats.get('total_translations', 0), 25),
             ('translation_100', '👑 Translation Expert', achievement_stats.get('total_translations', 0), 100),
-            ('first_voice', '🎤 Voice Debut', achievement_stats.get('voice_sessions', 0), 1),
-            ('voice_5', '🎙️ Voice User', achievement_stats.get('voice_sessions', 0), 5),
         ]
         
         shown_progress = 0
@@ -4805,10 +4791,10 @@ async def achievements(interaction: discord.Interaction):
             if ach_id not in unlocked_ids and shown_progress < 3:
                 if current < requirement:
                     progress_percentage = min(100, int((current / requirement) * 100))
-                    progress_bar = "█" * min(5, int((current / requirement) * 5))
-                    progress_bar += "░" * (5 - len(progress_bar))
+                    filled_bars = min(5, int((current / requirement) * 5))
+                    progress_bar = "█" * filled_bars + "░" * (5 - filled_bars)
                     
-                    progress_text += f"{name}\n`{progress_bar}` {current}/{requirement} ({progress_percentage}%)\n\n"
+                    progress_text += f"**{name}**\n`{progress_bar}` {current}/{requirement} ({progress_percentage}%)\n\n"
                     shown_progress += 1
         
         if progress_text:
@@ -4818,29 +4804,29 @@ async def achievements(interaction: discord.Interaction):
                 inline=False
             )
         
-        # Show rank progression
-        try:
-            if 'RANK_BADGES' in globals() and RANK_BADGES:
-                next_rank = None
-                for min_points in sorted(RANK_BADGES.keys()):
-                    if user_data['points'] < min_points:
-                        next_rank = RANK_BADGES[min_points]
-                        points_needed = min_points - user_data['points']
-                        break
-                
-                if next_rank:
-                    embed.add_field(
-                        name="📈 Next Rank",
-                        value=f"{next_rank['emoji']} **{next_rank['name']}**\nNeed **{points_needed:,}** more points",
-                        inline=True
-                    )
-        except Exception as e:
-            logger.error(f"Error calculating next rank: {e}")
+        # Next Rank (FIXED - no emoji duplication)
+        if next_rank_name != 'Max Level!':
+            # Get next rank emoji by looking up the next rank info
+            next_rank_points = total_points + points_needed
+            next_rank_info = get_rank_from_points(next_rank_points)
+            next_rank_emoji = next_rank_info.get('emoji', '🎖️')
+            
+            embed.add_field(
+                name="📈 Next Rank",
+                value=f"{next_rank_emoji} **{next_rank_name}**\nNeed **{points_needed:,}** more points",
+                inline=True
+            )
+        else:
+            embed.add_field(
+                name="📈 Next Rank",
+                value="🏆 **Max Level Reached!**\nYou've achieved the highest rank!",
+                inline=True
+            )
         
-        # Add footer
+        # Footer
         embed.set_footer(text="🏆 Use the buttons below to explore more details!")
         
-        # Create view with buttons (simplified)
+        # Create view with buttons
         view = SafeAchievementView(user_id)
         
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -4851,7 +4837,8 @@ async def achievements(interaction: discord.Interaction):
             "❌ An error occurred while fetching your achievements. Please try again later.",
             ephemeral=True
         )
-# Add this after your existing achievement functions
+
+# FIXED notification functions
 async def notify_achievement_earned(user_id: int, achievement_data: dict):
     """Send DM notification when achievement is earned"""
     try:
@@ -4860,7 +4847,7 @@ async def notify_achievement_earned(user_id: int, achievement_data: dict):
             logger.info(f"Could not fetch user {user_id} for achievement notification")
             return
         
-        # Extract achievement info
+        # Extract achievement info safely
         ach_name = achievement_data.get('name', 'Unknown Achievement')
         ach_desc = achievement_data.get('description', 'Achievement unlocked!')
         ach_points = achievement_data.get('points', 25)
@@ -4900,22 +4887,24 @@ async def notify_achievement_earned(user_id: int, achievement_data: dict):
     except Exception as e:
         logger.error(f"Error in notify_achievement_earned: {e}")
 
-
 async def notify_rank_up(user_id: int, old_rank: str, new_rank: str, total_points: int):
     """Send DM notification when user ranks up"""
     try:
         user = await client.fetch_user(user_id)
         if not user:
+            logger.info(f"Could not fetch user {user_id} for rank up notification")
             return
         
         # Get rank info for styling
         rank_info = get_rank_from_points(total_points)
         rank_emoji = rank_info.get('emoji', '🎖️')
         rank_color = rank_info.get('color', 0xf1c40f)
+        next_rank_name = rank_info.get('next_rank', 'Max Level!')
+        points_needed = rank_info.get('points_needed', 0)
         
         embed = discord.Embed(
             title="🎊 Rank Up!",
-            description=f"{rank_emoji} **Congratulations!**\n\nYou've been promoted from **{old_rank}** to **{new_rank}**!",
+            description=f"**Congratulations {user.display_name}!**\n\nYou've been promoted from **{old_rank}** to **{new_rank}**!",
             color=rank_color
         )
         
@@ -4932,13 +4921,16 @@ async def notify_rank_up(user_id: int, old_rank: str, new_rank: str, total_point
         )
         
         # Show progress to next rank
-        next_rank_info = rank_info.get('next_rank', 'Max Level')
-        points_needed = rank_info.get('points_needed', 0)
-        
-        if points_needed > 0:
+        if next_rank_name != 'Max Level!' and points_needed > 0:
             embed.add_field(
                 name="🎯 Next Goal",
-                value=f"{next_rank_info} ({points_needed:,} points to go)",
+                value=f"{next_rank_name} ({points_needed:,} points to go)",
+                inline=False
+            )
+        elif next_rank_name == 'Max Level!':
+            embed.add_field(
+                name="🏆 Achievement",
+                value="You've reached the maximum rank!",
                 inline=False
             )
         
@@ -4955,6 +4947,7 @@ async def notify_rank_up(user_id: int, old_rank: str, new_rank: str, total_point
             
     except Exception as e:
         logger.error(f"Error in notify_rank_up: {e}")
+
 # Simplified and safe achievement view
 class SafeAchievementView(discord.ui.View):
     def __init__(self, user_id: int):
