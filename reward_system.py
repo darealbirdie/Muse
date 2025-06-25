@@ -7,7 +7,268 @@ from typing import Dict, List, Optional
 import discord
 
 logger = logging.getLogger('muse_rewards')
-
+ACHIEVEMENTS = {
+    # Translation Achievements (Easy to track)
+    'first_translation': {
+        'name': '🌟 First Steps',
+        'description': 'Complete your first translation',
+        'category': 'Translation',
+        'rarity': 'Common',
+        'points': 10,
+        'requirement': 1,
+        'stat': 'translations'
+    },
+    'translation_5': {
+        'name': '📝 Getting the Hang of It',
+        'description': 'Complete 5 translations',
+        'category': 'Translation',
+        'rarity': 'Common',
+        'points': 20,
+        'requirement': 5,
+        'stat': 'translations'
+    },
+    'translation_25': {
+        'name': '🎯 Regular User',
+        'description': 'Complete 25 translations',
+        'category': 'Translation',
+        'rarity': 'Uncommon',
+        'points': 50,
+        'requirement': 25,
+        'stat': 'translations'
+    },
+    'translation_100': {
+        'name': '👑 Translation Expert',
+        'description': 'Complete 100 translations',
+        'category': 'Translation',
+        'rarity': 'Rare',
+        'points': 150,
+        'requirement': 100,
+        'stat': 'translations'
+    },
+    'translation_250': {
+        'name': '🏆 Translation Master',
+        'description': 'Complete 250 translations',
+        'category': 'Translation',
+        'rarity': 'Epic',
+        'points': 300,
+        'requirement': 250,
+        'stat': 'translations'
+    },
+    
+    # Voice Achievements (Simple session tracking)
+    'first_voice': {
+        'name': '🎤 Voice Debut',
+        'description': 'Use voice translation for the first time',
+        'category': 'Voice',
+        'rarity': 'Common',
+        'points': 15,
+        'requirement': 1,
+        'stat': 'voice_sessions'
+    },
+    'voice_5': {
+        'name': '🎙️ Voice User',
+        'description': 'Use voice translation 5 times',
+        'category': 'Voice',
+        'rarity': 'Common',
+        'points': 30,
+        'requirement': 5,
+        'stat': 'voice_sessions'
+    },
+    'voice_15': {
+        'name': '📻 Voice Enthusiast',
+        'description': 'Use voice translation 15 times',
+        'category': 'Voice',
+        'rarity': 'Uncommon',
+        'points': 75,
+        'requirement': 15,
+        'stat': 'voice_sessions'
+    },
+    'voice_50': {
+        'name': '🎵 Voice Master',
+        'description': 'Use voice translation 50 times',
+        'category': 'Voice',
+        'rarity': 'Rare',
+        'points': 200,
+        'requirement': 50,
+        'stat': 'voice_sessions'
+    },
+    
+    # Command Usage Achievements (Track specific features)
+    'auto_translate_user': {
+        'name': '🔄 Auto Pilot',
+        'description': 'Use auto-translation feature',
+        'category': 'Features',
+        'rarity': 'Common',
+        'points': 25,
+        'requirement': 1,
+        'stat': 'auto_translate_used'
+    },
+    'dm_translator': {
+        'name': '💌 Message Bridge',
+        'description': 'Send 5 translated DMs',
+        'category': 'Features',
+        'rarity': 'Uncommon',
+        'points': 40,
+        'requirement': 5,
+        'stat': 'dm_translations'
+    },
+    'context_menu_user': {
+        'name': '📱 Right-Click Pro',
+        'description': 'Use context menu translation 10 times',
+        'category': 'Features',
+        'rarity': 'Uncommon',
+        'points': 35,
+        'requirement': 10,
+        'stat': 'context_menu_used'
+    },
+    
+    # Tier-Based Achievements (Easy to track with your tier system)
+    'basic_supporter': {
+        'name': '💎 Basic Supporter',
+        'description': 'Subscribe to Basic tier ($1/month)',
+        'category': 'Support',
+        'rarity': 'Uncommon',
+        'points': 100,
+        'requirement': 'basic',
+        'stat': 'tier_basic'
+    },
+    'premium_supporter': {
+        'name': '⭐ Premium Supporter',
+        'description': 'Subscribe to Premium tier ($3/month)',
+        'category': 'Support',
+        'rarity': 'Rare',
+        'points': 200,
+        'requirement': 'premium',
+        'stat': 'tier_premium'
+    },
+    'pro_supporter': {
+        'name': '🚀 Pro Supporter',
+        'description': 'Subscribe to Pro tier ($5/month)',
+        'category': 'Support',
+        'rarity': 'Epic',
+        'points': 350,
+        'requirement': 'pro',
+        'stat': 'tier_pro'
+    },
+    'loyal_supporter': {
+        'name': '💖 Loyal Supporter',
+        'description': 'Maintain any paid tier for 30+ days',
+        'category': 'Support',
+        'rarity': 'Epic',
+        'points': 250,
+        'requirement': 30,
+        'stat': 'days_subscribed'
+    },
+    
+    # Point Purchase Achievements (Track Ko-fi donations)
+    'first_donation': {
+        'name': '🎁 First Donation',
+        'description': 'Make your first point purchase',
+        'category': 'Support',
+        'rarity': 'Common',
+        'points': 50,
+        'requirement': 1,
+        'stat': 'point_purchases'
+    },
+    'generous_donor': {
+        'name': '💰 Generous Donor',
+        'description': 'Purchase $20+ worth of points',
+        'category': 'Support',
+        'rarity': 'Rare',
+        'points': 150,
+        'requirement': 20,
+        'stat': 'total_donated'
+    },
+    
+    # Language Diversity (Simplified tracking)
+    'language_explorer': {
+        'name': '🌍 Language Explorer',
+        'description': 'Translate to/from 3 different languages',
+        'category': 'Languages',
+        'rarity': 'Common',
+        'points': 30,
+        'requirement': 3,
+        'stat': 'unique_languages'
+    },
+    'polyglot': {
+        'name': '🌎 Polyglot',
+        'description': 'Translate to/from 10 different languages',
+        'category': 'Languages',
+        'rarity': 'Uncommon',
+        'points': 80,
+        'requirement': 10,
+        'stat': 'unique_languages'
+    },
+    'master_linguist': {
+        'name': '🌏 Master Linguist',
+        'description': 'Translate to/from 20 different languages',
+        'category': 'Languages',
+        'rarity': 'Rare',
+        'points': 180,
+        'requirement': 20,
+        'stat': 'unique_languages'
+    },
+    
+    # Time-Based Achievements (Simple date tracking)
+    'daily_user': {
+        'name': '📅 Daily User',
+        'description': 'Use Muse for 7 different days',
+        'category': 'Consistency',
+        'rarity': 'Common',
+        'points': 40,
+        'requirement': 7,
+        'stat': 'active_days'
+    },
+    'weekly_warrior': {
+        'name': '🗓️ Weekly Warrior',
+        'description': 'Use Muse for 30 different days',
+        'category': 'Consistency',
+        'rarity': 'Uncommon',
+        'points': 100,
+        'requirement': 30,
+        'stat': 'active_days'
+    },
+    
+    # Special/Fun Achievements
+    'feedback_giver': {
+        'name': '💬 Feedback Hero',
+        'description': 'Provide feedback to help improve Muse',
+        'category': 'Community',
+        'rarity': 'Uncommon',
+        'points': 60,
+        'requirement': 1,
+        'stat': 'feedback_given'
+    },
+    'server_inviter': {
+        'name': '📢 Muse Ambassador',
+        'description': 'Invite Muse to a new server',
+        'category': 'Community',
+        'rarity': 'Rare',
+        'points': 120,
+        'requirement': 1,
+        'stat': 'servers_invited'
+    },
+    
+    # Milestone Achievements
+    'power_user': {
+        'name': '⚡ Power User',
+        'description': 'Reach 1000 total achievement points',
+        'category': 'Milestones',
+        'rarity': 'Epic',
+        'points': 500,
+        'requirement': 1000,
+        'stat': 'total_achievement_points'
+    },
+    'muse_legend': {
+        'name': '👑 Muse Legend',
+        'description': 'Unlock 15 different achievements',
+        'category': 'Milestones',
+        'rarity': 'Legendary',
+        'points': 750,
+        'requirement': 15,
+        'stat': 'achievements_unlocked'
+    }
+}
 # Update the REWARDS dictionary - replace bulk_translation with enhanced_voice
 REWARDS = {
     # === TIER UPGRADES ===
@@ -501,6 +762,7 @@ REWARD_RARITY = {
         'rewards': ['temp_pro_3d', 'ultimate_bundle', 'custom_badge']
     }
 }
+
 # Add this method to your RewardDatabase class
 def get_user_rank(self, user_id: int) -> int:
     """Get user's rank position on leaderboard"""
@@ -700,7 +962,110 @@ class RewardDatabase:
                 
         except Exception as e:
             logger.error(f"❌ Error initializing sync database: {e}")
-    
+    def _init_sync_database(self):
+        """Initialize database with sync connection"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+            
+                # Add this new table for tracking cashed out achievements
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS cashed_out_achievements (
+                        user_id INTEGER,
+                        achievement_id TEXT,
+                        cashed_out_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        points_converted INTEGER,
+                        PRIMARY KEY (user_id, achievement_id)
+                    )
+                """)
+            
+            # Your existing tables...
+            conn.commit()
+            
+        except Exception as e:
+            logger.error(f"Error initializing database: {e}")
+
+    def get_uncashed_achievement_points(self, user_id: int) -> tuple:
+        """Get achievement points that haven't been cashed out yet"""
+        try:
+            from achievement_system import achievement_db, ACHIEVEMENTS
+        
+            # Get all user achievements
+            user_achievements = achievement_db.get_user_achievements(user_id)
+        
+            # Get already cashed out achievements
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT achievement_id FROM cashed_out_achievements WHERE user_id = ?
+                """, (user_id,))
+                cashed_out = {row[0] for row in cursor.fetchall()}
+        
+            # Calculate uncashed points
+            uncashed_points = 0
+            uncashed_achievements = []
+        
+            for ach in user_achievements:
+                ach_id = str(ach.get('id', '')) if isinstance(ach, dict) else str(ach)
+            
+                if ach_id not in cashed_out and ach_id in ACHIEVEMENTS:
+                    points = ACHIEVEMENTS[ach_id].get('points', 0)
+                    uncashed_points += points
+                    uncashed_achievements.append(ach_id)
+        
+            return uncashed_points, uncashed_achievements
+        
+        except Exception as e:
+            logger.error(f"Error getting uncashed achievement points: {e}")
+            return 0, []
+
+    def cash_out_achievements(self, user_id: int) -> int:
+        """Cash out all uncashed achievements and mark them as cashed out"""
+        try:
+            uncashed_points, uncashed_achievements = self.get_uncashed_achievement_points(user_id)
+        
+            if uncashed_points > 0:
+                # Add points to user's balance
+                self.add_points(user_id, uncashed_points, "Achievement cashout")
+            
+                # Mark achievements as cashed out
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+                
+                    for ach_id in uncashed_achievements:
+                        points = ACHIEVEMENTS.get(ach_id, {}).get('points', 0)
+                        cursor.execute("""
+                            INSERT OR REPLACE INTO cashed_out_achievements 
+                            (user_id, achievement_id, points_converted)
+                            VALUES (?, ?, ?)
+                        """, (user_id, ach_id, points))
+                
+                    conn.commit()
+            
+                logger.info(f"Cashed out {uncashed_points} points from {len(uncashed_achievements)} achievements for user {user_id}")
+        
+            return uncashed_points
+        
+        except Exception as e:
+            logger.error(f"Error cashing out achievements: {e}")
+            return 0
+
+    def get_total_points_including_achievements(self, user_id: int) -> int:
+        """Get total points including uncashed achievement points"""
+        try:
+            # Get regular activity points
+            user_data = self.get_or_create_user(user_id, "")
+            activity_points = user_data.get('points', 0)
+        
+            # Get uncashed achievement points
+            uncashed_points, _ = self.get_uncashed_achievement_points(user_id)
+        
+            return activity_points + uncashed_points
+        
+        except Exception as e:
+            logger.error(f"Error getting total points: {e}")
+            return 0
+
     async def connect(self):
         """Connect to async database"""
         import aiosqlite
@@ -1203,7 +1568,32 @@ class RewardDatabase:
         except Exception as e:
             logger.error(f"Error updating usage time: {e}")
             return False
-    
+    def get_total_points_including_achievements(self, user_id: int) -> int:
+        """Get total points including unconverted achievement points"""
+        try:
+            # Get regular activity points
+            user_data = self.get_or_create_user(user_id, "")
+            activity_points = user_data.get('points', 0)
+        
+            # Calculate achievement points
+            try:
+                from achievement_system import achievement_db, ACHIEVEMENTS
+                user_achievements = achievement_db.get_user_achievements(user_id)
+                achievement_points = 0
+            
+                for ach in user_achievements:
+                    ach_id = str(ach.get('id', '')) if isinstance(ach, dict) else str(ach)
+                    if ach_id in ACHIEVEMENTS:
+                        achievement_points += ACHIEVEMENTS[ach_id].get('points', 0)
+            except:
+                achievement_points = 0
+        
+            return activity_points + achievement_points
+        
+        except Exception as e:
+            logger.error(f"Error getting total points: {e}")
+            return 0
+
     def increment_session_count(self, user_id: int) -> bool:
         """Increment user's session count"""
         try:
@@ -1225,21 +1615,27 @@ class RewardDatabase:
             logger.error(f"Error incrementing session count: {e}")
             return False
     
-    def get_user_achievements(self, user_id: int) -> List[str]:
-        """Get user's unlocked achievements"""
+    def get_user_achievements(self, user_id: int):
+        """Get user's achievement IDs from achievement database"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                
-                cursor.execute('''
-                    SELECT achievement_id FROM user_achievements WHERE user_id = ?
-                ''', (user_id,))
-                
-                return [row[0] for row in cursor.fetchall()]
-                
+            # Import here to avoid circular imports
+            from achievement_system import achievement_db
+        
+            user_achievements = achievement_db.get_user_achievements(user_id)
+            # Extract just the IDs
+            achievement_ids = []
+            for ach in user_achievements:
+                if isinstance(ach, dict):
+                    achievement_ids.append(ach.get('id', ''))
+                else:
+                    achievement_ids.append(str(ach))
+        
+            return achievement_ids
+        
         except Exception as e:
             logger.error(f"Error getting user achievements: {e}")
             return []
+    
     
     def unlock_achievement(self, user_id: int, achievement_id: str) -> bool:
         """Unlock an achievement for user"""
@@ -1493,6 +1889,17 @@ def add_session(self, user_id: int, username: str = None):
             
     except Exception as e:
         logger.error(f"Error adding session for user {user_id}: {e}")
+
+def award_achievement(self, user_id: int, achievement_id: str, points: int):
+    """Award achievement - compatibility method"""
+    try:
+        # Just add points since we're using the reward system for achievements
+        self.add_points(user_id, points, f"Achievement: {achievement_id}")
+        logger.info(f"✅ Awarded achievement {achievement_id} ({points} points) to user {user_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Error awarding achievement: {e}")
+        return False
 
 # Add this method to your RewardDatabase class:
 
