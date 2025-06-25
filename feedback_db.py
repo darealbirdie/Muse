@@ -7,8 +7,9 @@ class FeedbackDB:
         self.db_path = db_path
     
     async def initialize(self):
-        """Create the feedback table"""
+        """Create the feedback table and migrate if needed"""
         async with aiosqlite.connect(self.db_path) as db:
+            # Create table if it doesn't exist
             await db.execute('''
                 CREATE TABLE IF NOT EXISTS feedback (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,17 +20,52 @@ class FeedbackDB:
                     created_at TEXT NOT NULL
                 )
             ''')
+            
+            # Check if session_count column exists and add it if not
+            cursor = await db.execute("PRAGMA table_info(feedback)")
+            columns = await cursor.fetchall()
+            column_names = [column[1] for column in columns]
+            
+            if 'session_count' not in column_names:
+                print("🔄 Adding session_count column to feedback table...")
+                await db.execute('ALTER TABLE feedback ADD COLUMN session_count INTEGER DEFAULT 0')
+                print("✅ session_count column added!")
+            
             await db.commit()
             print("✅ Feedback database initialized!")
     
-    async def add_feedback(self, user_id: int, username: str, rating: int, message: str = None):
-        """Add feedback to database"""
+    async def add_feedback(self, user_id: int, username: str, rating: int, message: str = None, session_count: int = 0):
+        """Add feedback with session tracking"""
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute('''
-                INSERT INTO feedback (user_id, username, rating, message, created_at)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (user_id, username, rating, message, datetime.now().isoformat()))
+                INSERT INTO feedback (user_id, username, rating, message, session_count, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (user_id, username, rating, message, session_count, datetime.now().isoformat()))
             await db.commit()
+    
+    async def get_last_feedback_date(self, user_id: int) -> str:
+        """Get the date of user's last feedback"""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute('''
+                SELECT created_at FROM feedback 
+                WHERE user_id = ? 
+                ORDER BY created_at DESC 
+                LIMIT 1
+            ''', (user_id,))
+            row = await cursor.fetchone()
+            return row[0] if row else None
+
+    async def get_last_feedback_session(self, user_id: int) -> int:
+        """Get session count when user last gave feedback"""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute('''
+                SELECT session_count FROM feedback 
+                WHERE user_id = ? 
+                ORDER BY created_at DESC 
+                LIMIT 1
+            ''', (user_id,))
+            row = await cursor.fetchone()
+            return row[0] if row else 0
     
     async def get_all_feedback(self, limit: int = 50):
         """Get all feedback"""
@@ -74,20 +110,6 @@ class FeedbackDB:
                 "two_star": row[5],
                 "one_star": row[6]
             }
-    # Add these methods to your feedback_db class:
-
-    async def get_last_feedback_date(self, user_id: int) -> str:
-        """Get the date of user's last feedback"""
-        pass
-
-    async def get_last_feedback_session(self, user_id: int) -> int:
-        """Get session count when user last gave feedback"""
-        pass
-
-    async def add_feedback(self, user_id: int, username: str, rating: int, 
-                      message: str = None, session_count: int = 0):
-        """Add feedback with session tracking"""
-        pass
 
 # Create instance
 feedback_db = FeedbackDB()
