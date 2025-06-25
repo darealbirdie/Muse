@@ -274,56 +274,56 @@ ACHIEVEMENTS = {
 # Rank system based on achievement points
 RANK_BADGES = {
     0: {
-        'name': '🆕 Newcomer',
+        'name': 'Newcomer',
         'emoji': '🆕',
         'color': 0x95a5a6,
         'next_rank': '🌱 Beginner',
         'points_needed': 50
     },
     50: {
-        'name': '🌱 Beginner',
+        'name': 'Beginner',
         'emoji': '🌱',
         'color': 0x2ecc71,
         'next_rank': '📈 Learner',
         'points_needed': 100  # 150 total - 50 current = 100 more needed
     },
     150: {
-        'name': '📈 Learner',
+        'name': 'Learner',
         'emoji': '📈',
         'color': 0x3498db,
         'next_rank': '🎯 Dedicated',
         'points_needed': 150  # 300 total - 150 current = 150 more needed
     },
     300: {
-        'name': '🎯 Dedicated',
+        'name': 'Dedicated',
         'emoji': '🎯',
         'color': 0x9b59b6,
         'next_rank': '⭐ Expert',
         'points_needed': 200  # 500 total - 300 current = 200 more needed
     },
     500: {
-        'name': '⭐ Expert',
+        'name': 'Expert',
         'emoji': '⭐',
         'color': 0xf1c40f,
         'next_rank': '👑 Master',
         'points_needed': 500  # 1000 total - 500 current = 500 more needed
     },
     1000: {
-        'name': '👑 Master',
+        'name': 'Master',
         'emoji': '👑',
         'color': 0xe67e22,
         'next_rank': '🏆 Legend',
         'points_needed': 1000  # 2000 total - 1000 current = 1000 more needed
     },
     2000: {
-        'name': '🏆 Legend',
+        'name': 'Legend',
         'emoji': '🏆',
         'color': 0xe74c3c,
         'next_rank': '💎 Grandmaster',
         'points_needed': 3000  # 5000 total - 2000 current = 3000 more needed
     },
     5000: {
-        'name': '💎 Grandmaster',
+        'name': 'Grandmaster',
         'emoji': '💎',
         'color': 0x1abc9c,
         'next_rank': 'Max Level!',
