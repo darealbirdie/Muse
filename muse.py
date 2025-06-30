@@ -8368,25 +8368,31 @@ async def profile(interaction: discord.Interaction):
             text_limit_display = "50 chars"
             voice_limit_display = "5 min"
         
+# ...existing code...
         # Get remaining time for today
         try:
-            daily_usage = await db.get_daily_usage(user_id)
             monthly_chars = db_stats.get('monthly_chars', 0)
             monthly_voice = db_stats.get('monthly_voice', 0)
-            
+
+            # Text translation: only per-translation limit matters
             if limits.get('text_limit') == float('inf'):
-                remaining_chars = "Unlimited"
+                remaining_chars = "Unlimited per translation"
             else:
-                remaining_chars = max(0, limits.get('text_limit', 50) - daily_usage.get('text_chars', 0))
-                remaining_chars = f"{remaining_chars:,} chars"
-            
+                remaining_chars = f"{limits.get('text_limit', 50):,} chars per translation"
+
+            # Voice translation: daily limit
             if limits.get('voice_limit') == float('inf'):
                 remaining_voice = "Unlimited"
             else:
+                daily_usage = await db.get_daily_usage(user_id)
                 remaining_voice_seconds = max(0, (limits.get('voice_limit', 5) * 60) - daily_usage.get('voice_seconds', 0))
-                remaining_voice = f"{remaining_voice_seconds // 60:.0f} min"
-            
+                remaining_voice = f"{remaining_voice_seconds // 60:.0f} min left today"
+
             remaining_display = f"📝 {remaining_chars}\n🎤 {remaining_voice}"
+        except Exception as e:
+            logger.error(f"Error calculating remaining usage: {e}")
+            remaining_display = "N/A"
+# ...existing code...
         except Exception as e:
             logger.error(f"Error calculating remaining usage: {e}")
             remaining_display = "N/A"
