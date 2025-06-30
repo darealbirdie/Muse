@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 import discord
 
 logger = logging.getLogger('muse_rewards')
+
 ACHIEVEMENTS = {
     # Translation Achievements (Easy to track)
     'first_translation': {
@@ -1109,8 +1110,6 @@ class RewardDatabase:
         except Exception as e:
             logger.error(f"Debug tables error: {e}")
             return []
-            
-
     async def ensure_user_exists(self, user_id: int, username: str = "Unknown"):
         """Ensure user exists in database"""
         await self.db.execute(
@@ -1927,5 +1926,4 @@ def increment_stat(self, user_id: int, stat_name: str, amount: int = 1) -> bool:
 
 
 # Global reward database instance (to be imported by main bot file)
-reward_db = RewardDatabase()
-
+reward_db = RewardDatabase(db_path="muse_bot.db")
