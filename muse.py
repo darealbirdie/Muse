@@ -71,6 +71,14 @@ RANK_BADGES = {
     5000: {'name': 'Grandmaster', 'emoji': '💎', 'color': 0x1abc9c}
 }
 # Pro Tier Processing Function
+def format_seconds(seconds: int) -> str:
+    """Format seconds as 'X min Y sec' or 'Y sec'."""
+    minutes = int(seconds // 60)
+    secs = int(seconds % 60)
+    if minutes > 0:
+        return f"{minutes} min {secs} sec"
+    else:
+        return f"{secs} sec"
 async def process_kofi_pro_tier(user_id: int, days: int, kofi_data, tier_name: str):
     """Process Ko-fi pro tier subscription with achievement tracking"""
     try:
@@ -2194,7 +2202,7 @@ async def voice_chat_translate(
             embed = discord.Embed(
                 title="⚠️ Voice Limit Warning",
                 description=(
-                    f"You have {remaining_seconds//60} minutes of voice translation remaining today.\n"
+                    f"You have {format_seconds(remaining_seconds)} of voice translation remaining today.\n"
                     f"Consider upgrading to premium for unlimited access!"
                 ),
                 color=0xF39C12
@@ -3964,78 +3972,58 @@ async def stop_translation(interaction: discord.Interaction):
         stopped_any = True
     
     if stopped_any:
-        # NEW: Create enhanced stop message with session stats
         embed = discord.Embed(
             title="🛑 Translation Session Ended",
             description="All active translation sessions have been stopped.",
             color=0xe74c3c
         )
+        # ...add fields to embed as before...
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+    else:
+        await interaction.response.send_message("No active translation session found!", ephemeral=True)
         
         # Add session stats if available
-        if user_id in user_sessions and 'session_start' in user_sessions[user_id]:
-            # Format duration properly
-            duration_minutes = session_duration_seconds / 60
-            duration_hours = session_duration_seconds / 3600
-            
-            # Choose appropriate time format
-            if duration_hours >= 1:
-                duration_str = f"{duration_hours:.1f} hours"
-            elif duration_minutes >= 1:
-                duration_str = f"{duration_minutes:.1f} minutes"
-            else:
-                duration_str = f"{session_duration_seconds:.0f} seconds"
-            
+    if user_id in user_sessions and 'session_start' in user_sessions[user_id]:
+        duration_str = format_seconds(int(session_duration_seconds))
+        embed.add_field(
+            name="📊 Session Stats",
+            value=f"⏱️ Duration: {duration_str}\n🔧 Commands used: {commands_used}",
+            inline=True
+        )
+    
+        # Add session bonus info if session was active
+        if user_sessions[user_id].get('active', False):
+            session_bonus = max(1, int(session_duration_hours * 5))
+            if user_id in tier_handler.premium_users:
+                session_bonus *= 2
+        
             embed.add_field(
-                name="📊 Session Stats",
-                value=f"⏱️ Duration: {duration_str}\n🔧 Commands used: {commands_used}",
+                name="💎 Session Bonus",
+                value=f"+{session_bonus} points",
                 inline=True
             )
-            
-            # Add session bonus info if session was active
-            if user_sessions[user_id].get('active', False):
-                session_bonus = max(1, int(duration_hours * 5))
-                if user_id in tier_handler.premium_users:
-                    session_bonus *= 2
-                
-                embed.add_field(
-                    name="💎 Session Bonus",
-                    value=f"+{session_bonus} points",
-                    inline=True
-                )
-        
-        # Add session time remaining if there's a limit (you'll need to implement this logic)
-        # This assumes you have some kind of session limit system
-        if user_id in user_sessions and 'session_limit' in user_sessions[user_id]:
-            session_limit_seconds = user_sessions[user_id]['session_limit']
-            remaining_seconds = max(0, session_limit_seconds - session_duration_seconds)
-            
-            if remaining_seconds > 0:
-                remaining_minutes = remaining_seconds / 60
-                remaining_hours = remaining_seconds / 3600
-                
-                if remaining_hours >= 1:
-                    remaining_str = f"{remaining_hours:.1f} hours"
-                elif remaining_minutes >= 1:
-                    remaining_str = f"{remaining_minutes:.1f} minutes"
-                else:
-                    remaining_str = f"{remaining_seconds:.0f} seconds"
-                
-                embed.add_field(
-                    name="⏳ Time Remaining",
-                    value=remaining_str,
-                    inline=True
-                )
-        
-        embed.add_field(
-            name="💡 Tip",
-            value="Use `/daily` to claim your daily points!",
-            inline=False
-        )
+
+    # Add session time remaining if there's a limit
+    if user_id in user_sessions and 'session_limit' in user_sessions[user_id]:
+        session_limit_seconds = user_sessions[user_id]['session_limit']
+        remaining_seconds = max(0, session_limit_seconds - session_duration_seconds)
+        if remaining_seconds > 0:
+            remaining_str = format_seconds(int(remaining_seconds))
+            embed.add_field(
+                name="⏳ Time Remaining",
+                value=remaining_str,
+                inline=True
+            )
+
+            embed.add_field(
+                name="💡 Tip",
+                value="Use `/daily` to claim your daily points!",
+                inline=False
+            )
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
     else:
         await interaction.response.send_message("No active translation session found!", ephemeral=True)
-
 
 
 # Update the auto_translate command to use the new limits
@@ -8360,15 +8348,20 @@ async def profile(interaction: discord.Interaction):
             inline=True
         )
         
-        # Current Limits
+        # ...existing code...
         try:
             text_limit_display = "Unlimited" if limits.get('text_limit') == float('inf') else f"{limits.get('text_limit', 50):,} chars"
-            voice_limit_display = "Unlimited" if limits.get('voice_limit') == float('inf') else f"{limits.get('voice_limit', 5)} min"
+            # Convert seconds to minutes for display
+            if limits.get('voice_limit') == float('inf'):
+                voice_limit_display = "Unlimited"
+            else:
+                voice_limit_minutes = int(limits.get('voice_limit', 5) // 60)
+                voice_limit_display = f"{voice_limit_minutes} min"
         except Exception:
             text_limit_display = "50 chars"
             voice_limit_display = "5 min"
+        # ...existing code...
         
-# ...existing code...
         # Get remaining time for today
         try:
             monthly_chars = db_stats.get('monthly_chars', 0)
@@ -8385,9 +8378,16 @@ async def profile(interaction: discord.Interaction):
                 remaining_voice = "Unlimited"
             else:
                 daily_usage = await db.get_daily_usage(user_id)
-                remaining_voice_seconds = max(0, (limits.get('voice_limit', 5) * 60) - daily_usage.get('voice_seconds', 0))
-                remaining_voice = f"{remaining_voice_seconds // 60:.0f} min left today"
-
+                remaining_voice_seconds = max(0, (limits.get('voice_limit', 5)) - daily_usage.get('voice_seconds', 0))
+                  # ...existing code...
+                remaining_voice_seconds = max(0, (limits.get('voice_limit', 5)) - daily_usage.get('voice_seconds', 0))
+                minutes = int(remaining_voice_seconds // 60)
+                seconds = int(remaining_voice_seconds % 60)
+                if minutes > 0:
+                    remaining_voice = f"{minutes} min {seconds} sec left today"
+                else:
+                    remaining_voice = f"{seconds} sec left today"
+                # ...existing code...
             remaining_display = f"📝 {remaining_chars}\n🎤 {remaining_voice}"
         except Exception as e:
             logger.error(f"Error calculating remaining usage: {e}")
