@@ -1351,7 +1351,7 @@ class TranslationServer:
         print(f"🌐 Main Ngrok URL: {self.public_url}")
         
         # Store user sessions
-        self.translators: Dict[int, Dict[int, LiveVoiceTranslator]] = {}
+        self.translators = {}
         
         # Single Flask app for all users
         self.app = Flask("translation_server")
