@@ -82,7 +82,62 @@ class Database:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
-            
+            # ...existing code...
+            # --- Add these reward/achievement tables ---
+# ...existing code...
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS user_stats (
+                    user_id INTEGER PRIMARY KEY,
+                    username TEXT,
+                    total_points INTEGER DEFAULT 0,
+                    total_earned INTEGER DEFAULT 0,
+                    total_usage_hours REAL DEFAULT 0.0,
+                    total_sessions INTEGER DEFAULT 0,
+                    last_daily_claim DATE,
+                    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    total_translations INTEGER DEFAULT 0,
+                    voice_sessions INTEGER DEFAULT 0,
+                    unique_languages INTEGER DEFAULT 0,
+                    servers_invited INTEGER DEFAULT 0
+                )
+            ''')
+            # ...existing code...
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS point_transactions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    amount INTEGER,
+                    transaction_type TEXT DEFAULT 'earned',
+                    description TEXT,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+                )
+            ''')
+# ...existing code...
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS active_rewards (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    reward_type TEXT NOT NULL,
+                    reward_id TEXT,
+                    name TEXT,
+                    expires_at TEXT NOT NULL,
+                    activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+# ...existing code...
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS user_achievements (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    achievement_name TEXT NOT NULL,
+                    achieved_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (user_id)
+                )
+            ''')
             # Premium subscriptions table
             await db.execute('''
                 CREATE TABLE IF NOT EXISTS premium_subscriptions (
