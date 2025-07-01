@@ -1786,10 +1786,10 @@ async def text_translate(
     target_lang: str
 ):
     user_id = interaction.user.id
-    
+
     # Create/update user in database
     await db.get_or_create_user(user_id, interaction.user.display_name)
-    
+
     # Check user tier and get limits
     if user_id in tier_handler.pro_users:
         tier = 'pro'
@@ -1803,13 +1803,13 @@ async def text_translate(
     else:
         tier = 'free'
         is_premium = False
-    
+
     limits = tier_handler.get_limits(user_id)
-    
+
     # Convert language inputs to codes
     source_code = get_language_code(source_lang)
     target_code = get_language_code(target_lang)
-    
+
     # Validate language codes
     if not source_code:
         await interaction.response.send_message(
@@ -1817,14 +1817,14 @@ async def text_translate(
             ephemeral=True
         )
         return
-        
+
     if not target_code:
         await interaction.response.send_message(
             f"❌ Invalid target language: '{target_lang}'\nUse /list to see available languages.",
             ephemeral=True
         )
         return
-    
+
     if len(text) > limits['text_limit']:
         await interaction.response.send_message(
             f"🔒 Text too long! Your {tier} tier limit: {limits['text_limit']} characters\n"
@@ -1832,16 +1832,19 @@ async def text_translate(
             ephemeral=True
         )
         return
-        
+
+    # Defer response if translation may take >3s
+    await interaction.response.defer(ephemeral=True)
+
     try:
         translator = GoogleTranslator(source=source_code, target=target_code)
         translated = translator.translate(text)
-        
+
         # Award points based on tier (SYNC - no await)
         points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
         points_awarded = points_map[tier]
         reward_db.add_points(user_id, points_awarded, f"Text translation: {source_code}→{target_code}")
-        
+
         # Track usage and save translation (ASYNC)
         await db.track_usage(user_id, text_chars=len(text))
         await db.save_translation(
@@ -1853,10 +1856,12 @@ async def text_translate(
             target_lang=target_code,
             translation_type="text"
         )
-        
+
         # Track for achievements (SYNC - no await)
         achievement_db.track_translation(user_id, source_code, target_code, is_premium)
-        achievement_db.check_achievements(user_id)
+        new_achievements = achievement_db.check_achievements(user_id)
+        if new_achievements:
+            await send_achievement_notification(client, user_id, new_achievements)
 
         await safe_track_translation_achievement(
             user_id=interaction.user.id,
@@ -1864,40 +1869,47 @@ async def text_translate(
             source_lang=source_code,
             target_lang=target_code
         )
-        
+
+        username = interaction.user.display_name
+
+        # After checking/awarding achievements:
+        uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
+        await notify_uncashed_achievements(user_id, username, uncashed_points)
+
+
         # Get proper language names and flags
         source_name = languages.get(source_code, source_code)
         target_name = languages.get(target_code, target_code)
         source_flag = flag_mapping.get(source_code, '🌐')
         target_flag = flag_mapping.get(target_code, '🌐')
-        
+
         # Create embed with tier-based colors
         tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
         embed = discord.Embed(
             title="Text Translation",
             color=tier_colors[tier]
         )
-        
+
         if interaction.user.id not in hidden_sessions:
             embed.add_field(
                 name=f"{source_flag} Original ({source_name})",
                 value=text,
                 inline=False
             )
-            
+
         embed.add_field(
             name=f"{target_flag} Translation ({target_name})",
             value=translated,
             inline=False
         )
-        
+
         # Add points earned indicator
         embed.add_field(
             name="💎 Points",
             value=f"+{points_awarded}",
             inline=True
         )
-        
+
         # Add tier-specific footer
         tier_footers = {
             'free': f"🆓 Free: {len(text)}/{limits['text_limit']} chars",
@@ -1906,25 +1918,23 @@ async def text_translate(
             'pro': f"🥇 Pro: Text translation"
         }
 
-        
         # Add context indicator
         if interaction.guild:
             embed.set_footer(text=f"{tier_footers[tier]} • Server: {interaction.guild.name}")
         else:
             embed.set_footer(text=f"{tier_footers[tier]} • User Mode: DM Translation")
-        
-        await interaction.response.send_message(embed=embed)
+
+        await interaction.followup.send(embed=embed, ephemeral=True)
     except Exception as e:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"❌ Translation failed: {str(e)}\n"
-            f"Please check your language codes (e.g., 'en' for English, 'es' for Spanish)"
+            f"Please check your language codes (e.g., 'en' for English, 'es' for Spanish')",
+            ephemeral=True
         )
 
 # Add autocomplete to the texttr command
 text_translate.autocomplete('source_lang')(source_language_autocomplete)
 text_translate.autocomplete('target_lang')(language_autocomplete)
-
-
 
 # Also update your /voice command to match the same pattern
 @tree.command(name="voice", description="Translate text and convert to speech")
@@ -2028,7 +2038,15 @@ async def translate_and_speak(
         
         # Track for achievements (SYNC - no await)
         achievement_db.track_translation(user_id, source_code, target_code, is_premium)
-        achievement_db.check_achievements(user_id)
+        new_achievements = achievement_db.check_achievements(user_id)
+        if new_achievements:
+            await send_achievement_notification(client, user_id, new_achievements)
+
+        username = interaction.user.display_name
+
+        # After checking/awarding achievements:
+        uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
+        await notify_uncashed_achievements(user_id, username, uncashed_points)
 
         # Create temporary file using BytesIO instead of a file
         mp3_fp = io.BytesIO()
@@ -2340,7 +2358,9 @@ async def voice_chat_translate(
             
                 # Track for achievements (SYNC - no await)
                 achievement_db.track_translation(user_id, detected_lang or self.source_language, self.target_language, is_premium)
-                achievement_db.check_achievements(user_id)
+                new_achievements = achievement_db.check_achievements(user_id)
+                if new_achievements:
+                    await send_achievement_notification(client, user_id, new_achievements)
 
                 await safe_track_voice_achievement(
                     user_id=interaction.user.id,
@@ -2925,7 +2945,9 @@ async def voice_chat_translate_bidirectional_v2(
                 
                 # Track for achievements (SYNC - no await)
                 achievement_db.track_translation(user_id, detected_lang, target_lang, is_premium)
-                achievement_db.check_achievements(user_id)
+                new_achievements = achievement_db.check_achievements(user_id)
+                if new_achievements:
+                    await send_achievement_notification(client, user_id, new_achievements)
                 
                 # Get language names and flags
                 source_name = languages.get(detected_lang, detected_lang)
@@ -3618,12 +3640,20 @@ async def translate_and_speak_voice(
         
         # Track for achievements (SYNC - no await)
         achievement_db.track_translation(user_id, source_code, target_code, is_premium)
-        achievement_db.check_achievements(user_id)
+        new_achievements = achievement_db.check_achievements(user_id)
+        if new_achievements:
+            await send_achievement_notification(client, user_id, new_achievements)
 
         await safe_track_voice_achievement(
             user_id=interaction.user.id,
             username=interaction.user.display_name
         )
+
+        username = interaction.user.display_name
+
+        # After checking/awarding achievements:
+        uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
+        await notify_uncashed_achievements(user_id, username, uncashed_points)
 
         # Create temporary file using BytesIO
         mp3_fp = io.BytesIO()
@@ -4196,16 +4226,25 @@ async def on_message(message):
                 
                 # Track translation for achievements (SYNC - no await)
                 achievement_db.track_translation(user_id, source_code, target_code, is_premium)
+                new_achievements = achievement_db.check_achievements(user_id)
+                if new_achievements:
+                    await send_achievement_notification(client, user_id, new_achievements)
                 
                 # Check for achievements (SYNC - no await)
                 achievement_db.check_achievements(user_id)
-                
+                new_achievements = achievement_db.check_achievements(user_id)
+                if new_achievements:
+                    await send_achievement_notification(client, user_id, new_achievements)
                 # Get proper language names and flags
                 source_name = languages.get(source_code, source_code)
                 target_name = languages.get(target_code, target_code)
                 source_flag = flag_mapping.get(source_code, '🌐')
                 target_flag = flag_mapping.get(target_code, '🌐')
                 
+                username = message.author.display_name
+                # After checking/awarding achievements:
+                uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
+                await notify_uncashed_achievements(user_id, username, uncashed_points)
                 # Create embed with tier-based colors
                 tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
                 embed = discord.Embed(
@@ -4541,8 +4580,9 @@ async def translate_by_id(
         
         # Track for achievements (SYNC - no await)
         achievement_db.track_translation(user_id, source_lang, target_code, is_premium)
-        achievement_db.check_achievements(user_id)
-        
+        new_achievements = achievement_db.check_achievements(user_id)
+        if new_achievements:
+            await send_achievement_notification(client, user_id, new_achievements)
         await safe_track_translation_achievement(
             user_id=interaction.user.id,
             username=interaction.user.display_name,
@@ -4740,7 +4780,9 @@ async def translate_message_context(interaction: discord.Interaction, message: d
                 
                 # Track for achievements (SYNC - no await)
                 achievement_db.track_translation(self.user_id, source_lang, target_code, self.is_premium)
-                achievement_db.check_achievements(self.user_id)
+                new_achievements = achievement_db.check_achievements(user_id)
+                if new_achievements:
+                    await send_achievement_notification(client, user_id, new_achievements)
 
                 await safe_track_translation_achievement(
                     user_id=message.author.id,
@@ -4826,22 +4868,34 @@ async def achievements_command(interaction: discord.Interaction):
     try:
         user_id = interaction.user.id
         username = interaction.user.display_name
-        
-        # Get user data with proper cashout accounting
+
+        # Get user data (current points, total earned, etc.)
         user_data = reward_db.get_or_create_user(user_id, username)
         activity_points = user_data.get('points', 0)
-        total_points = reward_db.get_total_points_including_achievements(user_id)
-        
-        # Get uncashed achievement points
+        total_points = user_data.get('total_earned', 0)  # All activity points ever earned
+
+        # Get uncashed achievement points and list of uncashed achievements
         uncashed_points, uncashed_achievements = reward_db.get_uncashed_achievement_points(user_id)
-        
-        # Get user's earned achievements
-        try:
-            user_achievements = achievement_db.get_user_achievements(user_id) if 'achievement_db' in globals() else []
-            earned_achievement_ids = [str(ach.get('id', '')) if isinstance(ach, dict) else str(ach) for ach in user_achievements]
-        except:
-            earned_achievement_ids = []
-        
+
+        # Get user's earned achievements (list of dicts)
+        user_achievements = achievement_db.get_user_achievements(user_id)
+        earned_achievement_ids = [
+            str(ach.get('id', '')) if isinstance(ach, dict) else str(ach)
+            for ach in user_achievements
+        ]
+
+        # Calculate total achievement points (all-time, cashed + uncashed)
+        total_achievement_points = sum(
+            ACHIEVEMENTS[ach_id].get('points', 0)
+            for ach_id in earned_achievement_ids if ach_id in ACHIEVEMENTS
+        )
+
+        # Cashed achievement points = total earned - uncashed
+        cashed_achievement_points = total_achievement_points - uncashed_points
+
+        # For display: total_points_earned should include all activity points ever + all achievement points ever
+        total_points_display = total_points + total_achievement_points
+
         # Get rank info based on total points
         rank_info = get_rank_from_points(total_points)
         rank_name = rank_info.get('name', 'Newcomer')
@@ -6456,11 +6510,10 @@ async def safe_track_translation_achievement(user_id: int, username: str, source
                          user_id in tier_handler.pro_users)
             achievement_db.track_translation(user_id, source_lang or 'auto', target_lang or 'en', is_premium)
         
-        # FIXED: Use correct reward_db methods
+        # Only ensure user exists, do NOT add points here!
         try:
-            # Just create user and add points - don't use add_session
             reward_db.get_or_create_user(user_id, username)
-            reward_db.add_points(user_id, 5, "Translation completed")
+            # reward_db.add_points(user_id, 5, "Translation completed")  # <-- REMOVE THIS LINE
         except Exception as e:
             logger.debug(f"Reward tracking failed (non-critical): {e}")
         
@@ -6496,34 +6549,33 @@ async def safe_track_voice_achievement(user_id: int, username: str):
         logger.error(f"Error tracking voice achievement: {e}")
 
 async def safe_check_and_award_achievements(user_id: int, username: str, action_type: str = None):
-    """Safely check for new achievements and award them with notifications"""
+    """Safely check for new achievements and send a generic notification if the count increases, including rank up."""
     try:
-        # Get points BEFORE awarding achievements (for rank up checking)
+        # Get points and rank BEFORE awarding achievements
         try:
             user_data = reward_db.get_or_create_user(user_id, username)
             old_points = user_data.get('points', 0)
             old_rank_info = get_rank_from_points(old_points)
             old_rank = old_rank_info.get('name', 'Newcomer')
-        except:
+        except Exception:
             old_points = 0
             old_rank = 'Newcomer'
-        
-        # Initialize new achievements list
-        new_achievements = []
-        
-        # Get current stats safely
-        stats = {}
-        current_achievements = []
-        
+
+        # Get current achievements count and stats before check
         try:
-            if 'achievement_db' in globals() and hasattr(achievement_db, 'get_user_stats'):
-                stats = achievement_db.get_user_stats(user_id) or {}
-                user_achievements = achievement_db.get_user_achievements(user_id) or []
-                current_achievements = [str(ach.get('id', '')) if isinstance(ach, dict) else str(ach[0]) for ach in user_achievements]
-        except:
-            pass
-        
-        # Fallback to reward system
+            user_achievements = achievement_db.get_user_achievements(user_id) or []
+            prev_count = len(user_achievements)
+        except Exception:
+            user_achievements = []
+            prev_count = 0
+
+        # Get stats (this is your user stats dict)
+        try:
+            stats = achievement_db.get_user_stats(user_id) or {}
+        except Exception:
+            stats = {}
+
+        # Fallback to reward system if no stats
         if not stats:
             user_data = reward_db.get_or_create_user(user_id, username)
             stats = {
@@ -6531,121 +6583,89 @@ async def safe_check_and_award_achievements(user_id: int, username: str, action_
                 'voice_sessions': 0,
                 'unique_languages': 0,
                 'is_premium': (user_id in tier_handler.premium_users or
-                              user_id in tier_handler.basic_users or
-                              user_id in tier_handler.pro_users),
+                               user_id in tier_handler.basic_users or
+                               user_id in tier_handler.pro_users),
                 'is_early_user': False
             }
-        
-        # Define simple achievement checks
-        simple_achievement_checks = [
-            ('first_translation', 'First Steps', 'Your very first translation!', stats.get('total_translations', 0) >= 1, 10, 'Common'),
-            ('translation_5', 'Getting Started', 'Completed 5 translations', stats.get('total_translations', 0) >= 5, 20, 'Common'),
-            ('translation_25', 'Regular User', 'Completed 25 translations', stats.get('total_translations', 0) >= 25, 50, 'Uncommon'),
-            ('translation_100', 'Translation Expert', 'Completed 100 translations!', stats.get('total_translations', 0) >= 100, 150, 'Rare'),
-            ('first_voice', 'Voice Debut', 'Used voice translation for the first time', stats.get('voice_sessions', 0) >= 1, 15, 'Common'),
-            ('voice_5', 'Voice User', 'Completed 5 voice sessions', stats.get('voice_sessions', 0) >= 5, 30, 'Uncommon'),
-            ('premium_supporter', 'Premium Supporter', 'Supporting Muse with premium!', stats.get('is_premium', False), 200, 'Epic'),
-        ]
-        
-        # Check simple achievements
-        for ach_id, ach_name, ach_desc, condition, points, rarity in simple_achievement_checks:
-            if ach_id not in current_achievements and condition:
-                logger.info(f"🏆 Awarding achievement to {username}: {ach_name}")
-                
-                # Award the achievement in database
-                try:
-                    if 'achievement_db' in globals() and hasattr(achievement_db, 'award_achievement'):
-                        achievement_db.award_achievement(user_id, ach_id, points)
-                except Exception as e:
-                    logger.error(f"Error saving achievement to database: {e}")
-                
-                # Add points to reward system
-                reward_db.add_points(user_id, points, f"Achievement: {ach_name}")
-                
-                # Create achievement data for notification
-                achievement_data = {
-                    'id': ach_id,
-                    'name': ach_name,
-                    'description': ach_desc,
-                    'points': points,
-                    'rarity': rarity
-                }
-                
-                new_achievements.append((ach_id, achievement_data))
-        
-        # Check ACHIEVEMENTS if available
+
+        # Dynamically check all achievements from ACHIEVEMENTS
+        new_achievements = []
         try:
-            if 'ACHIEVEMENTS' in globals() and ACHIEVEMENTS:
-                for ach_id, ach_data in ACHIEVEMENTS.items():
-                    if ach_id in current_achievements:
-                        continue
-                    
-                    # Check if achievement should be unlocked
-                    earned = False
-                    stat_type = ach_data.get('stat', '')
-                    requirement = ach_data.get('requirement', 0)
-                    
-                    if stat_type == 'translations':
-                        earned = stats.get('total_translations', 0) >= requirement
-                    elif stat_type == 'voice_sessions':
-                        earned = stats.get('voice_sessions', 0) >= requirement
-                    elif stat_type == 'unique_languages':
-                        earned = stats.get('unique_languages', 0) >= requirement
-                    elif stat_type == 'premium':
-                        earned = stats.get('is_premium', False)
-                    elif stat_type == 'early_user':
-                        earned = stats.get('is_early_user', False)
-                    
-                    if earned:
-                        logger.info(f"🏆 Awarding ACHIEVEMENTS achievement to {username}: {ach_data.get('name', ach_id)}")
-                        
-                        # Award the achievement in database
-                        try:
-                            if 'achievement_db' in globals() and hasattr(achievement_db, 'award_achievement'):
-                                achievement_db.award_achievement(user_id, ach_id, ach_data.get('points', 0))
-                        except Exception as e:
-                            logger.error(f"Error saving ACHIEVEMENTS achievement to database: {e}")
-                        
-                        # Add points to reward system
-                        points = ach_data.get('points', 25)
-                        reward_db.add_points(user_id, points, f"Achievement: {ach_data.get('name', ach_id)}")
-                        
-                        new_achievements.append((ach_id, ach_data))
+            for ach_id, ach_data in ACHIEVEMENTS.items():
+                if ach_id in [str(ach.get('id', '')) if isinstance(ach, dict) else str(ach[0]) for ach in user_achievements]:
+                    continue
+                stat_type = ach_data.get('stat', '')
+                requirement = ach_data.get('requirement', 0)
+                earned = False
+                if stat_type == 'translations':
+                    earned = stats.get('total_translations', 0) >= requirement
+                elif stat_type == 'voice_sessions':
+                    earned = stats.get('voice_sessions', 0) >= requirement
+                elif stat_type == 'unique_languages':
+                    earned = stats.get('unique_languages', 0) >= requirement
+                elif stat_type == 'premium':
+                    earned = stats.get('is_premium', False)
+                elif stat_type == 'early_user':
+                    earned = stats.get('is_early_user', False)
+                elif stat_type == 'auto_translate_used':
+                    earned = stats.get('auto_translate_used', 0) >= requirement
+                elif stat_type == 'dm_translations':
+                    earned = stats.get('dm_translations', 0) >= requirement
+                elif stat_type == 'context_menu_used':
+                    earned = stats.get('context_menu_used', 0) >= requirement
+                elif stat_type == 'tier_basic':
+                    earned = stats.get('is_basic', False)
+                elif stat_type == 'tier_premium':
+                    earned = stats.get('is_premium', False)
+                elif stat_type == 'tier_pro':
+                    earned = stats.get('is_pro', False)
+                elif stat_type == 'days_subscribed':
+                    earned = stats.get('days_subscribed', 0) >= requirement
+                elif stat_type == 'point_purchases':
+                    earned = stats.get('point_purchases', 0) >= requirement
+                elif stat_type == 'total_donated':
+                    earned = stats.get('total_donated', 0) >= requirement
+                elif stat_type == 'active_days':
+                    earned = stats.get('active_days', 0) >= requirement
+                elif stat_type == 'feedback_given':
+                    earned = stats.get('feedback_given', 0) >= requirement
+                elif stat_type == 'servers_invited':
+                    earned = stats.get('servers_invited', 0) >= requirement
+                elif stat_type == 'total_achievement_points':
+                    earned = stats.get('total_achievement_points', 0) >= requirement
+                elif stat_type == 'achievements_unlocked':
+                    earned = stats.get('achievements_unlocked', 0) >= requirement
+                # Add more stat types as needed
+
+                if earned:
+                    logger.info(f"🏆 Awarding achievement to {username}: {ach_data.get('name', ach_id)}")
+                    try:
+                        if 'achievement_db' in globals() and hasattr(achievement_db, 'award_achievement'):
+                            achievement_db.award_achievement(user_id, ach_id, ach_data.get('points', 0))
+                    except Exception as e:
+                        logger.error(f"Error saving achievement to database: {e}")
+
+                    # Do NOT add points here! Points are only added on /cashout
+                    new_achievements.append((ach_id, ach_data))
         except Exception as e:
             logger.error(f"Error checking ACHIEVEMENTS: {e}")
-        
-        # SEND ACHIEVEMENT NOTIFICATIONS
-        if new_achievements:
-            logger.info(f"🔔 Sending {len(new_achievements)} achievement notifications to {username}")
-            for ach_id, ach_data in new_achievements:
-                try:
-                    await notify_achievement_earned(user_id, ach_data)
-                    logger.info(f"✅ Achievement notification sent: {ach_data.get('name', 'Unknown')}")
-                except Exception as e:
-                    logger.error(f"❌ Failed to send achievement notification: {e}")
-        
-        # CHECK FOR RANK UP after all achievements are processed
+
+        # Get updated achievements count after check
         try:
-            # Get NEW points after achievements were awarded
+            user_achievements = achievement_db.get_user_achievements(user_id) or []
+            new_count = len(user_achievements)
+        except Exception:
+            new_count = prev_count
+
+        # Get updated points and rank after check
+        try:
             user_data = reward_db.get_or_create_user(user_id, username)
             new_points = user_data.get('points', 0)
             new_rank_info = get_rank_from_points(new_points)
             new_rank = new_rank_info.get('name', 'Newcomer')
-            
-            # If rank changed due to the points we just added, notify
-            if old_rank != new_rank and new_points > old_points:
-                logger.info(f"🎊 Rank up detected: {username} {old_rank} → {new_rank} ({old_points} → {new_points} points)")
-                try:
-                    await notify_rank_up(user_id, old_rank, new_rank, new_points)
-                    logger.info(f"✅ Rank up notification sent to {username}")
-                except Exception as e:
-                    logger.error(f"❌ Failed to send rank up notification: {e}")
-                    
-        except Exception as e:
-            logger.error(f"Error checking rank up: {e}")
-        
-        return new_achievements
-        
+        except Exception:
+            new_points = old_points
+            new_rank = old_rank
     except Exception as e:
         logger.error(f"Error checking achievements for user {user_id}: {e}")
         return []
@@ -6790,6 +6810,28 @@ async def notify_achievement_earned(user_id: int, achievement_data: dict):
     except Exception as e:
         logger.error(f"Error in notify_achievement_earned: {e}")
 
+async def notify_uncashed_achievements(user_id: int, username: str, uncashed_points: int):
+    """Notify user if they have uncashed achievement points available."""
+    try:
+        if uncashed_points <= 0:
+            return  # Nothing to notify
+
+        user = await client.fetch_user(user_id)
+        if not user:
+            return
+
+        embed = discord.Embed(
+            title="💰 Achievement Points Ready to Cash Out!",
+            description=(
+                f"You've unlocked achievements worth **{uncashed_points:,}** points!\n\n"
+                "Use `/cashout` to convert them to activity points and spend them in the shop."
+            ),
+            color=0xf1c40f
+        )
+        embed.set_footer(text="Keep unlocking achievements for more rewards!")
+        await user.send(embed=embed)
+    except Exception as e:
+        logger.error(f"Error sending uncashed achievement notification: {e}")
 
 async def notify_rank_up(user_id: int, old_rank: str, new_rank: str, total_points: int):
     """Send DM notification when user ranks up"""
@@ -6797,58 +6839,49 @@ async def notify_rank_up(user_id: int, old_rank: str, new_rank: str, total_point
         user = await client.fetch_user(user_id)
         if not user:
             return
-        
+
         rank_info = get_rank_from_points(total_points)
         rank_name = rank_info.get('name', 'Newcomer')
         rank_emoji = rank_info.get('emoji', '🆕')
         next_rank_name = rank_info.get('next_rank', 'Beginner')
         points_needed = rank_info.get('points_needed', 50)
 
-    # FIXED rank display (no emoji duplication):
-        embed.add_field(
-            name="🏅 Current Rank",
-            value=f"{rank_emoji} {rank_name}\n{total_points:,} points",
-            inline=True
-        )
-
-        embed.add_field(
-            name="🎯 Next Rank", 
-            value=f"{next_rank_name}\nNeed {points_needed:,} more points",
-            inline=True
-        )
-
-        
+        # Create embed FIRST
         embed = discord.Embed(
             title="🎊 Rank Up!",
             description=f"{rank_emoji} **Congratulations!**\n\nYou've been promoted from **{old_rank}** to **{new_rank}**!",
+            color=rank_info.get('color', 0xf1c40f)
         )
-        
+
         embed.add_field(
             name="🏅 New Rank",
             value=f"{rank_emoji} {new_rank}",
             inline=True
         )
-        
+
         embed.add_field(
             name="💎 Total Points",
             value=f"{total_points:,} points",
             inline=True
         )
-        
+
         # Show progress to next rank
-        next_rank_info = rank_info.get('next_rank', 'Max Level')
-        points_needed = rank_info.get('points_needed', 0)
-        
-        if points_needed > 0:
+        if next_rank_name != 'Max Level!' and points_needed > 0:
             embed.add_field(
                 name="🎯 Next Goal",
-                value=f"{next_rank_info} ({points_needed:,} points to go)",
+                value=f"{next_rank_name} ({points_needed:,} points to go)",
                 inline=False
             )
-        
+        elif next_rank_name == 'Max Level!':
+            embed.add_field(
+                name="🏆 Achievement",
+                value="You've reached the maximum rank!",
+                inline=False
+            )
+
         embed.set_footer(text="Keep translating to reach the next rank!")
         embed.timestamp = discord.utils.utcnow()
-        
+
         try:
             await user.send(embed=embed)
             logger.info(f"✅ Rank up notification sent to {user.display_name}: {old_rank} → {new_rank}")
@@ -6856,10 +6889,9 @@ async def notify_rank_up(user_id: int, old_rank: str, new_rank: str, total_point
             logger.info(f"❌ User {user.display_name} has DMs disabled for rank up")
         except Exception as e:
             logger.error(f"Error sending rank up DM: {e}")
-            
+
     except Exception as e:
         logger.error(f"Error in notify_rank_up: {e}")
-
 
 # Add missing database methods to RewardDatabase class
 class RewardDatabase:
