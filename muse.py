@@ -7703,7 +7703,6 @@ async def help_command(interaction: discord.Interaction):
         name="ℹ️ Information",
         value=(
             "`/list` - Show all supported languages\n"
-            "`/status` - Check your account status & rewards\n"
             "`/upgrade` - Get premium access info\n"
             "`/invite` - Get bot invite links\n"
             "`/help` - Show this command list"
