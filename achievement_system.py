@@ -250,6 +250,17 @@ ACHIEVEMENTS = {
         'requirement': 1,
         'stat': 'servers_invited'
     },
+
+    "topgg_voter": {
+    "name": "🌟 Muse Supporter",
+    "description": "Upvoted Muse on Top.gg",
+    "category": "Community",
+    "rarity": "Uncommon",
+    "points": 50,
+    "requirement": 1,
+    "stat": "topgg_vote",
+    "emoji": "🌟"
+    },
     
     # Milestone Achievements
     'power_user': {
