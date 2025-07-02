@@ -22,7 +22,40 @@ class Database:
         except Exception as e:
             print(f"Error getting premium users: {e}")
         return []
-    
+    async def set_channel_restriction(self, guild_id, channel_id, channel_type, languages):
+        """Set allowed languages for a channel/type. Empty set = all languages."""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                "DELETE FROM channel_restrictions WHERE guild_id=? AND channel_id=? AND channel_type=?",
+                (guild_id, channel_id, channel_type)
+            )
+            if not languages:
+                await db.execute(
+                    "INSERT INTO channel_restrictions (guild_id, channel_id, channel_type, language_code) VALUES (?, ?, ?, NULL)",
+                    (guild_id, channel_id, channel_type)
+                )
+            else:
+                for lang in languages:
+                    await db.execute(
+                        "INSERT INTO channel_restrictions (guild_id, channel_id, channel_type, language_code) VALUES (?, ?, ?, ?)",
+                        (guild_id, channel_id, channel_type, lang)
+                    )
+            await db.commit()
+
+    async def is_translation_allowed(self, guild_id, channel_id, channel_type, lang_code):
+        """Check if translation is allowed in this channel/type/language."""
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute(
+                "SELECT language_code FROM channel_restrictions WHERE guild_id=? AND channel_id=? AND channel_type=?",
+                (guild_id, channel_id, channel_type)
+            ) as cursor:
+                rows = await cursor.fetchall()
+            if not rows:
+                return True  # No restriction set
+            allowed_langs = {row[0] for row in rows if row[0]}
+            if not allowed_langs:
+                return True  # All languages allowed (NULL row exists)
+            return lang_code.lower() in allowed_langs
     async def init_db(self):
         """Initialize database with all required tables"""
         async with aiosqlite.connect(self.db_path) as db:
@@ -54,7 +87,15 @@ class Database:
                     UNIQUE(user_id, date)
                 )
             ''')
-            
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS channel_restrictions (
+                    guild_id      INTEGER NOT NULL,
+                    channel_id    INTEGER NOT NULL,
+                    channel_type  TEXT    NOT NULL, -- 'text' or 'voice'
+                    language_code TEXT,             -- NULL means all languages allowed
+                    PRIMARY KEY (guild_id, channel_id, channel_type, language_code)
+                )
+            ''')
             # Translation history table
             await db.execute('''
                 CREATE TABLE IF NOT EXISTS translation_history (
