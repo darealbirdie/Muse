@@ -42,6 +42,7 @@ from reward_system import (
     has_enhanced_voice_access,
     reward_db  
 )
+# Place this at the top of your file (global scope)
 new_achievements = []
 YOUR_ADMIN_ID = 1192196672437096520
 YOUR_SERVER_ID = 1332522833326375022
@@ -1551,7 +1552,19 @@ async def start(interaction: discord.Interaction):
                     description=f"Hello {interaction.user.display_name}! Your translator is ready to use.",
                     color=tier_info['color']
                 )
-                
+              # Show admin/mod setup tips only to server admins/mods
+            if interaction.guild:
+                perms = interaction.channel.permissions_for(interaction.user)
+            if perms.administrator or perms.manage_guild:
+                embed.add_field(
+                    name="🛠️ Server Setup Tips (Admins/Mods)",
+                    value=(
+                        "• Use `/setchannel` to restrict translation to specific channels/languages\n"
+                        "• Use `/invite` to add Muse to more servers"
+                        "• Use `/help` for all commands"
+                    ),
+            inline=False
+                )  
                 # Show user stats
                 embed.add_field(
                     name="📊 Your Stats",
@@ -1758,17 +1771,35 @@ async def start(interaction: discord.Interaction):
         except Exception as send_error:
             print(f"💥 Failed to send error message: {send_error}")
 
-@tree.command(name="setchannel", description="Set the channel for translations")
-async def set_channel(interaction: discord.Interaction, channel_id: str):
-    try:
-        channel = client.get_channel(int(channel_id))
-        if channel:
-            await channel.send("🚀 Translation server is connected!\nUse /translate [source_lang] [target_lang] to start\nUse /stop to end translation")
-            await interaction.response.send_message(f"Successfully connected to channel {channel.name}! 🎯")
-        else:
-            await interaction.response.send_message("Channel not found. Please check the ID and try again! 🔍")
-    except ValueError:
-        await interaction.response.send_message("Please provide a valid channel ID! 🔢")
+@tree.command(name="setchannel", description="Restrict translation to specific channels/languages (admin/mod only)")
+@app_commands.describe(
+    channel="Channel to allow translations in",
+    channel_type="Type of channel: text or voice",
+    languages="Comma-separated language codes to allow (leave blank for all languages)"
+)
+@app_commands.checks.has_permissions(manage_guild=True)
+async def set_channel(
+    interaction: discord.Interaction,
+    channel: discord.abc.GuildChannel,
+    channel_type: str,
+    languages: str = ""
+):
+    if not interaction.guild:
+        await interaction.response.send_message("❌ This command can only be used in a server.", ephemeral=True)
+        return
+
+    if channel_type not in ["text", "voice"]:
+        await interaction.response.send_message("❌ Channel type must be 'text' or 'voice'.", ephemeral=True)
+        return
+
+    guild_id = interaction.guild.id
+    lang_set = set(l.strip().lower() for l in languages.split(",") if l.strip()) if languages else set()
+    await db.set_channel_restriction(guild_id, channel.id, channel_type, lang_set)
+
+    lang_display = ", ".join(lang_set) if lang_set else "all languages"
+    await interaction.response.send_message(
+        f"✅ {channel_type.title()} translation allowed in <#{channel.id}> for: {lang_display}.", ephemeral=True
+    )
 # Update the texttr command to use new limits
 @tree.command(name="texttr", description="Translate text between languages")
 @app_commands.allowed_installs(guilds=True, users=True)
@@ -1808,6 +1839,19 @@ async def text_translate(
     # Convert language inputs to codes
     source_code = get_language_code(source_lang)
     target_code = get_language_code(target_lang)
+    if interaction.guild:
+        allowed = await db.is_translation_allowed(
+            interaction.guild.id,
+            interaction.channel.id,
+            "text" or "voice",  # depends on the command
+            target_code         # or the relevant language code
+        )
+        if not allowed:
+            await interaction.response.send_message(
+                "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
+            ephemeral=True
+            )
+            return
 
     # Validate language codes
     if not source_code:
@@ -1983,7 +2027,19 @@ async def translate_and_speak(
         # Convert language inputs to codes
         source_code = get_language_code(source_lang)
         target_code = get_language_code(target_lang)
-        
+        if interaction.guild:
+            allowed = await db.is_translation_allowed(
+                interaction.guild.id,
+                interaction.channel.id,
+                "text" or "voice",  # depends on the command
+                target_code         # or the relevant language code
+            )
+            if not allowed:
+                await interaction.response.send_message(
+                    "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
+                    ephemeral=True
+                )
+        return
         # Validate language codes
         if not source_code:
             await interaction.response.send_message(
@@ -2173,7 +2229,19 @@ async def voice_chat_translate(
     # Convert language inputs to codes - support both codes and names
     source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
     target_code = get_language_code(target_lang)
-    
+    if interaction.guild:
+        allowed = await db.is_translation_allowed(
+            interaction.guild.id,
+            interaction.channel.id,
+            "text" or "voice",  # depends on the command
+            target_code         # or the relevant language code
+        )
+        if not allowed:
+            await interaction.response.send_message(
+                "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
+                ephemeral=True
+            )
+            return
     # Validate language codes
     if source_lang.lower() != "auto" and not source_code:
         await interaction.response.send_message(
@@ -2515,7 +2583,29 @@ async def voice_chat_translate(
             voice_client = await voice_channel.connect(cls=voice_recv.VoiceRecvClient, self_deaf=False)
         
         # Rest of your voice connection code continues here...
-        
+        # After connecting to the voice channel and assigning voice_client
+
+    # 1. Create the sink instance
+        sink = TranslationSink(
+            source_language=source_code,
+            target_language=target_code,
+            text_channel=interaction.channel,
+            client_instance=client,
+            user_id=interaction.user.id
+        )
+
+        # 2. Start listening with the sink
+        voice_client.listen(sink)
+
+        # 3. Track the session
+        voice_translation_sessions[interaction.guild_id] = {
+            'voice_client': voice_client,
+            'sink': sink,
+            'channel': voice_channel,
+            'type': 'voicechat',
+            'languages': [source_code, target_code],
+            'initiating_user_id': interaction.user.id
+        }
     except Exception as e:
         logger.error(f"Error connecting to voice: {e}")
         if not interaction.response.is_done():
@@ -2684,7 +2774,25 @@ async def voice_chat_translate_bidirectional_v2(
     # Convert language inputs to codes - support both codes and names
     source_code = "auto" if language1.lower() == "auto" else get_language_code(language1)
     target_code = "auto" if language2.lower() == "auto" else get_language_code(language2)
-    
+    if interaction.guild:
+        allowed_lang1 = await db.is_translation_allowed(
+            interaction.guild.id,
+            interaction.channel.id,
+            "voice",
+            language1 if language1 != "auto" else None
+        )
+        allowed_lang2 = await db.is_translation_allowed(
+            interaction.guild.id,
+            interaction.channel.id,
+            "voice",
+            language2 if language2 != "auto" else None
+        )
+        if not allowed_lang1 or not allowed_lang2:
+            await interaction.response.send_message(
+                "❌ One or both selected languages are not allowed for voice translation in this channel. Please use an approved channel or language.",
+                ephemeral=True
+            )
+            return
     # Validate language codes (at least one must not be auto)
     if language1.lower() != "auto" and not source_code:
         await interaction.response.send_message(
@@ -3200,6 +3308,15 @@ async def voice_chat_translate_bidirectional_v2(
             voice_client.listen(sink)
             logger.info("Successfully started listening")
             
+            voice_translation_sessions[interaction.guild_id] = {
+                'voice_client': voice_client,
+                'sink': sink,
+                'channel': voice_channel,
+                'type': 'voicechat',
+                'languages': [source_code, target_code],
+                'initiating_user_id': interaction.user.id  # <-- Add this line
+            }
+
             # Create display names for the embed
             lang1_display = "Auto-detect" if source_code == "auto" else languages.get(source_code, source_code)
             lang2_display = "Auto-detect" if target_code == "auto" else languages.get(target_code, target_code)
@@ -3585,7 +3702,19 @@ async def translate_and_speak_voice(
         # Convert language inputs to codes
         source_code = get_language_code(source_lang)
         target_code = get_language_code(target_lang)
-        
+        if interaction.guild:
+            allowed = await db.is_translation_allowed(
+                interaction.guild.id,
+                interaction.channel.id,
+                "text" or "voice",  # depends on the command
+                target_code         # or the relevant language code
+            )
+            if not allowed:
+                await interaction.response.send_message(
+                    "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
+                    ephemeral=True
+                )
+                return
         # Validate language codes
         if not source_code:
             await interaction.response.send_message(
@@ -3913,143 +4042,108 @@ async def show_speech(interaction: discord.Interaction):
     hidden_sessions.discard(user_id)
     await interaction.response.send_message("Original speech will be shown! 👀", ephemeral=True)
 
-# Update the stop command to handle cleanup properly
-@tree.command(name="stop", description="Stop active translation")
+@tree.command(name="stop", description="Stop your active translation sessions")
 async def stop_translation(interaction: discord.Interaction):
-    await track_command_usage(interaction)  # NEW: Track usage for points
-    
+    await track_command_usage(interaction)
+
     user_id = interaction.user.id
     guild_id = interaction.guild_id
-    
-    # Track if we found and stopped any sessions
+
     stopped_any = False
     session_duration_seconds = 0
     commands_used = 0
-    
-    # NEW: End user session for point tracking
+
+    # End user session for point tracking
     if user_id in user_sessions:
         session_data = user_sessions[user_id]
         if session_data.get('active', False):
-            # Calculate session duration in seconds
             session_duration_seconds = (datetime.now() - session_data['session_start']).total_seconds()
             commands_used = session_data.get('commands_used', 0)
-            
-            # Convert to hours for bonus calculation
             session_duration_hours = session_duration_seconds / 3600
-            
-            # Award session completion bonus
-            session_bonus = max(1, int(session_duration_hours * 5))  # 5 points per hour
-            if user_id in tier_handler.premium_users:
-                session_bonus *= 2
-                
-            reward_db.add_points(user_id, session_bonus, f"Session completion bonus ({session_duration_hours:.1f}h)")
-            reward_db.update_usage_time(user_id, session_duration_hours)
-            
-            user_sessions[user_id]['active'] = False
-            stopped_any = True
-    
-    # Check for voice translation session (voicechat command)
-    if guild_id in voice_translation_sessions:
-        session = voice_translation_sessions[guild_id]
-        
-        # Stop listening if active
-        if session['voice_client'].is_listening():
-            session['voice_client'].stop_listening()
-        
-        # Clean up sink
-        if 'sink' in session:
-            session['sink'].cleanup()
-        
-        # Stop any playing audio
-        if session['voice_client'].is_playing():
-            session['voice_client'].stop()
-        
-        # Disconnect from voice
-        await session['voice_client'].disconnect()
-        
-        # Remove session
-        del voice_translation_sessions[guild_id]
-        stopped_any = True
-    
-    # Check for any active voice client (speak command)
-    if interaction.guild and interaction.guild.voice_client:
-        voice_client = interaction.guild.voice_client
-        
-        # Stop any playing audio
-        if voice_client.is_playing():
-            voice_client.stop()
-        
-        # Disconnect if not already disconnected by the voice_translation_sessions cleanup
-        if voice_client.is_connected():
-            await voice_client.disconnect()
-            stopped_any = True
-    
-    # Check for text translation session
-    if (guild_id in translation_server.translators and 
-        user_id in translation_server.translators[guild_id]):
-        
-        # Remove user from translators
-        del translation_server.translators[guild_id][user_id]
-        
-        # Cleanup user's ngrok tunnel
-        translation_server.cleanup_user(user_id)
-        stopped_any = True
-    
-    # Check for auto-translation
-    if user_id in auto_translate_users:
-        del auto_translate_users[user_id]
-        stopped_any = True
-    
-    if stopped_any:
-        embed = discord.Embed(
-            title="🛑 Translation Session Ended",
-            description="All active translation sessions have been stopped.",
-            color=0xe74c3c
-        )
-        # ...add fields to embed as before...
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-    else:
-        await interaction.response.send_message("No active translation session found!", ephemeral=True)
-        
-        # Add session stats if available
-    if user_id in user_sessions and 'session_start' in user_sessions[user_id]:
-        duration_str = format_seconds(int(session_duration_seconds))
-        embed.add_field(
-            name="📊 Session Stats",
-            value=f"⏱️ Duration: {duration_str}\n🔧 Commands used: {commands_used}",
-            inline=True
-        )
-    
-        # Add session bonus info if session was active
-        if user_sessions[user_id].get('active', False):
             session_bonus = max(1, int(session_duration_hours * 5))
             if user_id in tier_handler.premium_users:
                 session_bonus *= 2
-        
+            reward_db.add_points(user_id, session_bonus, f"Session completion bonus ({session_duration_hours:.1f}h)")
+            reward_db.update_usage_time(user_id, session_duration_hours)
+            user_sessions[user_id]['active'] = False
+            stopped_any = True
+
+    # Only stop voice session if user started it (or is the only one left)
+    if guild_id in voice_translation_sessions:
+        session = voice_translation_sessions[guild_id]
+        # Check if this user started the session (store 'initiating_user_id' in your session dict when starting)
+        if session.get('initiating_user_id') == user_id:
+            if session['voice_client'].is_listening():
+                session['voice_client'].stop_listening()
+            if 'sink' in session:
+                session['sink'].cleanup()
+            if session['voice_client'].is_playing():
+                session['voice_client'].stop()
+            await session['voice_client'].disconnect()
+            del voice_translation_sessions[guild_id]
+            stopped_any = True
+
+    # Only disconnect from voice if user is the only one left in the channel
+    if interaction.guild and interaction.guild.voice_client:
+        voice_client = interaction.guild.voice_client
+        if voice_client.channel and sum(1 for m in voice_client.channel.members if not m.bot) <= 1:
+            if voice_client.is_playing():
+                voice_client.stop()
+            if voice_client.is_connected():
+                await voice_client.disconnect()
+                stopped_any = True
+
+    # Remove user from text translation sessions
+    if (guild_id in translation_server.translators and
+        user_id in translation_server.translators[guild_id]):
+        del translation_server.translators[guild_id][user_id]
+        translation_server.cleanup_user(user_id)
+        stopped_any = True
+
+    # Remove user from auto-translation
+    if user_id in auto_translate_users:
+        del auto_translate_users[user_id]
+        stopped_any = True
+
+    # Respond to user
+    if stopped_any:
+        embed = discord.Embed(
+            title="🛑 Translation Session Ended",
+            description="Your active translation sessions have been stopped.",
+            color=0xe74c3c
+        )
+        # Add session stats if available
+        if user_id in user_sessions and 'session_start' in user_sessions[user_id]:
+            duration_str = format_seconds(int(session_duration_seconds))
             embed.add_field(
-                name="💎 Session Bonus",
-                value=f"+{session_bonus} points",
+                name="📊 Session Stats",
+                value=f"⏱️ Duration: {duration_str}\n🔧 Commands used: {commands_used}",
                 inline=True
             )
-
-    # Add session time remaining if there's a limit
-    if user_id in user_sessions and 'session_limit' in user_sessions[user_id]:
-        session_limit_seconds = user_sessions[user_id]['session_limit']
-        remaining_seconds = max(0, session_limit_seconds - session_duration_seconds)
-        if remaining_seconds > 0:
-            remaining_str = format_seconds(int(remaining_seconds))
-            embed.add_field(
-                name="⏳ Time Remaining",
-                value=remaining_str,
-                inline=True
-            )
-
-            embed.add_field(
-                name="💡 Tip",
-                value="Use `/daily` to claim your daily points!",
-                inline=False
-            )
-        
+            if user_sessions[user_id].get('active', False):
+                session_bonus = max(1, int(session_duration_hours * 5))
+                if user_id in tier_handler.premium_users:
+                    session_bonus *= 2
+                embed.add_field(
+                    name="💎 Session Bonus",
+                    value=f"+{session_bonus} points",
+                    inline=True
+                )
+            if user_id in user_sessions and 'session_limit' in user_sessions[user_id]:
+                session_limit_seconds = user_sessions[user_id]['session_limit']
+                remaining_seconds = max(0, session_limit_seconds - session_duration_seconds)
+                if remaining_seconds > 0:
+                    remaining_str = format_seconds(int(remaining_seconds))
+                    embed.add_field(
+                        name="⏳ Time Remaining",
+                        value=remaining_str,
+                        inline=True
+                    )
+                    embed.add_field(
+                        name="💡 Tip",
+                        value="Use `/daily` to claim your daily points!",
+                        inline=False
+                    )
         await interaction.response.send_message(embed=embed, ephemeral=True)
     else:
         await interaction.response.send_message("No active translation session found!", ephemeral=True)
@@ -4073,7 +4167,19 @@ async def auto_translate(
     # Convert language inputs to codes
     source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
     target_code = get_language_code(target_lang)
-    
+    if interaction.guild:
+        allowed = await db.is_translation_allowed(
+            interaction.guild.id,
+            interaction.channel.id,
+            "text" or "voice",  # depends on the command
+            target_code         # or the relevant language code
+        )
+        if not allowed:
+            await interaction.response.send_message(
+                "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
+                ephemeral=True
+            )
+            return
     # Validate language codes
     if source_lang.lower() != "auto" and not source_code:
         await interaction.response.send_message(
@@ -4304,7 +4410,19 @@ async def dm_translate(
         # Convert language inputs to codes
         source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
         target_code = get_language_code(target_lang)
-        
+        if interaction.guild:
+            allowed = await db.is_translation_allowed(
+                interaction.guild.id,
+                interaction.channel.id,
+                "text" or "voice",  # depends on the command
+                target_code         # or the relevant language code
+            )
+            if not allowed:
+                await interaction.response.send_message(
+                    "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
+                    ephemeral=True
+                )
+                return
         # Validate language codes
         if source_lang.lower() != "auto" and not source_code:
             await interaction.response.send_message(
@@ -4522,7 +4640,19 @@ async def translate_by_id(
         
         # Convert language input to code
         target_code = get_language_code(target_lang)
-        
+        if interaction.guild:
+            allowed = await db.is_translation_allowed(
+                interaction.guild.id,
+                interaction.channel.id,
+                "text" or "voice",  # depends on the command
+                target_code         # or the relevant language code
+            )
+            if not allowed:
+                await interaction.response.send_message(
+                    "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
+                    ephemeral=True
+                )
+                return
         # Validate target language
         if not target_code:
             await interaction.response.send_message(
@@ -7704,7 +7834,10 @@ async def help_command(interaction: discord.Interaction):
     # Setup & Control Commands
     setup_commands = "`/start` - Initialize translator\n"
     if is_server:
-        setup_commands += "`/setchannel [channel_id]` - Set translation channel\n"
+        # Check if the user is a server admin or has manage_guild permission
+        perms = interaction.channel.permissions_for(interaction.user)
+        if perms.administrator or perms.manage_guild:
+            setup_commands += "`/setchannel [channel_id]` - Set translation and language channel permissions\n"
     setup_commands += "`/stop` - Stop active translation sessions"
     
     embed.add_field(
