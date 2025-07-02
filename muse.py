@@ -7266,7 +7266,6 @@ async def send_tier_notification(user_id: int, tier: str, tier_name: str, kofi_d
         logger.info(f"✅ Notified user {user_id} about {tier} subscription")
     except Exception as notify_error:
         logger.error(f"⚠️ Couldn't notify user {user_id}: {notify_error}")
-
 # Updated points notification to show correct tier pricing
 async def send_points_only_notification(user_id: int, points: int, amount: float):
     try:
