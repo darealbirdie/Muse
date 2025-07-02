@@ -1648,7 +1648,8 @@ async def start(interaction: discord.Interaction):
                 value=(
                     "`/feedback` - Rate and review Muse (earn points!)\n"
                     "`/reviews` - See what other users are saying\n"
-                    "`/invite` - Share Muse with friends"
+                    "`/invite` - Share Muse with friends (earn points!)\n"
+                    "`/vote` - Support the bot on bot-listing sites (earn points!)"
                 ),
                 inline=False
             )
@@ -1756,8 +1757,6 @@ async def start(interaction: discord.Interaction):
                 )
         except Exception as send_error:
             print(f"💥 Failed to send error message: {send_error}")
-
-
 
 @tree.command(name="setchannel", description="Set the channel for translations")
 async def set_channel(interaction: discord.Interaction, channel_id: str):
@@ -7732,6 +7731,7 @@ async def help_command(interaction: discord.Interaction):
             "`/list` - Show all supported languages\n"
             "`/upgrade` - Get premium access info\n"
             "`/invite` - Get bot invite links\n"
+            "`/vote` - Get bot listing links\n"
             "`/help` - Show this command list"
         ),
         inline=False
