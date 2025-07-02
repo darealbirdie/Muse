@@ -7156,8 +7156,36 @@ def handle_kofi_donation():
         
     except Exception as e:
         logger.error(f"Ko-fi webhook error: {e}")
-        return jsonify({'status': 'error', 'message': str(e)})
+        return jsonify({'status': 'error', 'message': str(e)})    
+@app.route('/webhook/topgg', methods=['POST'])
+def handle_topgg_vote():
+    try:
+        auth = request.headers.get('Authorization')
+        if auth != "YOUR_TOPGG_WEBHOOK_SECRET":  # Set this to your Top.gg webhook secret
+            return jsonify({'error': 'Unauthorized'}), 401
 
+        data = request.json
+        user_id = int(data['user'])
+
+        # Award points and achievement
+        safe_db_operation(reward_db.add_points, user_id, 50, "Top.gg upvote")
+        asyncio.run_coroutine_threadsafe(
+            award_achievement_enhanced(user_id, f"User {user_id}", "topgg_voter"),
+            client.loop
+        )
+
+        # Optionally DM the user
+        asyncio.run_coroutine_threadsafe(
+            client.fetch_user(user_id).send(
+                "🌟 Thank you for upvoting Muse on Top.gg! You've earned 25 points and a special achievement."
+            ),
+            client.loop
+        )
+
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        logger.error(f"Top.gg vote webhook error: {e}")
+        return jsonify({'error': str(e)}), 500
 # Updated tier notification function with correct pricing
 async def send_tier_notification(user_id: int, tier: str, tier_name: str, kofi_data, expires_at, days: int, emoji: str):
     try:
@@ -9878,6 +9906,25 @@ async def invite_command(interaction: discord.Interaction):
     except Exception as e:
         logger.error(f"Invite command error: {e}")
         await interaction.response.send_message("❌ Error generating invite link.", ephemeral=True)
+
+@tree.command(name="vote", description="Support Muse by upvoting on bot lists!")
+async def vote_command(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🌟 Support Muse Translator!",
+        description="Upvotes help us grow and unlock new features for everyone.",
+        color=0xf1c40f
+    )
+    embed.add_field(
+        name="Vote Links",
+        value=(
+            "[Upvote on Top.gg](https://top.gg/bot/1323041248835272724/vote)\n"
+            "[Upvote on Discord Bots](https://discord.bots.gg/bots/1323041248835272724)\n\n"
+            "🌟 **Upvote on Top.gg to earn the 'Muse Supporter' achievement and bonus points!**"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="Thank you for supporting Muse!")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @tree.command(name="addbasic", description="[ADMIN] Grant Basic tier access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
