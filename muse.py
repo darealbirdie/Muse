@@ -2039,7 +2039,7 @@ async def translate_and_speak(
                     "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
                     ephemeral=True
                 )
-            return
+                return
         # Validate language codes
         if not source_code:
             await interaction.response.send_message(
