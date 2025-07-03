@@ -2039,7 +2039,7 @@ async def translate_and_speak(
                     "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
                     ephemeral=True
                 )
-        return
+            return
         # Validate language codes
         if not source_code:
             await interaction.response.send_message(
@@ -2295,7 +2295,47 @@ async def voice_chat_translate(
             await interaction.followup.send(embed=embed, ephemeral=True)
     
     voice_channel = interaction.user.voice.channel
-    
+    user_id = interaction.user.id
+    user = await db.get_or_create_user(user_id, interaction.user.display_name)
+    limits = get_effective_limits(user_id, tier_handler, reward_db)
+
+    # --- TIER PRIORITY LOGIC START ---
+    guild_id = interaction.guild_id
+    current_tier = tier_handler.get_user_tier(user_id)
+    tier_order = ['free', 'basic', 'premium', 'pro']
+
+    # If a session is already running in this guild
+    if guild_id in voice_translation_sessions:
+        session = voice_translation_sessions[guild_id]
+        owner_id = session.get('initiating_user_id')
+        if owner_id and owner_id != user_id:
+            owner_tier = tier_handler.get_user_tier(owner_id)
+            # Only allow takeover if the new user's tier is higher
+            if tier_order.index(current_tier) <= tier_order.index(owner_tier):
+                embed = discord.Embed(
+                    title="🔒 Voice Chat In Use",
+                    description=(
+                        f"A voice translation session is already active, started by a **{owner_tier.title()}** tier user.\n"
+                        f"You need a **higher tier** to take over the session.\n"
+                        f"Current session owner: <@{owner_id}> ({owner_tier.title()})"
+                    ),
+                    color=0xFF6B6B
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            else:
+                # Stop the current session before starting a new one
+                try:
+                    if session['voice_client'].is_listening():
+                        session['voice_client'].stop_listening()
+                    if 'sink' in session:
+                        await session['sink'].cleanup()
+                    if session['voice_client'].is_playing():
+                        session['voice_client'].stop()
+                    await session['voice_client'].disconnect()
+                except Exception as e:
+                    logger.error(f"Error stopping previous session: {e}")
+                del voice_translation_sessions[guild_id]
     # Define the TranslationSink class with usage tracking
     class TranslationSink(BasicSink):
         def __init__(self, *, source_language, target_language, text_channel, client_instance, user_id):
@@ -3033,6 +3073,42 @@ async def voice_chat_translate_bidirectional_v2(
                     tier = 'free'
                     is_premium = False
                 
+                guild_id = interaction.guild_id
+                current_tier = tier_handler.get_user_tier(user_id)
+                tier_order = ['free', 'basic', 'premium', 'pro']
+
+                # If a session is already running in this guild
+                if guild_id in voice_translation_sessions:
+                    session = voice_translation_sessions[guild_id]
+                    owner_id = session.get('initiating_user_id')
+                    if owner_id and owner_id != user_id:
+                        owner_tier = tier_handler.get_user_tier(owner_id)
+                        # Only allow takeover if the new user's tier is higher
+                        if tier_order.index(current_tier) <= tier_order.index(owner_tier):
+                            embed = discord.Embed(
+                                title="🔒 Voice Chat In Use",
+                                description=(
+                                    f"A voice translation session is already active, started by a **{owner_tier.title()}** tier user.\n"
+                                    f"You need a **higher tier** to take over the session.\n"
+                                    f"Current session owner: <@{owner_id}> ({owner_tier.title()})"
+                                ),
+                                color=0xFF6B6B
+                            )
+                            await interaction.response.send_message(embed=embed, ephemeral=True)
+                            return
+                        else:
+                            # Stop the current session before starting a new one
+                            try:
+                                if session['voice_client'].is_listening():
+                                    session['voice_client'].stop_listening()
+                                if 'sink' in session:
+                                    session['sink'].cleanup()
+                                if session['voice_client'].is_playing():
+                                    session['voice_client'].stop()
+                                await session['voice_client'].disconnect()
+                            except Exception as e:
+                                logger.error(f"Error stopping previous session: {e}")
+                            del voice_translation_sessions[guild_id]
                 # Award points based on tier (SYNC - no await)
                 points_map = {'free': 2, 'basic': 3, 'premium': 4, 'pro': 5}  # Higher points for enhanced voice chat
                 points_awarded = points_map[tier]
@@ -3698,6 +3774,49 @@ async def translate_and_speak_voice(
             is_premium = False
         
         limits = tier_handler.get_limits(user_id)
+
+        # ...existing code...
+
+        # --- TIER PRIORITY LOGIC START ---
+        guild_id = interaction.guild_id
+        current_tier = tier_handler.get_user_tier(user_id)
+        tier_order = ['free', 'basic', 'premium', 'pro']
+
+        # If a session is already running in this guild
+        if guild_id in voice_translation_sessions:
+            session = voice_translation_sessions[guild_id]
+            owner_id = session.get('initiating_user_id')
+            if owner_id and owner_id != user_id:
+                owner_tier = tier_handler.get_user_tier(owner_id)
+                # Only allow takeover if the new user's tier is higher
+                if tier_order.index(current_tier) <= tier_order.index(owner_tier):
+                    embed = discord.Embed(
+                        title="🔒 Voice Chat In Use",
+                        description=(
+                            f"A voice translation session is already active, started by a **{owner_tier.title()}** tier user.\n"
+                            f"You need a **higher tier** to take over the session.\n"
+                            f"Current session owner: <@{owner_id}> ({owner_tier.title()})"
+                        ),
+                        color=0xFF6B6B
+                    )
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                    return
+                else:
+                    # Stop the current session before starting a new one
+                    try:
+                        if session['voice_client'].is_listening():
+                            session['voice_client'].stop_listening()
+                        if 'sink' in session:
+                            session['sink'].cleanup()
+                        if session['voice_client'].is_playing():
+                            session['voice_client'].stop()
+                        await session['voice_client'].disconnect()
+                    except Exception as e:
+                        logger.error(f"Error stopping previous session: {e}")
+                    del voice_translation_sessions[guild_id]
+        # --- TIER PRIORITY LOGIC END ---
+
+# ...continue with connecting to the voice channel and playing audio...
 
         # Convert language inputs to codes
         source_code = get_language_code(source_lang)
