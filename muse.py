@@ -1922,13 +1922,13 @@ async def text_translate(
         allowed = await db.is_translation_allowed(
             interaction.guild.id,
             interaction.channel.id,
-            "text" or "voice",  # depends on the command
-            target_code         # or the relevant language code
+            "text",
+            target_code
         )
         if not allowed:
             await interaction.response.send_message(
                 "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
-            ephemeral=True
+                ephemeral=True
             )
             return
 
@@ -1956,7 +1956,7 @@ async def text_translate(
         return
 
     # Defer response if translation may take >3s
-    await interaction.response.defer(ephemeral=True)
+    await interaction.response.defer(ephemeral=False)
 
     try:
         translator = GoogleTranslator(source=source_code, target=target_code)
@@ -1997,7 +1997,6 @@ async def text_translate(
         # After checking/awarding achievements:
         uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
         await notify_uncashed_achievements(user_id, username, uncashed_points)
-
 
         # Get proper language names and flags
         source_name = languages.get(source_code, source_code)
@@ -2046,13 +2045,17 @@ async def text_translate(
         else:
             embed.set_footer(text=f"{tier_footers[tier]} • User Mode: DM Translation")
 
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=False)
     except Exception as e:
         await interaction.followup.send(
             f"❌ Translation failed: {str(e)}\n"
             f"Please check your language codes (e.g., 'en' for English, 'es' for Spanish')",
             ephemeral=True
         )
+
+# Add autocomplete to the texttr command
+text_translate.autocomplete('source_lang')(source_language_autocomplete)
+text_translate.autocomplete('target_lang')(language_autocomplete)
 
 # Add autocomplete to the texttr command
 text_translate.autocomplete('source_lang')(source_language_autocomplete)
