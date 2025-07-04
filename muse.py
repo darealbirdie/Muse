@@ -1771,46 +1771,88 @@ async def start(interaction: discord.Interaction):
         except Exception as send_error:
             print(f"💥 Failed to send error message: {send_error}")
 
-@tree.command(name="setchannel", description="Restrict translation to specific channels/languages (admin/mod only)")
-@app_commands.describe(
-    channel="Channel to allow or block translations in",
-    channel_type="Type of channel: text or voice",
-    languages="Comma-separated language codes to allow (leave blank for all languages, or type 'none' to block all)"
+@tree.command(
+    name="setchannel",
+    description="Restrict translation in specific text/voice channels and languages (admin/mod only)"
 )
+@app_commands.describe(
+    channel="Text or voice channel to restrict",
+    channel_type="Type of channel: text, voice, or both",
+    languages="Comma-separated language names to allow (type 'none' to block all; cannot be blank)"
+)
+@app_commands.default_permissions(manage_guild=True)
 @app_commands.checks.has_permissions(manage_guild=True)
 async def set_channel(
     interaction: discord.Interaction,
     channel: discord.abc.GuildChannel,
     channel_type: str,
-    languages: str = ""
+    languages: str
 ):
     if not interaction.guild:
         await interaction.response.send_message("❌ This command can only be used in a server.", ephemeral=True)
         return
 
-    if channel_type not in ["text", "voice"]:
-        await interaction.response.send_message("❌ Channel type must be 'text' or 'voice'.", ephemeral=True)
+    if channel_type not in ["text", "voice", "both"]:
+        await interaction.response.send_message("❌ Channel type must be 'text', 'voice', or 'both'.", ephemeral=True)
         return
 
-    guild_id = interaction.guild.id
-
-    # If languages is 'none', block all translations in this channel
-    if languages.strip().lower() == "none":
-        await db.set_channel_restriction(guild_id, channel.id, channel_type, set(), block_all=True)
+    if not languages or not languages.strip():
         await interaction.response.send_message(
-            f"🚫 All {channel_type} translations are now **blocked** in <#{channel.id}>.",
+            "❌ You must specify at least one language name, or type 'none' to block all translations.",
             ephemeral=True
         )
         return
 
-    # Otherwise, allow specified languages (or all if blank)
-    lang_set = set(l.strip().lower() for l in languages.split(",") if l.strip()) if languages else set()
-    await db.set_channel_restriction(guild_id, channel.id, channel_type, lang_set)
+    guild_id = interaction.guild.id
+    languages_clean = languages.strip().lower()
 
-    lang_display = ", ".join(lang_set) if lang_set else "all languages"
-    await interaction.response.send_message(
-        f"✅ {channel_type.title()} translation allowed in <#{channel.id}> for: {lang_display}.", ephemeral=True
-    )
+    # Helper: Convert language names to codes
+    def names_to_codes(lang_names):
+        codes = set()
+        for name in lang_names:
+            code = language_names_to_codes.get(name.strip().lower())
+            if code:
+                codes.add(code)
+        return codes
+
+    # Helper: Apply restriction for a channel type
+    async def apply_restriction(chan_type):
+        if languages_clean == "none":
+            await db.set_channel_restriction(guild_id, channel.id, chan_type, set(), block_all=True)
+            return f"🚫 All {chan_type} translations are now **blocked** in <#{channel.id}>."
+        else:
+            lang_names = [l.strip() for l in languages.split(",") if l.strip()]
+            lang_codes = names_to_codes(lang_names)
+            if not lang_codes:
+                return "❌ You must specify at least one valid language name."
+            await db.set_channel_restriction(guild_id, channel.id, chan_type, lang_codes)
+            lang_display = ", ".join(lang_names)
+            return f"✅ {chan_type.title()} translation allowed in <#{channel.id}> for: {lang_display}."
+
+    # Apply restriction(s)
+    if channel_type == "both":
+        msg_text = []
+        for t in ["text", "voice"]:
+            result = await apply_restriction(t)
+            msg_text.append(result)
+        await interaction.response.send_message("\n".join(msg_text), ephemeral=True)
+    else:
+        result = await apply_restriction(channel_type)
+        await interaction.response.send_message(result, ephemeral=True)
+
+# Add autocomplete for languages (language names)
+async def language_name_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    current_lower = current.lower()
+    matches = []
+    for code, name in languages.items():
+        if current_lower in name.lower():
+            matches.append(app_commands.Choice(name=name, value=name))
+    return matches[:25]
+
+set_channel.autocomplete('languages')(language_name_autocomplete)
 # Update the texttr command to use new limits
 @tree.command(name="texttr", description="Translate text between languages")
 @app_commands.allowed_installs(guilds=True, users=True)
