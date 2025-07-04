@@ -1773,9 +1773,9 @@ async def start(interaction: discord.Interaction):
 
 @tree.command(name="setchannel", description="Restrict translation to specific channels/languages (admin/mod only)")
 @app_commands.describe(
-    channel="Channel to allow translations in",
+    channel="Channel to allow or block translations in",
     channel_type="Type of channel: text or voice",
-    languages="Comma-separated language codes to allow (leave blank for all languages)"
+    languages="Comma-separated language codes to allow (leave blank for all languages, or type 'none' to block all)"
 )
 @app_commands.checks.has_permissions(manage_guild=True)
 async def set_channel(
@@ -1793,6 +1793,17 @@ async def set_channel(
         return
 
     guild_id = interaction.guild.id
+
+    # If languages is 'none', block all translations in this channel
+    if languages.strip().lower() == "none":
+        await db.set_channel_restriction(guild_id, channel.id, channel_type, set(), block_all=True)
+        await interaction.response.send_message(
+            f"🚫 All {channel_type} translations are now **blocked** in <#{channel.id}>.",
+            ephemeral=True
+        )
+        return
+
+    # Otherwise, allow specified languages (or all if blank)
     lang_set = set(l.strip().lower() for l in languages.split(",") if l.strip()) if languages else set()
     await db.set_channel_restriction(guild_id, channel.id, channel_type, lang_set)
 
