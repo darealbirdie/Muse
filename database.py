@@ -22,22 +22,27 @@ class Database:
         except Exception as e:
             print(f"Error getting premium users: {e}")
         return []
-    async def set_channel_restriction(self, guild_id, channel_id, channel_type, languages):
-        """Set allowed languages for a channel/type. Empty set = all languages."""
+    async def set_channel_restriction(self, guild_id, channel_id, channel_type, languages, block_all=False):
+        """Set allowed languages for a channel/type. block_all=True blocks all translations."""
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
                 "DELETE FROM channel_restrictions WHERE guild_id=? AND channel_id=? AND channel_type=?",
                 (guild_id, channel_id, channel_type)
             )
-            if not languages:
+            if block_all:
                 await db.execute(
-                    "INSERT INTO channel_restrictions (guild_id, channel_id, channel_type, language_code) VALUES (?, ?, ?, NULL)",
+                    "INSERT INTO channel_restrictions (guild_id, channel_id, channel_type, language_code, block_all) VALUES (?, ?, ?, NULL, 1)",
+                    (guild_id, channel_id, channel_type)
+                )
+            elif not languages:
+                await db.execute(
+                    "INSERT INTO channel_restrictions (guild_id, channel_id, channel_type, language_code, block_all) VALUES (?, ?, ?, NULL, 0)",
                     (guild_id, channel_id, channel_type)
                 )
             else:
                 for lang in languages:
                     await db.execute(
-                        "INSERT INTO channel_restrictions (guild_id, channel_id, channel_type, language_code) VALUES (?, ?, ?, ?)",
+                        "INSERT INTO channel_restrictions (guild_id, channel_id, channel_type, language_code, block_all) VALUES (?, ?, ?, ?, 0)",
                         (guild_id, channel_id, channel_type, lang)
                     )
             await db.commit()
@@ -46,12 +51,15 @@ class Database:
         """Check if translation is allowed in this channel/type/language."""
         async with aiosqlite.connect(self.db_path) as db:
             async with db.execute(
-                "SELECT language_code FROM channel_restrictions WHERE guild_id=? AND channel_id=? AND channel_type=?",
+                "SELECT language_code, block_all FROM channel_restrictions WHERE guild_id=? AND channel_id=? AND channel_type=?",
                 (guild_id, channel_id, channel_type)
             ) as cursor:
                 rows = await cursor.fetchall()
             if not rows:
                 return True  # No restriction set
+            for row in rows:
+                if row[1]:  # block_all == 1
+                    return False
             allowed_langs = {row[0] for row in rows if row[0]}
             if not allowed_langs:
                 return True  # All languages allowed (NULL row exists)
@@ -195,7 +203,11 @@ class Database:
                     FOREIGN KEY (user_id) REFERENCES users (user_id)
                 )
             ''')
-            
+            # Add this to your init_db method after creating channel_restrictions table:
+            await db.execute('''
+                ALTER TABLE channel_restrictions ADD COLUMN block_all BOOLEAN DEFAULT 0
+            ''')
+# (Wrap in try/except in case the column already exists)
             await db.commit()
             logger.info("Database initialized successfully")
     
