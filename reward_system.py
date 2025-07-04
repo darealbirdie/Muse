@@ -55,6 +55,25 @@ ACHIEVEMENTS = {
         'requirement': 250,
         'stat': 'translations'
     },
+
+    'translation_500': {
+        'name': '✍️ Translation Addict',
+        'description': 'Complete 500 translations',
+        'category': 'Translation',
+        'rarity': 'Epic',
+        'points': 400,
+        'requirement': 500,
+        'stat': 'translations'
+    },
+    'translation_1000': {
+        'name': '🌐 Translation Machine',
+        'description': 'Complete 1000 translations',
+        'category': 'Translation',
+        'rarity': 'Legendary',
+        'points': 1000,
+        'requirement': 1000,
+        'stat': 'translations'
+    },
     
     # Voice Achievements (Simple session tracking)
     'first_voice': {
@@ -93,6 +112,16 @@ ACHIEVEMENTS = {
         'requirement': 50,
         'stat': 'voice_sessions'
     },
+
+    'voice_100': {
+        'name': '🎤 Voice Veteran',
+        'description': 'Use voice translation 100 times',
+        'category': 'Voice',
+        'rarity': 'Epic',
+        'points': 400,
+        'requirement': 100,
+        'stat': 'voice_sessions'
+    },
     
     # Command Usage Achievements (Track specific features)
     'auto_translate_user': {
@@ -104,6 +133,15 @@ ACHIEVEMENTS = {
         'requirement': 1,
         'stat': 'auto_translate_used'
     },
+    'auto_translate_10': {
+        'name': '🔁 Auto Pro',
+        'description': 'Use auto-translation feature 10 times',
+        'category': 'Features',
+        'rarity': 'Uncommon',
+        'points': 60,
+        'requirement': 10,
+        'stat': 'auto_translate_used'
+    },
     'dm_translator': {
         'name': '💌 Message Bridge',
         'description': 'Send 5 translated DMs',
@@ -111,6 +149,15 @@ ACHIEVEMENTS = {
         'rarity': 'Uncommon',
         'points': 40,
         'requirement': 5,
+        'stat': 'dm_translations'
+    },
+    'dm_translator_20': {
+        'name': '💬 DM Power User',
+        'description': 'Send 20 translated DMs',
+        'category': 'Features',
+        'rarity': 'Rare',
+        'points': 100,
+        'requirement': 20,
         'stat': 'dm_translations'
     },
     'context_menu_user': {
@@ -209,7 +256,15 @@ ACHIEVEMENTS = {
         'requirement': 20,
         'stat': 'unique_languages'
     },
-    
+    'language_collector': {
+        'name': '🗺️ Language Collector',
+        'description': 'Translate to/from 50 different languages',
+        'category': 'Languages',
+        'rarity': 'Legendary',
+        'points': 500,
+        'requirement': 50,
+        'stat': 'unique_languages'
+    },
     # Time-Based Achievements (Simple date tracking)
     'daily_user': {
         'name': '📅 Daily User',
@@ -229,7 +284,33 @@ ACHIEVEMENTS = {
         'requirement': 30,
         'stat': 'active_days'
     },
-    
+    'monthly_muse': {
+        'name': '📆 Monthly Muse',
+        'description': 'Use Muse for 100 different days',
+        'category': 'Consistency',
+        'rarity': 'Rare',
+        'points': 250,
+        'requirement': 100,
+        'stat': 'active_days'
+    },
+    'half_year_hero': {
+        'name': '🗓️ Half-Year Hero',
+        'description': 'Use Muse for 180 different days',
+        'category': 'Consistency',
+        'rarity': 'Epic',
+        'points': 500,
+        'requirement': 180,
+        'stat': 'active_days'
+    },
+    'yearly_legend': {
+        'name': '📅 Yearly Legend',
+        'description': 'Use Muse for 365 different days',
+        'category': 'Consistency',
+        'rarity': 'Legendary',
+        'points': 1000,
+        'requirement': 365,
+        'stat': 'active_days'
+    },
     # Special/Fun Achievements
     'feedback_giver': {
         'name': '💬 Feedback Hero',
@@ -249,16 +330,34 @@ ACHIEVEMENTS = {
         'requirement': 1,
         'stat': 'servers_invited'
     },
+    'invite_5_servers': {
+        'name': '🌍 Muse Promoter',
+        'description': 'Invite Muse to 5 different servers',
+        'category': 'Community',
+        'rarity': 'Epic',
+        'points': 300,
+        'requirement': 5,
+        'stat': 'servers_invited'
+    },
+    'feedback_champion': {
+        'name': '🏅 Feedback Champion',
+        'description': 'Provide feedback 10 times',
+        'category': 'Community',
+        'rarity': 'Rare',
+        'points': 120,
+        'requirement': 10,
+        'stat': 'feedback_given'
+    },
 
     "topgg_voter": {
-    "name": "🌟 Muse Supporter",
-    "description": "Upvoted Muse on Top.gg",
-    "category": "Community",
-    "rarity": "Uncommon",
-    "points": 50,
-    "requirement": 1,
-    "stat": "topgg_vote",
-    "emoji": "🌟"
+        "name": "🌟 Muse Supporter",
+        "description": "Upvoted Muse on Top.gg",
+        "category": "Community",
+        "rarity": "Uncommon",
+        "points": 50,
+        "requirement": 1,
+        "stat": "topgg_vote",
+        "emoji": "🌟"
     },
     
     # Milestone Achievements
@@ -275,11 +374,22 @@ ACHIEVEMENTS = {
         'name': '👑 Muse Legend',
         'description': 'Unlock 15 different achievements',
         'category': 'Milestones',
-        'rarity': 'Legendary',
+        'rarity': 'Epic',
         'points': 750,
         'requirement': 15,
         'stat': 'achievements_unlocked'
+    },
+    # ...existing achievements...
+    'completionist': {
+        'name': '🏅 Completionist',
+        'description': 'Unlock every single achievement in Muse',
+        'category': 'Milestones',
+        'rarity': 'Legendary',
+        'points': 2000,
+        'requirement': 'all',
+       'stat': 'achievements_unlocked'
     }
+# ...existing achievements...
 }
 # Update the REWARDS dictionary - replace bulk_translation with enhanced_voice
 REWARDS = {
