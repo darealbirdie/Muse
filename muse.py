@@ -1646,6 +1646,7 @@ async def start(interaction: discord.Interaction):
                 name="⚙️ Settings & Info",
                 value=(
                     "`/hide` or `/show` - Toggle original text visibility\n"
+                    "`/preferences` - Adjust language preferences\n"
                     "`/history` - View translation history\n"
                     "`/list` - See all supported languages\n"
                     "`/upgrade` - Unlock premium features\n"
@@ -8053,6 +8054,7 @@ async def help_command(interaction: discord.Interaction):
         value=(
             "`/hide` - Hide original text in translations\n"
             "`/show` - Show original text in translations\n"
+            "`/preferences` - Adjust language preferences\n"
             "`/history` - View translation history"
         ),
         inline=False
