@@ -8,6 +8,54 @@ import discord
 
 logger = logging.getLogger('muse_rewards')
 
+# Four-tier system configuration
+TIER_CONFIG = {
+    'free': {
+        'name': 'Free',
+        'emoji': '🆓',
+        'color': 0x95a5a6,
+        'price': '$0/month',
+        'daily_reward': 10,
+        'point_multiplier': 1.0,
+        'features': ['Basic translation', 'Limited usage']
+    },
+    'basic': {
+        'name': 'Basic',
+        'emoji': '🥉',
+        'color': 0x2ecc71,
+        'price': '$1/month',
+        'daily_reward': 15,
+        'point_multiplier': 1.5,
+        'features': ['Translation history', 'Auto-translate', 'Extended limits']
+    },
+    'premium': {
+        'name': 'Premium', 
+        'emoji': '🥈',
+        'color': 0x3498db,
+        'price': '$3/month',
+        'daily_reward': 25,
+        'point_multiplier': 2.0,
+        'features': ['Priority processing', 'Enhanced voice', 'All Basic features']
+    },
+    'pro': {
+        'name': 'Pro',
+        'emoji': '🥇',
+        'color': 0xf1c40f,
+        'price': '$5/month', 
+        'daily_reward': 40,
+        'point_multiplier': 3.0,
+        'features': ['Beta access', 'Priority support', 'Unlimited everything']
+    }
+}
+
+# Daily reward multipliers for streaks
+STREAK_MULTIPLIERS = {
+    'free': 1.0,
+    'basic': 1.2,    # 20% streak bonus
+    'premium': 1.5,  # 50% streak bonus
+    'pro': 2.0       # 100% streak bonus
+}
+
 ACHIEVEMENTS = {
     # Translation Achievements (Easy to track)
     'first_translation': {
@@ -1018,7 +1066,11 @@ class RewardDatabase:
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-                
+                # Add this to your database initialization
+                cursor.execute('''
+                    ALTER TABLE user_stats ADD COLUMN daily_streak INTEGER DEFAULT 0
+                ''')
+
                 # Create point_transactions table
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS point_transactions (
@@ -1480,61 +1532,130 @@ class RewardDatabase:
         except Exception as e:
             logger.error(f"Error getting active rewards: {e}")
             return []
-    
+        
+    def add_daily_streak_column():
+        """Add daily_streak column to user_stats table"""
+        try:
+            with sqlite3.connect("muse_bot.db") as conn:  # Use your actual DB path
+                cursor = conn.cursor()
+            
+                # Add the missing column
+                cursor.execute('ALTER TABLE user_stats ADD COLUMN daily_streak INTEGER DEFAULT 0')
+                conn.commit()
+                print("✅ Added daily_streak column successfully!")
+            
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e):
+                print("✅ daily_streak column already exists")
+            else:
+                print(f"❌ Error: {e}")
+        except Exception as e:
+            print(f"❌ Error: {e}")
+
+    if __name__ == "__main__":
+        add_daily_streak_column()
+
     def has_active_reward(self, user_id: int, reward_type: str) -> bool:
         """Check if user has an active reward of specific type"""
         active_rewards = self.get_active_rewards(user_id)
         return any(reward['type'] == reward_type for reward in active_rewards)
     
-    def claim_daily_reward(self, user_id: int, username: str, is_premium: bool = False) -> Dict:
-        """Claim daily reward points"""
+    def claim_daily_reward(self, user_id: int, username: str, tier: str = 'free') -> Dict:
+        """Claim daily reward points with streak system"""
         try:
             user_data = self.get_or_create_user(user_id, username)
-            today = datetime.now().date().isoformat()
-            
+            today = datetime.now().date()
+            yesterday = (today - timedelta(days=1))
+            today_str = today.isoformat()
+            yesterday_str = yesterday.isoformat()
+        
             # Check if already claimed today
-            if user_data['last_daily_claim'] == today:
+            if user_data['last_daily_claim'] == today_str:
                 return {
                     'success': False,
                     'error': 'Daily reward already claimed today!',
                     'next_claim': 'tomorrow'
                 }
-            
-            # Calculate reward amount
-            base_reward = 25 if is_premium else 10
-            
+        
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                
-                # Update user points and daily claim
-                                # Update user points and daily claim
+            
+                # Get current streak
+                cursor.execute('SELECT daily_streak FROM user_stats WHERE user_id = ?', (user_id,))
+                result = cursor.fetchone()
+                current_streak = result[0] if result and result[0] else 0
+            
+                # Check if streak continues
+                if user_data['last_daily_claim'] == yesterday_str:
+                    current_streak += 1  # Continue streak
+                else:
+                    current_streak = 1   # Start new streak
+            
+                # Base rewards by tier
+                tier_rewards = {
+                    'free': 10,      # $0/month
+                    'basic': 15,     # $1/month  
+                    'premium': 25,   # $3/month
+                    'pro': 40        # $5/month
+                }
+
+                base_reward = tier_rewards.get(tier.lower(), 10)
+            
+                # Streak bonus: +10% per day, max 50% at 5+ days
+                streak_multiplier = 1.0 + min(current_streak - 1, 5) * 0.1
+                final_reward = int(base_reward * streak_multiplier)
+            
+                # Update user stats
                 cursor.execute('''
                     UPDATE user_stats 
                     SET total_points = total_points + ?,
                         total_earned = total_earned + ?,
                         last_daily_claim = ?,
+                        daily_streak = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ?
-                ''', (base_reward, base_reward, today, user_id))
-                
+                ''', (final_reward, final_reward, today_str, current_streak, user_id))
+            
                 # Record transaction
                 cursor.execute('''
                     INSERT INTO point_transactions (user_id, amount, transaction_type, description)
                     VALUES (?, ?, ?, ?)
-                ''', (user_id, base_reward, "daily", f"Daily reward ({'Premium' if is_premium else 'Free'})"))
-                
+                ''', (user_id, final_reward, "daily", f"Daily reward ({tier.title()}) - {current_streak} day streak"))
+            
                 conn.commit()
-                
+            
+                # Calculate bonuses for display
+                streak_bonus = final_reward - base_reward
+            
                 return {
                     'success': True,
-                    'points_earned': base_reward,
-                    'total_points': user_data['points'] + base_reward,
-                    'is_premium': is_premium
+                    'points_earned': final_reward,
+                    'base_reward': base_reward,
+                    'streak_bonus': streak_bonus,
+                    'total_points': user_data['points'] + final_reward,
+                    'tier': tier,
+                    'streak_days': current_streak,
+                    'next_streak_bonus': f"+{int(base_reward * 0.1)}pts" if current_streak < 5 else "Max streak bonus!",
+                    'tier_bonus': f"+{streak_bonus}pts" if streak_bonus > 0 else "Base"
                 }
-                
+            
         except Exception as e:
             logger.error(f"Error claiming daily reward for user {user_id}: {e}")
             return {'success': False, 'error': str(e)}
+
+
+
+    def get_user_streak(self, user_id: int) -> int:
+        """Get user's current daily claim streak"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT daily_streak FROM user_stats WHERE user_id = ?', (user_id,))
+                result = cursor.fetchone()
+                return result[0] if result and result[0] else 0
+        except:
+            return 0
+
     
     def get_leaderboard(self, limit: int = 10) -> List[Dict]:
         """Get top users by points"""
