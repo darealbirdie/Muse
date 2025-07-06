@@ -42,6 +42,8 @@ from reward_system import (
     has_enhanced_voice_access,
     reward_db  
 )
+from add_streak_column import add_streak_column, check_column_exists
+from i18n.translate import t
 # Place this at the top of your file (global scope)
 new_achievements = []
 YOUR_ADMIN_ID = 1192196672437096520
@@ -71,6 +73,31 @@ RANK_BADGES = {
     2000: {'name': 'Legend', 'emoji': '🏆', 'color': 0xe74c3c},
     5000: {'name': 'Grandmaster', 'emoji': '💎', 'color': 0x1abc9c}
 }
+print("🔧 Setting up database schema...")
+# Wait for database to be initialized first, then add column
+async def setup_streak_column():
+    """Add streak column after database is initialized"""
+    try:
+        # Wait a moment for database to be ready
+        import asyncio
+        await asyncio.sleep(1)
+        
+        # Now add the column
+        column_added = add_streak_column()
+        global HAS_STREAK_COLUMN
+        HAS_STREAK_COLUMN = column_added or check_column_exists()
+        
+        if HAS_STREAK_COLUMN:
+            print("✅ Streak system ready!")
+        else:
+            print("⚠️ Running without streak system")
+            
+    except Exception as e:
+        print(f"Error setting up streak column: {e}")
+        HAS_STREAK_COLUMN = False
+
+# Initialize as False
+HAS_STREAK_COLUMN = False
 # Pro Tier Processing Function
 def format_seconds(seconds: int) -> str:
     """Format seconds as 'X min Y sec' or 'Y sec'."""
@@ -1560,7 +1587,7 @@ async def start(interaction: discord.Interaction):
                     name="🛠️ Server Setup Tips (Admins/Mods)",
                     value=(
                         "• Use `/setchannel` to restrict translation to specific channels/languages\n"
-                        "• Use `/invite` to add Muse to more servers"
+                        "• Use `/invite` to add Muse to more servers\n"
                         "• Use `/help` for all commands"
                     ),
             inline=False
@@ -7897,65 +7924,96 @@ async def translation_history(interaction: discord.Interaction, limit: int = 10)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# Add new command for setting user preferences
-@tree.command(name="preferences", description="Set your default translation languages")
+@tree.command(name="preferences", description="Set your default translation and interface languages")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(
     default_source="Your default source language (or 'auto' for detection)",
-    default_target="Your default target language"
+    default_target="Your default target language",
+    ui_language="Language used for bot messages (e.g. en, es, fr)"
 )
 async def set_preferences(
     interaction: discord.Interaction,
-    default_source: str,
-    default_target: str
+    default_source: str = None,
+    default_target: str = None,
+    ui_language: str = None
 ):
     user_id = interaction.user.id
-    
-    # Convert language inputs to codes
-    source_code = "auto" if default_source.lower() == "auto" else get_language_code(default_source)
-    target_code = get_language_code(default_target)
-    
-    # Validate language codes
-    if default_source.lower() != "auto" and not source_code:
-        await interaction.response.send_message(
-            f"❌ Invalid source language: '{default_source}'\nUse /list to see available languages or use 'auto' for automatic detection.",
-            ephemeral=True
-        )
+    updates = []
+
+    # --- Handle source_lang ---
+    if default_source:
+        source_code = "auto" if default_source.lower() == "auto" else get_language_code(default_source)
+        if default_source.lower() != "auto" and not source_code:
+            await interaction.response.send_message(
+                f"❌ Invalid source language: '{default_source}'\nUse /list to see available languages or use 'auto' for automatic detection.",
+                ephemeral=True
+            )
+            return
+        await db.update_user_preferences(user_id, source_lang=source_code)
+        updates.append(("source", source_code))
+
+    # --- Handle target_lang ---
+    if default_target:
+        target_code = get_language_code(default_target)
+        if not target_code:
+            await interaction.response.send_message(
+                f"❌ Invalid target language: '{default_target}'\nUse /list to see available languages.",
+                ephemeral=True
+            )
+            return
+        await db.update_user_preferences(user_id, target_lang=target_code)
+        updates.append(("target", target_code))
+
+    # --- Handle UI language ---
+    if ui_language:
+        ui_code = get_language_code(ui_language)
+        if not ui_code:
+            await interaction.response.send_message(
+                f"❌ Invalid UI language: '{ui_language}'\nUse /list to see available languages.",
+                ephemeral=True
+            )
+            return
+        await db.update_user_ui_language(user_id, ui_code)
+        updates.append(("ui", ui_code))
+
+    if not updates:
+        await interaction.response.send_message("⚠️ You didn't provide any preferences to update.", ephemeral=True)
         return
-        
-    if not target_code:
-        await interaction.response.send_message(
-            f"❌ Invalid target language: '{default_target}'\nUse /list to see available languages.",
-            ephemeral=True
-        )
-        return
-    
-    # Save preferences to database
-    await db.update_user_preferences(user_id, source_code, target_code)
-    
-    # Get display names
+
+    # --- Display success message ---
+    source_code = next((val for key, val in updates if key == "source"), None)
+    target_code = next((val for key, val in updates if key == "target"), None)
+    ui_code = next((val for key, val in updates if key == "ui"), None)
+
     source_display = "Auto-detect" if source_code == "auto" else languages.get(source_code, source_code)
-    target_display = languages.get(target_code, target_code)
-    source_flag = '🔍' if source_code == "auto" else flag_mapping.get(source_code, '🌐')
-    target_flag = flag_mapping.get(target_code, '🌐')
-    
+    target_display = languages.get(target_code, target_code) if target_code else None
+    ui_display = languages.get(ui_code, ui_code) if ui_code else None
+
+    source_flag = '🔍' if source_code == "auto" else flag_mapping.get(source_code, '🌐') if source_code else ""
+    target_flag = flag_mapping.get(target_code, '🌐') if target_code else ""
+    ui_flag = flag_mapping.get(ui_code, '🌐') if ui_code else ""
+
+    desc_lines = []
+    if source_code:
+        desc_lines.append(f"**Default Source:** {source_flag} {source_display}")
+    if target_code:
+        desc_lines.append(f"**Default Target:** {target_flag} {target_display}")
+    if ui_code:
+        desc_lines.append(f"**Bot UI Language:** {ui_flag} {ui_display}")
+
     embed = discord.Embed(
         title="✅ Preferences Updated!",
-        description=(
-            f"Your default languages have been set:\n\n"
-            f"**Default Source:** {source_flag} {source_display}\n"
-            f"**Default Target:** {target_flag} {target_display}\n\n"
-            f"These will be suggested in future commands with autocomplete."
-        ),
+        description="\n".join(desc_lines) + "\n\nThese will apply to future commands and responses.",
         color=0x2ecc71
     )
-    
+
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# Add autocomplete to preferences command
+# Add autocomplete if supported
 set_preferences.autocomplete('default_source')(source_language_autocomplete)
 set_preferences.autocomplete('default_target')(language_autocomplete)
+set_preferences.autocomplete('ui_language')(language_autocomplete)
 
 @tree.command(name="help", description="Show all available commands")
 async def help_command(interaction: discord.Interaction):
@@ -8388,54 +8446,96 @@ async def view_reviews(interaction: discord.Interaction):
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def daily_reward(interaction: discord.Interaction):
     await track_command_usage(interaction)
-    
     user_id = interaction.user.id
     username = interaction.user.display_name
-    is_premium = user_id in tier_handler.premium_users
     
-    result = reward_db.claim_daily_reward(user_id, username, is_premium)
+    # Get the user's tier (async)
+    user_tier = await tier_handler.get_user_tier_async(user_id)
+    
+    tier_labels = {
+        "free": "Free 🆓",
+        "basic": "Basic 🥉", 
+        "premium": "Premium 🥈",
+        "pro": "Pro 🥇"
+    }
+    
+    tier_colors = {
+        "free": 0x95a5a6,
+        "basic": 0x3498db,
+        "premium": 0xf39c12,
+        "pro": 0x9b59b6
+    }
+    
+    # Claim reward with streak
+    result = reward_db.claim_daily_reward(user_id, username, user_tier)
     
     if result['success']:
         embed = discord.Embed(
             title="🎁 Daily Reward Claimed!",
             description=f"You earned **{result['points_earned']} points**!",
-            color=0xf1c40f if is_premium else 0x2ecc71
+            color=tier_colors.get(user_tier, 0x95a5a6)
         )
         
         embed.add_field(
-            name="💎 Total Points",
-            value=f"{result['total_points']:,}",
+            name="💎 Total Points", 
+            value=f"{result['total_points']:,}", 
             inline=True
         )
         
         embed.add_field(
-            name="⭐ Tier",
-            value="Premium" if is_premium else "Free",
+            name="⭐ Your Tier", 
+            value=tier_labels.get(user_tier, "Free 🆓"), 
             inline=True
         )
         
         embed.add_field(
-            name="⏰ Next Claim",
-            value="Tomorrow",
+            name="🔥 Daily Streak",
+            value=f"{result['streak_days']} days",
             inline=True
         )
         
-        if not is_premium:
-            embed.add_field(
-                name="💡 Tip",
-                value="Premium users get 2.5x daily rewards! Use `/upgrade` to upgrade.",
-                inline=False
-            )
+        # Show breakdown
+        breakdown = f"Base: {result['base_reward']}pts"
+        if result.get('streak_bonus', 0) > 0:
+            breakdown += f"\nStreak: +{result['streak_bonus']}pts"
+        
+        embed.add_field(
+            name="📊 Breakdown",
+            value=breakdown,
+            inline=True
+        )
+        
+        embed.add_field(
+            name="⏰ Next Claim", 
+            value="Tomorrow", 
+            inline=True
+        )
+        
+        embed.add_field(
+            name="🎯 Next Bonus",
+            value=result.get('next_streak_bonus', 'Max reached!'),
+            inline=True
+        )
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
+        
     else:
         embed = discord.Embed(
             title="❌ Daily Reward",
             description=result['error'],
             color=0xe74c3c
         )
+        
+        if result.get('next_claim') == 'tomorrow':
+            embed.add_field(
+                name="⏰ Next Available",
+                value="Come back tomorrow for your next daily reward!",
+                inline=False
+            )
+        
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+        
 @tree.command(name="shop", description="Browse and purchase rewards with points")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -11443,6 +11543,8 @@ async def on_ready():
     try:
         await db.init_db()  # Changed from db.initialize() to db.init_db()
         print("✅ Main database initialized!")
+        # NOW add the streak column
+        await setup_streak_column()
     except Exception as e:
         print(f"❌ Database initialization failed: {e}")
 
@@ -11482,7 +11584,7 @@ async def on_ready():
     print(f"📊 Connected to {len(client.guilds)} servers")
 # NEW: Background task to clean up expired rewards
 async def cleanup_expired_rewards():
-    """Background task to clean up expired rewards"""
+    F"Background task to clean up expired rewards"""
     while True:
         try:
             reward_db.cleanup_expired_rewards()
