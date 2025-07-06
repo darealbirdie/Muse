@@ -47,6 +47,26 @@ class Database:
                     )
             await db.commit()
 
+    async def get_user_ui_language(self, user_id: int) -> str:
+        """Get user's UI language preference"""
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute(
+                "SELECT ui_language FROM users WHERE user_id = ?", (user_id,)
+            ) as cursor:
+                result = await cursor.fetchone()
+                return result[0] if result and result[0] else "en"
+
+    async def update_user_ui_language(self, user_id: int, lang_code: str):
+        """Update user's preferred UI language"""
+        async with aiosqlite.connect(self.db_path) as db:
+            # Insert or update user record
+            await db.execute(
+                "INSERT OR REPLACE INTO users (user_id, ui_language) VALUES (?, ?)",
+                (user_id, lang_code)
+            )
+            await db.commit()
+
+
     async def is_translation_allowed(self, guild_id, channel_id, channel_type, lang_code):
         """Check if translation is allowed in this channel/type/language."""
         async with aiosqlite.connect(self.db_path) as db:
@@ -69,19 +89,20 @@ class Database:
         async with aiosqlite.connect(self.db_path) as db:
             # Users table
             await db.execute('''
-                CREATE TABLE IF NOT EXISTS users (
-                    user_id INTEGER PRIMARY KEY,
-                    username TEXT,
-                    is_premium BOOLEAN DEFAULT FALSE,
-                    premium_expires DATETIME,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    last_active DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    total_translations INTEGER DEFAULT 0,
-                    preferred_source_lang TEXT DEFAULT 'auto',
-                    preferred_target_lang TEXT DEFAULT 'en'
-                )
-            ''')
-            
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                is_premium BOOLEAN DEFAULT FALSE,
+                premium_expires DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_active DATETIME DEFAULT CURRENT_TIMESTAMP,
+                total_translations INTEGER DEFAULT 0,
+                preferred_source_lang TEXT DEFAULT 'auto',
+                preferred_target_lang TEXT DEFAULT 'en',
+                ui_language TEXT DEFAULT 'en'
+            )
+        ''')
+
             # Usage tracking table
             await db.execute('''
                 CREATE TABLE IF NOT EXISTS usage_tracking (
@@ -203,11 +224,15 @@ class Database:
                     FOREIGN KEY (user_id) REFERENCES users (user_id)
                 )
             ''')
-            # Add this to your init_db method after creating channel_restrictions table:
-            await db.execute('''
-                ALTER TABLE channel_restrictions ADD COLUMN block_all BOOLEAN DEFAULT 0
-            ''')
-# (Wrap in try/except in case the column already exists)
+            # Add block_all column if it doesn't exist
+            try:
+                await db.execute('''
+                    ALTER TABLE channel_restrictions ADD COLUMN block_all BOOLEAN DEFAULT 0
+                ''')
+            except Exception as e:
+                # Column likely already exists, which is fine
+                if "duplicate column name" not in str(e).lower():
+                    logger.warning(f"Error adding block_all column: {e}")
             await db.commit()
             logger.info("Database initialized successfully")
     
