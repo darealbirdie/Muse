@@ -5,8 +5,29 @@ import logging
 from datetime import datetime, date
 from typing import Dict, List, Optional
 import discord
+from i18n.translate import t
 
 logger = logging.getLogger('muse_achievements')
+
+async def get_localized_achievement(user_id: int, achievement_id: str) -> dict:
+    """Get achievement data with localized name and description"""
+    base_data = ACHIEVEMENTS.get(achievement_id, {})
+    
+    # Try to get localized name and description
+    name = await t(user_id, f"ACHIEVEMENTS.{achievement_id}.name")
+    description = await t(user_id, f"ACHIEVEMENTS.{achievement_id}.description")
+    
+    # If translation not found, use original data
+    if name == f"ACHIEVEMENTS.{achievement_id}.name":
+        name = base_data.get('name', achievement_id)
+    if description == f"ACHIEVEMENTS.{achievement_id}.description":  
+        description = base_data.get('description', '')
+    
+    return {
+        **base_data,
+        'name': name,
+        'description': description
+    }
 
 # Achievement definitions
 ACHIEVEMENTS = {
@@ -815,24 +836,29 @@ async def send_achievement_notification(client, user_id: int, achievement_ids: L
             return
         
         for ach_id in achievement_ids:
-            ach_data = ACHIEVEMENTS.get(ach_id, {})
+            ach_data = await get_localized_achievement(user_id, ach_id)
             rarity_info = RARITY_INFO.get(ach_data.get('rarity', 'Common'), {})
             
+            # Get localized text
+            title = await t(user_id, "ACHIEVEMENT_UNLOCKED")
+            points_label = await t(user_id, "ACHIEVEMENT_POINTS", points=ach_data.get('points', 0))
+            rarity_label = await t(user_id, "ACHIEVEMENT_RARITY", rarity=ach_data.get('rarity', 'Common'))
+            
             embed = discord.Embed(
-                title="🎉 Achievement Unlocked!",
+                title=title,
                 description=f"{rarity_info.get('emoji', '⚪')} **{ach_data.get('name', 'Unknown')}**\n{ach_data.get('description', '')}",
                 color=rarity_info.get('color', 0x95a5a6)
             )
             
             embed.add_field(
                 name="Points Earned",
-                value=f"+{ach_data.get('points', 0)} points",
+                value=points_label,
                 inline=True
             )
             
             embed.add_field(
-                name="Rarity",
-                value=f"{rarity_info.get('emoji', '⚪')} {ach_data.get('rarity', 'Common')}",
+                name="Rarity", 
+                value=f"{rarity_info.get('emoji', '⚪')} {rarity_label}",
                 inline=True
             )
             
