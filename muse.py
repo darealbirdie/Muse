@@ -2306,6 +2306,105 @@ translate_and_speak.autocomplete('target_lang')(language_autocomplete)
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('muse')
 
+# Voice state event handlers for auto-disconnect
+@client.event
+async def on_voice_state_update(member, before, after):
+    """Handle voice state changes - auto disconnect when channel is empty"""
+    try:
+        # Only process if bot is connected to voice
+        if not member.guild.voice_client:
+            return
+            
+        # If the bot was moved or disconnected
+        if member.id == client.user.id:
+            if before.channel and not after.channel:
+                # Bot was disconnected, clean up session
+                guild_id = member.guild.id
+                if guild_id in voice_translation_sessions:
+                    del voice_translation_sessions[guild_id]
+                    logger.info(f"Cleaned up voice session for guild {guild_id} - bot disconnected")
+            return
+            
+        # Check if anyone left the bot's voice channel
+        bot_channel = member.guild.voice_client.channel
+        if before.channel == bot_channel:
+            # Count remaining humans in the channel (exclude bots)
+            humans_in_channel = len([m for m in bot_channel.members if not m.bot])
+            
+            if humans_in_channel == 0:
+                # No humans left, disconnect after a short delay
+                logger.info(f"No humans left in {bot_channel.name}, disconnecting in 10 seconds")
+                await asyncio.sleep(10)
+                
+                # Check again in case someone rejoined
+                humans_in_channel = len([m for m in bot_channel.members if not m.bot])
+                if humans_in_channel == 0 and member.guild.voice_client:
+                    try:
+                        # Clean up session and calculate duration
+                        guild_id = member.guild.id
+                        session_duration_seconds = 0
+                        text_channel = None
+                        initiating_user_id = None
+                        
+                        if guild_id in voice_translation_sessions:
+                            session = voice_translation_sessions[guild_id]
+                            
+                            # Calculate session duration
+                            if 'start_time' in session:
+                                session_duration_seconds = time.time() - session['start_time']
+                            
+                            # Get text channel and user info for notification
+                            text_channel = session.get('text_channel')
+                            initiating_user_id = session.get('initiating_user_id')
+                            
+                            # Send session stats BEFORE cleanup and deletion
+                            if text_channel and session_duration_seconds > 0:
+                                try:
+                                    # Check if it's a voicechat2 session
+                                    session_type = session.get('type')
+                                    logger.info(f"Auto-disconnect - Session type: {session_type}")
+                                    if session_type in ['voicechat2', 'enhanced_v2']:
+                                        # Use the dedicated voicechat2 stats function
+                                        logger.info("Sending voicechat2 auto-disconnect stats")
+                                        await send_voicechat2_session_stats(guild_id, "auto_disconnect")
+                                    else:
+                                        # Regular voicechat session
+                                        duration_str = format_seconds(int(session_duration_seconds))
+                                        embed = discord.Embed(
+                                            title="🔄 Voice Translation Auto-Disconnected",
+                                            description=f"Bot automatically disconnected from **{bot_channel.name}** due to empty voice channel.",
+                                            color=0xffa500
+                                        )
+                                        embed.add_field(
+                                            name="📊 Session Stats",
+                                            value=f"🎤 Voice session duration: {duration_str}",
+                                            inline=False
+                                        )
+                                        embed.set_footer(text="You can start a new session with /voicechat")
+                                        
+                                        await text_channel.send(embed=embed)
+                                except Exception as embed_error:
+                                    logger.error(f"Error sending auto-disconnect notification: {embed_error}")
+                            
+                            # Now cleanup and delete session
+                            if 'sink' in session:
+                                sink = session['sink']
+                                if hasattr(sink, 'cleanup'):
+                                    if asyncio.iscoroutinefunction(sink.cleanup):
+                                        await sink.cleanup()
+                                    else:
+                                        sink.cleanup()
+                            del voice_translation_sessions[guild_id]
+                        
+                        await member.guild.voice_client.disconnect()
+                        logger.info(f"Auto-disconnected from empty voice channel: {bot_channel.name}")
+                        
+                    except Exception as e:
+                        logger.error(f"Error auto-disconnecting: {e}")
+                        
+    except Exception as e:
+        logger.error(f"Error in voice state update: {e}")
+
 # Update the voice chat commands to use new limits (complete voicechat command)
 @tree.command(name="voicechat", description="Translate voice chat in real-time")
 @app_commands.describe(
@@ -2367,42 +2466,75 @@ async def voice_chat_translate(
         )
         return
         
-    # Get user's tier limits and check voice usage
+    # Get user's tier and check voice limits
     user_id = interaction.user.id
     user = await db.get_or_create_user(user_id, interaction.user.display_name)
-    limits = get_effective_limits(user_id, tier_handler, reward_db)
-    
-    # Check voice limits for free users
-    if not user['is_premium']:
-        daily_usage = await db.get_daily_usage(user_id)
-        remaining_seconds = 1800 - daily_usage['voice_seconds']  # 30 minutes = 1800 seconds
-        
-        if remaining_seconds <= 0:
-            embed = discord.Embed(
-                title="🔒 Daily Voice Limit Reached",
-                description=(
-                    "You've used your 30 minutes of voice translation for today!\n\n"
-                    "**Upgrade to Premium for unlimited voice translation:**\n"
-                    "• Just $1/month\n"
-                    "• Unlimited voice translation\n"
-                    "• Unlimited text translation\n"
-                    "• Full translation history\n\n"
-                    "Use `/upgrade` to upgrade now!"
-                ),
-                color=0xFF6B6B
+    current_tier = tier_handler.get_user_tier(user_id)
+
+    # Check voice limits using tier handler
+    can_use_voice, limit_message = tier_handler.check_usage_limits(
+        user_id, 
+        usage_type='voice_seconds', 
+        amount=1  # Just checking if they can start a session
+    )
+
+    if not can_use_voice:
+        # Get tier-specific upgrade messages
+        tier_upgrade_messages = {
+            'free': (
+                "You've reached your **30-minute** daily voice limit!\n\n"
+                "**Upgrade Options:**\n"
+                "🥉 **Basic ($1/month):** 1 hour daily\n"
+                "🥈 **Premium ($3/month):** 2 hours daily\n"
+                "🥇 **Pro ($5/month):** ♾️ Unlimited\n\n"
+                "Use `/upgrade` to upgrade now!"
+            ),
+            'basic': (
+                "You've reached your **1-hour** daily voice limit!\n\n"
+                "**Upgrade Options:**\n"
+                "🥈 **Premium ($3/month):** 2 hours daily\n"
+                "🥇 **Pro ($5/month):** ♾️ Unlimited\n\n"
+                "Use `/upgrade` to upgrade now!"
+            ),
+            'premium': (
+                "You've reached your **2-hour** daily voice limit!\n\n"
+                "**Upgrade to Pro for unlimited:**\n"
+                "🥇 **Pro ($5/month):** ♾️ Unlimited everything\n\n"
+                "Use `/upgrade` to upgrade now!"
             )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            return
-        elif remaining_seconds < 300:  # Less than 5 minutes remaining
+        }
+    
+        embed = discord.Embed(
+            title="🔒 Daily Voice Limit Reached",
+            description=tier_upgrade_messages.get(current_tier, limit_message),
+            color=0xFF6B6B
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    # Check if user is close to their limit (warn them)
+    if current_tier != 'pro':  # Pro has unlimited
+        usage_stats = tier_handler.get_usage_stats(user_id)
+        remaining_limits = tier_handler.get_remaining_limits(user_id)
+    
+        if remaining_limits['voice_seconds'] < 300:  # Less than 5 minutes remaining
+            tier_limits = {
+                'free': '30 minutes',
+                'basic': '1 hour',
+                'premium': '2 hours'
+            }
+        
             embed = discord.Embed(
                 title="⚠️ Voice Limit Warning",
                 description=(
-                    f"You have {format_seconds(remaining_seconds)} of voice translation remaining today.\n"
-                    f"Consider upgrading to premium for unlimited access!"
+                    f"You have **{format_seconds(remaining_limits['voice_seconds'])}** remaining today.\n"
+                    f"Your {current_tier.title()} tier limit: {tier_limits[current_tier]}\n\n"
+                    f"Consider upgrading for more time!"
                 ),
                 color=0xF39C12
             )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            # Don't return here, just warn them
+
     
     voice_channel = interaction.user.voice.channel
     user_id = interaction.user.id
@@ -2691,13 +2823,33 @@ async def voice_chat_translate(
             logger.info("Cleaning up TranslationSink")
             self.is_running = False
             
-            # Calculate session duration and track usage
-            session_duration = int(time.time() - self.start_time)
-            await db.track_usage(self.initiating_user_id, voice_seconds=session_duration)
-            logger.info(f"Voice session duration: {session_duration} seconds")
+            try:
+                # Calculate session duration and track usage
+                session_duration = int(time.time() - self.start_time)
+                await db.track_usage(self.initiating_user_id, voice_seconds=session_duration)
+                logger.info(f"Voice session duration: {session_duration} seconds")
+            except Exception as e:
+                logger.error(f"Error tracking usage during cleanup: {e}")
             
-            if hasattr(self, 'processing_thread') and self.processing_thread.is_alive():
-                self.processing_thread.join(timeout=2.0)
+            # Clean up processing thread
+            try:
+                if hasattr(self, 'processing_thread') and self.processing_thread.is_alive():
+                    self.processing_thread.join(timeout=3.0)
+                    if self.processing_thread.is_alive():
+                        logger.warning("Processing thread didn't shut down cleanly")
+            except Exception as e:
+                logger.error(f"Error cleaning up processing thread: {e}")
+            
+            # Clear buffers
+            try:
+                self.user_buffers.clear()
+                while not self.processing_queue.empty():
+                    try:
+                        self.processing_queue.get_nowait()
+                    except:
+                        break
+            except Exception as e:
+                logger.error(f"Error clearing buffers: {e}")
                 
         # Add sink event listeners as per documentation
         @BasicSink.listener()
@@ -2713,24 +2865,48 @@ async def voice_chat_translate(
         await interaction.response.defer(ephemeral=True)
         logger.info(f"Connecting to voice channel: {voice_channel.name}")
         
-        # First, check if we're already connected to a voice channel in this guild
+        # Clean up any existing connection first
         if interaction.guild.voice_client:
-            # If we're in a different channel, move to the new one
-            if interaction.guild.voice_client.channel != voice_channel:
-                logger.info(f"Moving to different voice channel: {voice_channel.name}")
-                await interaction.guild.voice_client.move_to(voice_channel)
-                
-            # If the existing client is not a VoiceRecvClient, disconnect and reconnect
-            if not isinstance(interaction.guild.voice_client, voice_recv.VoiceRecvClient):
-                logger.info("Existing client is not a VoiceRecvClient, reconnecting")
+            logger.info("Disconnecting existing voice client")
+            try:
+                if interaction.guild.voice_client.is_listening():
+                    interaction.guild.voice_client.stop_listening()
                 await interaction.guild.voice_client.disconnect()
-                voice_client = await voice_channel.connect(cls=voice_recv.VoiceRecvClient, self_deaf=False)
-            else:
-                voice_client = interaction.guild.voice_client
-        else:
-            # Connect to voice channel with the correct class parameter
-            logger.info(f"Connecting to voice channel with VoiceRecvClient: {voice_channel.name}")
-            voice_client = await voice_channel.connect(cls=voice_recv.VoiceRecvClient, self_deaf=False)
+            except Exception as e:
+                logger.error(f"Error disconnecting existing client: {e}")
+            
+            # Wait a moment for cleanup
+            await asyncio.sleep(1)
+        
+        # Clean up any existing session
+        guild_id = interaction.guild_id
+        if guild_id in voice_translation_sessions:
+            logger.info("Cleaning up existing voice session")
+            session = voice_translation_sessions[guild_id]
+            try:
+                if 'sink' in session:
+                    await session['sink'].cleanup()
+            except Exception as e:
+                logger.error(f"Error cleaning up sink: {e}")
+            del voice_translation_sessions[guild_id]
+        
+        # Connect to voice channel with proper error handling
+        logger.info(f"Connecting to voice channel with VoiceRecvClient: {voice_channel.name}")
+        try:
+            voice_client = await voice_channel.connect(
+                cls=voice_recv.VoiceRecvClient, 
+                self_deaf=False,
+                self_mute=False,
+                timeout=30.0  # 30 second timeout
+            )
+            logger.info("Successfully connected to voice channel")
+        except asyncio.TimeoutError:
+            await interaction.followup.send("❌ Connection timed out. Please try again.", ephemeral=True)
+            return
+        except Exception as e:
+            logger.error(f"Failed to connect to voice channel: {e}")
+            await interaction.followup.send(f"❌ Failed to connect to voice channel: {str(e)}", ephemeral=True)
+            return
         
         # Rest of your voice connection code continues here...
         # After connecting to the voice channel and assigning voice_client
@@ -2747,32 +2923,188 @@ async def voice_chat_translate(
         # 2. Start listening with the sink
         voice_client.listen(sink)
 
-        # 3. Track the session
+        # 3. Track the session with better info
         voice_translation_sessions[interaction.guild_id] = {
             'voice_client': voice_client,
             'sink': sink,
             'channel': voice_channel,
             'type': 'voicechat',
             'languages': [source_code, target_code],
-            'initiating_user_id': interaction.user.id
+            'initiating_user_id': interaction.user.id,
+            'start_time': time.time(),
+            'text_channel': interaction.channel
         }
+        
+        # 4. Send success message with enhanced embed
+        source_name = languages.get(source_code, source_code)
+        target_name = languages.get(target_code, target_code)
+
+        # Get user tier and limits info
+        current_tier = tier_handler.get_user_tier(user_id)
+        tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
+        tier_emojis = {'free': '🆓', 'basic': '🥉', 'premium': '🥈', 'pro': '🥇'}
+
+        # Get flags for languages
+        source_flag = flag_mapping.get(source_code, '🌐')
+        target_flag = flag_mapping.get(target_code, '🌐')
+
+        # Calculate remaining voice time display using tier handler
+        remaining_limits = tier_handler.get_remaining_limits(user_id)
+        tier_info = tier_handler.get_tier_info(current_tier)
+
+        if current_tier == 'pro':
+            remaining_time_text = "⏱️ **Session Limit:** ♾️ Unlimited"
+        else:
+            daily_usage = await db.get_daily_usage(user_id)
+
+            # Define limits per tier
+            voice_limits = {
+                'free': 1800,    # 30 minutes
+                'basic': 3600,   # 1 hour  
+                'premium': 7200, # 2 hours
+            }
+    
+            limit_seconds = voice_limits.get(current_tier, 1800)
+            remaining_seconds = limit_seconds - daily_usage['voice_seconds']
+    
+            # Format the limit display
+            limit_display = {
+                'free': '30 minutes',
+                'basic': '1 hour',
+                'premium': '2 hours'
+            }
+
+            # Ensure remaining_seconds is not negative
+            remaining_seconds = max(0, remaining_seconds)
+    
+            remaining_time_text = f"⏱️ **Remaining Today:** {format_seconds(remaining_seconds)} / {limit_display[current_tier]}"
+    
+        embed = discord.Embed(
+            title=f"🎤 Voice Translation Active {tier_emojis[current_tier]}",
+            description=f"**Real-time voice translation is now running!**",
+            color=tier_colors[current_tier]
+        )
+
+        # Language translation flow with flags
+        embed.add_field(
+            name="🌍 Translation Flow",
+            value=f"{source_flag} **{source_name}** ➜ {target_flag} **{target_name}**",
+            inline=False
+        )
+
+        # Channel information
+        embed.add_field(
+            name="📍 Channels",
+            value=(
+                f"🎙️ **Voice:** {voice_channel.name}\n"
+                f"💬 **Text:** {interaction.channel.mention}"
+            ),
+            inline=True
+        )
+
+        # Tier and limits information
+        embed.add_field(
+            name=f"{tier_emojis[current_tier]} Your Tier",
+            value=(
+                f"**{current_tier.title()} Tier**\n"
+                f"{remaining_time_text}"
+            ),
+            inline=True
+        )
+
+        # Points earning info
+        points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
+        points_per_translation = points_map[current_tier]
+        embed.add_field(
+            name="💎 Points Earning",
+            value=f"**+{points_per_translation} points** per translation",
+            inline=True
+        )
+
+        # Instructions section with emojis
+        embed.add_field(
+            name="🎯 How to Use",
+            value=(
+                "🎙️ **Start speaking** - Your voice will be translated automatically\n"
+                "👥 **Multiple users** can speak and be translated\n"
+                "💬 **Translations appear** in this text channel\n"
+                "⏹️ **Use `/stop`** to end the session"
+            ),
+            inline=False
+        )
+
+        # Status indicators
+        embed.add_field(
+            name="📊 Session Status",
+            value=(
+                "🟢 **Status:** Active & Listening\n"
+                f"👤 **Started by:** {interaction.user.mention}\n"
+                f"⏰ **Started:** <t:{int(time.time())}:R>"
+            ),
+            inline=False
+        )
+
+        # Add tier-specific footer with upgrade hints
+        if current_tier == 'free':
+            embed.set_footer(
+                text="🆓 Free Tier • Upgrade to Premium for unlimited voice translation! Use /upgrade",
+                icon_url="https://cdn.discordapp.com/emojis/1234567890.png"  # Optional: Add your bot's icon
+            )
+        elif current_tier == 'basic':
+            embed.set_footer(
+                text="🥉 Basic Tier • Upgrade to Premium for unlimited voice translation! Use /upgrade"
+            )
+        elif current_tier == 'premium':
+            embed.set_footer(
+                text="🥈 Premium Tier • Enjoying unlimited voice translation!"
+            )
+        elif current_tier == 'pro':
+            embed.set_footer(
+                text="🥇 Pro Tier • Thank you for supporting Muse with unlimited everything!"
+            )
+
+        # Add a thumbnail (optional - you can use your bot's avatar or a translation icon)
+        embed.set_thumbnail(url=client.user.display_avatar.url)
+
+        if not interaction.response.is_done():
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+        
+        if not interaction.response.is_done():
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
     except Exception as e:
         logger.error(f"Error connecting to voice: {e}")
+        
+        # Clean up on error
+        try:
+            if 'voice_client' in locals() and voice_client and voice_client.is_connected():
+                await voice_client.disconnect()
+            if 'sink' in locals() and sink:
+                await sink.cleanup()
+            if interaction.guild_id in voice_translation_sessions:
+                del voice_translation_sessions[interaction.guild_id]
+        except Exception as cleanup_error:
+            logger.error(f"Error during cleanup: {cleanup_error}")
+        
         if not interaction.response.is_done():
             await interaction.response.send_message(
-                f"❌ Error starting voice translation: {str(e)}",
+                f"❌ Error starting voice translation: {str(e)}\nPlease try again or contact support if the issue persists.",
                 ephemeral=True
             )
         else:
             await interaction.followup.send(
-                f"❌ Error starting voice translation: {str(e)}",
+                f"❌ Error starting voice translation: {str(e)}\nPlease try again or contact support if the issue persists.",
                 ephemeral=True
             )
 
 # Add autocomplete to the command (this should be OUTSIDE the function)
 voice_chat_translate.autocomplete('source_lang')(source_language_autocomplete)
 voice_chat_translate.autocomplete('target_lang')(language_autocomplete)
-
 
 @tree.command(name="voicechat2", description="Enhanced bidirectional voice chat translation between two languages")
 @app_commands.describe(
@@ -3436,14 +3768,52 @@ async def voice_chat_translate_bidirectional_v2(
     try:
         await interaction.response.defer(ephemeral=True)
         logger.info(f"Connecting to voice channel: {voice_channel.name}")
-        
+    
+        # Get user's current tier and calculate limits BEFORE connecting
+        current_tier = tier_handler.get_user_tier(user_id)
+        daily_usage = await db.get_daily_usage(user_id)
+    
+        # Check voice limits before starting session
+        voice_limits = {
+            'free': 1800,    # 30 minutes
+            'basic': 3600,   # 1 hour  
+            'premium': 7200, # 2 hours
+            'pro': float('inf')  # Unlimited
+        }
+    
+        limit_seconds = voice_limits.get(current_tier, 1800)
+        if current_tier != 'pro' and daily_usage['voice_seconds'] >= limit_seconds:
+            remaining_seconds = 0
+            embed = discord.Embed(
+                title="⏱️ Voice Limit Reached",
+                description=f"You've reached your daily voice translation limit for **{current_tier.title()}** tier.",
+                color=0xFF6B6B
+            )
+            embed.add_field(
+                name="Daily Limit",
+                value=f"{format_seconds(limit_seconds)} per day",
+                inline=True
+            )
+            embed.add_field(
+                name="Used Today",
+                value=f"{format_seconds(daily_usage['voice_seconds'])}",
+                inline=True
+            )
+            embed.add_field(
+                name="💡 Solutions",
+                value="• Wait until tomorrow for reset\n• Upgrade your tier for more time\n• Use `/upgrade` to see options",
+                inline=False
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+    
         # Check if we're already connected to a voice channel in this guild
         if interaction.guild.voice_client:
             # If we're in a different channel, move to the new one
             if interaction.guild.voice_client.channel != voice_channel:
                 logger.info(f"Moving to different voice channel: {voice_channel.name}")
                 await interaction.guild.voice_client.move_to(voice_channel)
-                
+            
             # If the existing client is not a VoiceRecvClient, disconnect and reconnect
             if not isinstance(interaction.guild.voice_client, voice_recv.VoiceRecvClient):
                 logger.info("Existing client is not a VoiceRecvClient, reconnecting")
@@ -3455,10 +3825,10 @@ async def voice_chat_translate_bidirectional_v2(
             # Connect to voice channel with the correct class parameter
             logger.info(f"Connecting to voice channel with VoiceRecvClient: {voice_channel.name}")
             voice_client = await voice_channel.connect(cls=voice_recv.VoiceRecvClient, self_deaf=False)
-            
+        
         # Wait a moment to ensure connection is established
         await asyncio.sleep(2)
-            
+        
         # Check if connection was successful
         if not voice_client.is_connected():
             logger.error("Voice client not connected after connection attempt")
@@ -3467,9 +3837,9 @@ async def voice_chat_translate_bidirectional_v2(
                 ephemeral=True
             )
             return
-            
-        logger.info(f"Voice client connected: {voice_client.is_connected()}")
         
+        logger.info(f"Voice client connected: {voice_client.is_connected()}")
+    
         # Create our enhanced sink
         logger.info("Creating EnhancedBidirectionalTranslationSink")
         sink = EnhancedBidirectionalTranslationSink(
@@ -3479,134 +3849,158 @@ async def voice_chat_translate_bidirectional_v2(
             client_instance=client
         )
         logger.info("Successfully created EnhancedBidirectionalTranslationSink")
-        
+    
         # Start listening with explicit error handling
         try:
             logger.info("Starting to listen")
-            
+
             # Check if already listening
             if voice_client.is_listening():
                 logger.info("Already listening, stopping first")
                 voice_client.stop_listening()
                 await asyncio.sleep(1)
-            
+        
             # Start listening
             voice_client.listen(sink)
             logger.info("Successfully started listening")
-            
-            voice_translation_sessions[interaction.guild_id] = {
-                'voice_client': voice_client,
-                'sink': sink,
-                'channel': voice_channel,
-                'type': 'voicechat',
-                'languages': [source_code, target_code],
-                'initiating_user_id': interaction.user.id  # <-- Add this line
-            }
-
+        
             # Create display names for the embed
             lang1_display = "Auto-detect" if source_code == "auto" else languages.get(source_code, source_code)
             lang2_display = "Auto-detect" if target_code == "auto" else languages.get(target_code, target_code)
             lang1_flag = '🔍' if source_code == "auto" else flag_mapping.get(source_code, '🌐')
             lang2_flag = '🔍' if target_code == "auto" else flag_mapping.get(target_code, '🌐')
-            
-            # Check if user is premium
-            is_premium = user_id in tier_handler.premium_users
-            
-            # Create embed with enhanced styling
+        
+            # Tier-based styling
+            tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
+            tier_emojis = {'free': '🆓', 'basic': '🥉', 'premium': '🥈', 'pro': '🥇'}
+        
+            # Create embed with tier-based styling
             embed = discord.Embed(
-                title="🚀 Enhanced Voice Chat Translation V2 Started",
-                description=(
-                    f"Now translating between {lang1_flag} **{lang1_display}** ↔ {lang2_flag} **{lang2_display}**\n\n"
-                    f"🎯 **Enhanced Features:**\n"
-                    f"• Prioritizes your specified languages\n"
-                    f"• Intelligent language detection\n"
-                    f"• Better audio processing\n"
-                    f"• Reduced false detections\n"
-                    f"• Multiple people can speak different languages!\n\n"
-                    f"Use `/stop` to end the translation session."
-                ),
-                color=0x9b59b6  # Purple for enhanced V2
+                title="🚀 Enhanced Voice Translation V2 Active",
+                description="Real-time bidirectional voice translation is now running!",
+                color=tier_colors[current_tier]
             )
-            
-            # Add enhanced rewards info
-            points_per_translation = 10 if user_id in tier_handler.premium_users else 5
-            embed.add_field(
-                name="💎 Enhanced Rewards",
-                value=f"+{points_per_translation} points per translation\n(2x regular voice chat)",
-                inline=True
-            )
-            
-            # Add examples based on the language pair
+        
+            # Translation flow section
             if source_code != "auto" and target_code != "auto":
-                embed.add_field(
-                    name="📝 How it works",
-                    value=(
-                        f"• Speak in {lang1_display} → Translates to {lang2_display}\n"
-                        f"• Speak in {lang2_display} → Translates to {lang1_display}\n"
-                        f"• Other languages → Translates to {lang2_display} (default)"
-                    ),
-                    inline=False
+                flow_text = f"{lang1_flag} **{lang1_display}** ↔ {lang2_flag} **{lang2_display}**"
+                how_it_works = (
+                    f"• Speak in **{lang1_display}** → Translates to **{lang2_display}**\n"
+                    f"• Speak in **{lang2_display}** → Translates to **{lang1_display}**\n"
+                    f"• Other languages → Translates to **{lang2_display}** (default)"
                 )
             elif source_code == "auto":
-                embed.add_field(
-                    name="📝 How it works",
-                    value=f"• Speak in any language → Translates to {lang2_display}",
-                    inline=False
-                )
+                flow_text = f"🔍 **Auto-detect** ➜ {lang2_flag} **{lang2_display}**"
+                how_it_works = f"• Speak in any language → Translates to **{lang2_display}**"
             else:  # target_code == "auto"
-                embed.add_field(
-                    name="📝 How it works", 
-                    value=f"• Speak in any language → Translates to {lang1_display}",
-                    inline=False
-                )
-            
-            # Add tier information
-            if is_premium:
-                embed.add_field(
-                    name="⭐ Premium Active",
-                    value="Unlimited translation time",
-                    inline=True
-                )
-            else:
-                embed.add_field(
-                    name="🆓 Free Tier",
-                    value="30 minutes daily limit",
-                    inline=True
-                )
-            
-            # Add version info
+                flow_text = f"🔍 **Auto-detect** ➜ {lang1_flag} **{lang1_display}**"
+                how_it_works = f"• Speak in any language → Translates to **{lang1_display}**"
+        
             embed.add_field(
-                name="🔧 Version",
-                value="Enhanced V2",
+                name="🔄 Translation Flow",
+                value=flow_text,
+                inline=False
+            )
+        
+            # Channels info
+            embed.add_field(
+                name="📍 Channels",
+                value=f"**Voice:** {voice_channel.mention}\n**Text:** {interaction.channel.mention}",
                 inline=True
             )
-            
-            embed.set_footer(text="Bot will automatically leave when everyone exits the voice channel")
-            
+        
+            # Your tier with remaining limits
+            if current_tier == 'pro':
+                remaining_time_text = "⏱️ **Session Limit:** ♾️ Unlimited"
+            else:
+                remaining_seconds = max(0, limit_seconds - daily_usage['voice_seconds'])
+                limit_display = {
+                    'free': '30 minutes',
+                    'basic': '1 hour',
+                    'premium': '2 hours'
+                }
+                remaining_time_text = f"⏱️ **Remaining Today:** {format_seconds(remaining_seconds)} / {limit_display[current_tier]}"
+        
+            embed.add_field(
+                name="🎯 Your Tier",
+                value=f"{tier_emojis[current_tier]} **{current_tier.title()} Tier**\n{remaining_time_text}",
+                inline=True
+            )
+        
+            # Points earning (tier-based)
+            points_per_translation = {'free': 2, 'basic': 3, 'premium': 4, 'pro': 5}[current_tier]
+            embed.add_field(
+                name="💎 Points Earning",
+                value=f"+{points_per_translation} points per translation\n(Enhanced V2 bonus!)",
+                inline=True
+            )
+        
+            # How to use section
+            embed.add_field(
+                name="🎤 How to Use",
+                value=(
+                    "• **Start speaking** - Your voice will be translated automatically\n"
+                    "• **Multiple users** can speak and be translated\n"
+                    "• **Translations appear** in this text channel\n"
+                    "• **Use `/stop`** to end the session"
+                ),
+                inline=False
+            )
+        
+            # Enhanced V2 features
+            embed.add_field(
+                name="✨ Enhanced V2 Features",
+                value=how_it_works,
+                inline=False
+            )
+        
+            # Session status
+            embed.add_field(
+                name="📊 Session Status",
+                value=(
+                    f"**Status:** Active & Listening\n"
+                    f"**Started by:** {interaction.user.mention}\n"
+                    f"**Started:** <t:{int(time.time())}:R>"
+                ),
+                inline=False
+            )
+        
+            # Tier-specific footer
+            tier_benefits = {
+                'free': '🆓 Free Tier • 30 min daily voice limit',
+                'basic': '🥉 Basic Tier • 1 hour daily voice limit + translation history',
+                'premium': '🥈 Premium Tier • 2 hours daily voice limit + priority processing',
+                'pro': '🥇 Pro Tier • Unlimited everything + beta access'
+            }
+        
+            embed.set_footer(text=f"{tier_benefits[current_tier]} • Enhanced Voice V2")
+        
             await interaction.followup.send(embed=embed, ephemeral=True)
-            
+        
             # Store the voice client and sink for later cleanup
-            if interaction.guild_id not in voice_translation_sessions:
-                voice_translation_sessions[interaction.guild_id] = {}
-                
             voice_translation_sessions[interaction.guild_id] = {
                 'voice_client': voice_client,
                 'sink': sink,
                 'channel': voice_channel,
                 'type': 'enhanced_v2',
-                                'languages': [source_code, target_code]
+                'languages': [source_code, target_code],
+                'initiating_user_id': interaction.user.id,
+                'start_time': time.time(),
+                'text_channel': interaction.channel,
+                'tier': current_tier,  # Store tier for session management
+                'points_per_translation': points_per_translation
             }
-            
+        
             # Start a task to check if users leave the voice channel
             client.loop.create_task(check_voice_channel_enhanced(voice_client, voice_channel))
-                
+        
         except Exception as e:
             logger.error(f"Error starting listening: {e}")
             await interaction.followup.send(
                 f"❌ Error starting listening: {str(e)}",
                 ephemeral=True
             )
-            
+        
     except Exception as e:
         logger.error(f"Error connecting to voice: {e}")
         if not interaction.response.is_done():
@@ -3619,6 +4013,7 @@ async def voice_chat_translate_bidirectional_v2(
                 f"❌ Error starting voice translation: {str(e)}",
                 ephemeral=True
             )
+
 
 # Add autocomplete to the command
 voice_chat_translate_bidirectional_v2.autocomplete('language1')(source_language_autocomplete)
@@ -3782,6 +4177,76 @@ async def check_voice_channel_enhanced(voice_client, voice_channel):
                 
             await asyncio.sleep(5)
 
+# Helper function to send voicechat2 session stats
+async def send_voicechat2_session_stats(guild_id, reason="ended"):
+    """Send session statistics for voicechat2 sessions"""
+    try:
+        logger.info(f"Attempting to send voicechat2 session stats for guild {guild_id}, reason: {reason}")
+        
+        if guild_id not in voice_translation_sessions:
+            logger.warning(f"No voice session found for guild {guild_id}")
+            return
+            
+        session = voice_translation_sessions[guild_id]
+        session_type = session.get('type')
+        logger.info(f"Session type: {session_type}")
+        
+        # Only send stats for voicechat2 sessions
+        if session_type not in ['voicechat2', 'enhanced_v2']:
+            logger.info(f"Skipping stats for non-voicechat2 session type: {session_type}")
+            return
+            
+        # Calculate session duration
+        session_duration_seconds = 0
+        if 'start_time' in session:
+            session_duration_seconds = time.time() - session['start_time']
+            
+        # Get text channel and session info
+        text_channel = session.get('text_channel')
+        languages = session.get('languages', [])
+        
+        if text_channel and session_duration_seconds > 0:
+            duration_str = format_seconds(int(session_duration_seconds))
+            
+            # Get language names
+            lang_names = []
+            for lang in languages:
+                if lang == "auto":
+                    lang_names.append("Auto-detect")
+                else:
+                    lang_names.append(languages.get(lang, lang))
+            
+            if reason == "auto_disconnect":
+                title = "🔄 Enhanced Voice Translation Auto-Disconnected"
+                description = f"Bot automatically disconnected from voice channel due to inactivity."
+            elif reason == "manual_stop":
+                title = "🛑 Enhanced Voice Translation Session Ended"
+                description = f"Your Enhanced Voice V2 session has been stopped."
+            else:
+                title = "🚀 Enhanced Voice Translation Session Ended"
+                description = f"Your Enhanced Voice V2 session has ended."
+            
+            embed = discord.Embed(
+                title=title,
+                description=description,
+                color=0x9b59b6
+            )
+            embed.add_field(
+                name="📊 Session Stats",
+                value=f"🎤 Voice session duration: {duration_str}\n🌐 Languages: {' ↔ '.join(lang_names)}",
+                inline=False
+            )
+            embed.set_footer(text="Start a new session with /voicechat2")
+            
+            # Ensure text_channel is valid before sending
+            if hasattr(text_channel, 'send'):
+                await text_channel.send(embed=embed)
+            else:
+                logger.error(f"Invalid text_channel object: {text_channel}")
+            
+    except Exception as e:
+        logger.error(f"Error sending voicechat2 session stats: {e}")
+
 # Enhanced voice channel checking function
 async def check_voice_channel_enhanced(voice_client, voice_channel):
     """Enhanced voice channel monitoring with better error handling"""
@@ -3790,6 +4255,7 @@ async def check_voice_channel_enhanced(voice_client, voice_channel):
         
     consecutive_empty_checks = 0
     error_count = 0
+    guild_id = voice_client.guild.id
     
     while voice_client.is_connected():
         try:
@@ -3808,6 +4274,25 @@ async def check_voice_channel_enhanced(voice_client, voice_channel):
                 # Wait longer before disconnecting to avoid false positives
                 if consecutive_empty_checks >= 4:  # 20 seconds of being alone
                     logger.info(f"🔇 Enhanced V2 disconnecting from {voice_channel.name} - everyone left")
+                    
+                    # Send session stats before disconnecting
+                    await send_voicechat2_session_stats(guild_id, "auto_disconnect")
+                    
+                    # Clean up session data
+                    if guild_id in voice_translation_sessions:
+                        session = voice_translation_sessions[guild_id]
+                        if 'sink' in session:
+                            try:
+                                sink = session['sink']
+                                if hasattr(sink, 'cleanup'):
+                                    if asyncio.iscoroutinefunction(sink.cleanup):
+                                        await sink.cleanup()
+                                    else:
+                                        sink.cleanup()
+                            except:
+                                pass
+                        del voice_translation_sessions[guild_id]
+                    
                     await voice_client.disconnect()
                     break
             else:
@@ -3825,6 +4310,9 @@ async def check_voice_channel_enhanced(voice_client, voice_channel):
             if error_count > 5:
                 logger.error("Too many voice channel check errors, disconnecting")
                 try:
+                    await send_voicechat2_session_stats(guild_id, "error")
+                    if guild_id in voice_translation_sessions:
+                        del voice_translation_sessions[guild_id]
                     await voice_client.disconnect()
                 except:
                     pass
@@ -4272,110 +4760,323 @@ async def show_speech(interaction: discord.Interaction):
     await interaction.response.send_message("Original speech will be shown! 👀", ephemeral=True)
 
 @tree.command(name="stop", description="Stop your active translation sessions")
-async def stop_translation(interaction: discord.Interaction):
-    await track_command_usage(interaction)
-
-    user_id = interaction.user.id
-    guild_id = interaction.guild_id
-
-    stopped_any = False
-    session_duration_seconds = 0
-    commands_used = 0
-
-    # End user session for point tracking
-    if user_id in user_sessions:
-        session_data = user_sessions[user_id]
-        if session_data.get('active', False):
-            session_duration_seconds = (datetime.now() - session_data['session_start']).total_seconds()
-            commands_used = session_data.get('commands_used', 0)
-            session_duration_hours = session_duration_seconds / 3600
-            session_bonus = max(1, int(session_duration_hours * 5))
-            if user_id in tier_handler.premium_users:
-                session_bonus *= 2
-            reward_db.add_points(user_id, session_bonus, f"Session completion bonus ({session_duration_hours:.1f}h)")
-            reward_db.update_usage_time(user_id, session_duration_hours)
-            user_sessions[user_id]['active'] = False
-            stopped_any = True
-
-    # Only stop voice session if user started it (or is the only one left)
-    if guild_id in voice_translation_sessions:
+async def stop_voice_translation(interaction: discord.Interaction):
+    """Stop the active voice translation session with detailed stats"""
+    try:
+        await track_command_usage(interaction)
+        guild_id = interaction.guild_id
+        
+        if guild_id not in voice_translation_sessions:
+            embed = discord.Embed(
+                title="❌ No Active Session",
+                description="No active voice translation session found.",
+                color=0xFF6B6B
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+        
         session = voice_translation_sessions[guild_id]
-        # Check if this user started the session (store 'initiating_user_id' in your session dict when starting)
-        if session.get('initiating_user_id') == user_id:
-            if session['voice_client'].is_listening():
-                session['voice_client'].stop_listening()
-            if 'sink' in session:
-                session['sink'].cleanup()
-            if session['voice_client'].is_playing():
-                session['voice_client'].stop()
-            await session['voice_client'].disconnect()
+        
+        # Check if user has permission to stop (original user or admin)
+        user_id = interaction.user.id
+        original_user = session.get('initiating_user_id')
+        
+        if (user_id != original_user and
+            not interaction.user.guild_permissions.administrator and
+            not interaction.user.guild_permissions.manage_guild):
+            embed = discord.Embed(
+                title="🔒 Permission Denied",
+                description=f"Only the user who started the session (<@{original_user}>) or server admins can stop it.",
+                color=0xFF6B6B
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        # Collect session information before stopping
+        session_type = session.get('type', 'voicechat')
+        start_time = session.get('start_time', time.time())
+        duration_seconds = int(time.time() - start_time)
+        voice_channel = session.get('channel')
+        languages = session.get('languages', [])
+        
+        # Get user info
+        try:
+            original_user_obj = await interaction.guild.fetch_member(original_user) if original_user else None
+            original_username = original_user_obj.display_name if original_user_obj else "Unknown User"
+        except:
+            original_username = f"User {original_user}"
+        
+        # Stop the session
+        cleanup_success = True
+        cleanup_errors = []
+        
+        try:
+            voice_client = session.get('voice_client')
+            sink = session.get('sink')
+            
+            # Send voicechat2 session stats if it's an enhanced session
+            if session_type in ['voicechat2', 'enhanced_v2']:
+                try:
+                    await send_voicechat2_session_stats(guild_id, "manual_stop")
+                except Exception as e:
+                    cleanup_errors.append(f"Stats collection: {str(e)}")
+            
+            # Stop listening if voice client exists and is listening
+            if voice_client and hasattr(voice_client, 'is_listening'):
+                try:
+                    if voice_client.is_listening():
+                        voice_client.stop_listening()
+                except Exception as e:
+                    cleanup_errors.append(f"Stop listening: {str(e)}")
+            
+            # Clean up sink properly
+            if sink and hasattr(sink, 'cleanup'):
+                try:
+                    if asyncio.iscoroutinefunction(sink.cleanup):
+                        await sink.cleanup()
+                    else:
+                        # Run sync cleanup in executor to avoid blocking
+                        loop = asyncio.get_event_loop()
+                        await loop.run_in_executor(None, sink.cleanup)
+                except Exception as e:
+                    cleanup_errors.append(f"Sink cleanup: {str(e)}")
+            
+            # Stop playing and disconnect
+            if voice_client:
+                try:
+                    if hasattr(voice_client, 'is_playing') and voice_client.is_playing():
+                        voice_client.stop()
+                except Exception as e:
+                    cleanup_errors.append(f"Stop playing: {str(e)}")
+                
+                try:
+                    if hasattr(voice_client, 'is_connected') and voice_client.is_connected():
+                        await voice_client.disconnect()
+                except Exception as e:
+                    cleanup_errors.append(f"Disconnect: {str(e)}")
+            
+            # Remove session
             del voice_translation_sessions[guild_id]
-            stopped_any = True
-
-    # Only disconnect from voice if user is the only one left in the channel
-    if interaction.guild and interaction.guild.voice_client:
-        voice_client = interaction.guild.voice_client
-        if voice_client.channel and sum(1 for m in voice_client.channel.members if not m.bot) <= 1:
-            if voice_client.is_playing():
-                voice_client.stop()
-            if voice_client.is_connected():
-                await voice_client.disconnect()
-                stopped_any = True
-
-    # Remove user from text translation sessions
-    if (guild_id in translation_server.translators and
-        user_id in translation_server.translators[guild_id]):
-        del translation_server.translators[guild_id][user_id]
-        translation_server.cleanup_user(user_id)
-        stopped_any = True
-
-    # Remove user from auto-translation
-    if user_id in auto_translate_users:
-        del auto_translate_users[user_id]
-        stopped_any = True
-
-    # Respond to user
-    if stopped_any:
+            
+        except Exception as e:
+            logger.error(f"Error stopping voice session: {e}")
+            cleanup_success = False
+            cleanup_errors.append(f"General error: {str(e)}")
+            # Force cleanup
+            if guild_id in voice_translation_sessions:
+                del voice_translation_sessions[guild_id]
+        
+        # Create detailed session summary embed
+        if cleanup_success and not cleanup_errors:
+            embed_color = 0x00FF00  # Green for success
+            embed_title = "✅ Voice Translation Session Ended"
+        elif cleanup_errors:
+            embed_color = 0xFFA500  # Orange for warnings
+            embed_title = "⚠️ Voice Translation Session Ended (With Warnings)"
+        else:
+            embed_color = 0xFF6B6B  # Red for errors
+            embed_title = "❌ Voice Translation Session Ended (With Errors)"
+        
         embed = discord.Embed(
-            title="🛑 Translation Session Ended",
-            description="Your active translation sessions have been stopped.",
-            color=0xe74c3c
+            title=embed_title,
+            description=f"Session successfully terminated by {interaction.user.mention}",
+            color=embed_color,
+            timestamp=datetime.utcnow()
         )
-        # Add session stats if available
-        if user_id in user_sessions and 'session_start' in user_sessions[user_id]:
-            duration_str = format_seconds(int(session_duration_seconds))
+        
+        # Session Duration Info
+        duration_str = format_seconds(duration_seconds)
+        embed.add_field(
+            name="⏱️ Session Duration",
+            value=duration_str,
+            inline=True
+        )
+        
+        # Session Type
+        session_type_display = {
+            'voicechat': '🎤 Standard Voice Chat',
+            'voicechat2': '🚀 Enhanced Voice V2',
+            'enhanced_v2': '🚀 Enhanced Voice V2'
+        }.get(session_type, f'🎤 {session_type.title()}')
+        
+        embed.add_field(
+            name="🔧 Session Type",
+            value=session_type_display,
+            inline=True
+        )
+        
+        # Voice Channel
+        if voice_channel:
             embed.add_field(
-                name="📊 Session Stats",
-                value=f"⏱️ Duration: {duration_str}\n🔧 Commands used: {commands_used}",
+                name="📢 Voice Channel",
+                value=f"#{voice_channel.name}",
                 inline=True
             )
-            if user_sessions[user_id].get('active', False):
-                session_bonus = max(1, int(session_duration_hours * 5))
-                if user_id in tier_handler.premium_users:
-                    session_bonus *= 2
+        
+        # Languages - FIXED: Handle languages as a list properly
+        if languages and isinstance(languages, list) and len(languages) >= 2:
+            source_lang = languages[0] if languages[0] != 'auto' else 'auto'
+            target_lang = languages[1]
+            
+            # Get language names and flags - FIXED: Use proper dictionary access
+            try:
+                # Use the languages dictionary from your codebase
+                source_name = languages.get(source_lang, source_lang) if source_lang != 'auto' else 'Auto-detect'
+                target_name = languages.get(target_lang, target_lang)
+                source_flag = flag_mapping.get(source_lang, '🌐') if source_lang != 'auto' else '🔍'
+                target_flag = flag_mapping.get(target_lang, '🌐')
+                
                 embed.add_field(
-                    name="💎 Session Bonus",
-                    value=f"+{session_bonus} points",
-                    inline=True
+                    name="🌍 Translation Direction",
+                    value=f"{source_flag} {source_name} → {target_flag} {target_name}",
+                    inline=False
                 )
-            if user_id in user_sessions and 'session_limit' in user_sessions[user_id]:
-                session_limit_seconds = user_sessions[user_id]['session_limit']
-                remaining_seconds = max(0, session_limit_seconds - session_duration_seconds)
-                if remaining_seconds > 0:
-                    remaining_str = format_seconds(int(remaining_seconds))
+            except Exception as e:
+                logger.error(f"Error formatting languages: {e}")
+                # Fallback display
+                embed.add_field(
+                    name="🌍 Translation Direction",
+                    value=f"{source_lang} → {target_lang}",
+                    inline=False
+                )
+        
+        # Original User Info
+        embed.add_field(
+            name="👤 Session Started By",
+            value=f"{original_username} (<@{original_user}>)",
+            inline=True
+        )
+        
+        # Session Statistics
+        if duration_seconds > 0:
+            # Calculate some basic stats
+            minutes = duration_seconds // 60
+            hours = minutes // 60
+            
+            stats_text = []
+            if hours > 0:
+                stats_text.append(f"🕐 {hours} hour{'s' if hours != 1 else ''}")
+            if minutes % 60 > 0:
+                stats_text.append(f"⏰ {minutes % 60} minute{'s' if minutes % 60 != 1 else ''}")
+            if duration_seconds % 60 > 0 and duration_seconds < 300:  # Show seconds only for short sessions
+                stats_text.append(f"⏱️ {duration_seconds % 60} second{'s' if duration_seconds % 60 != 1 else ''}")
+            
+            if stats_text:
+                embed.add_field(
+                    name="📊 Detailed Duration",
+                    value=" • ".join(stats_text),
+                    inline=False
+                )
+        
+        # Usage tracking (if available) - FIXED: Proper error handling
+        try:
+            if original_user:
+                daily_usage = await db.get_daily_usage(original_user)
+                if daily_usage and isinstance(daily_usage, dict):
                     embed.add_field(
-                        name="⏳ Time Remaining",
-                        value=remaining_str,
+                        name="📈 Today's Usage",
+                        value=(
+                            f"🔤 Text: {daily_usage.get('text_chars', 0):,} chars\n"
+                            f"🎤 Voice: {format_seconds(daily_usage.get('voice_seconds', 0))}\n"
+                            f"📝 Translations: {daily_usage.get('translations', 0)}"
+                        ),
                         inline=True
                     )
-                    embed.add_field(
-                        name="💡 Tip",
-                        value="Use `/daily` to claim your daily points!",
-                        inline=False
-                    )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        except Exception as e:
+            logger.error(f"Error getting usage stats: {e}")
+        
+        # Points awarded (if applicable) - FIXED: Better error handling
+        if original_user and duration_seconds > 60:  # Only for sessions longer than 1 minute
+            try:
+                # Calculate points based on session duration
+                base_points = max(1, duration_seconds // 60)  # 1 point per minute
+                
+                # Get user tier for multiplier
+                current_tier = tier_handler.get_user_tier(original_user)
+                tier_multipliers = {'free': 1, 'basic': 1.5, 'premium': 2, 'pro': 3}
+                multiplier = tier_multipliers.get(current_tier, 1)
+                
+                final_points = int(base_points * multiplier)
+                
+                # Award the points
+                reward_db.add_points(original_user, final_points, f"Voice session completion ({duration_str})")
+                
+                embed.add_field(
+                    name="💎 Points Awarded",
+                    value=f"+{final_points} points\n({current_tier.title()} tier bonus)",
+                    inline=True
+                )
+            except Exception as e:
+                logger.error(f"Error awarding session points: {e}")
+        
+        # Cleanup warnings/errors
+        if cleanup_errors:
+            embed.add_field(
+                name="⚠️ Cleanup Issues",
+                value="\n".join([f"• {error}" for error in cleanup_errors[:3]]),  # Limit to 3 errors
+                inline=False
+            )
+        
+        # Footer with helpful info
+        embed.set_footer(
+            text="💡 Use /voicechat to start a new session • /daily to claim daily points",
+            icon_url=interaction.user.display_avatar.url
+        )
+        
+        await interaction.followup.send(embed=embed)
+        
+    except Exception as e:
+        logger.error(f"Error in stop voice command: {e}")
+        
+        # Fallback error embed
+        error_embed = discord.Embed(
+            title="❌ Error Stopping Session",
+            description=f"An error occurred while stopping the voice translation session:\n```{str(e)}```",
+            color=0xFF0000,
+            timestamp=datetime.utcnow()
+        )
+        error_embed.set_footer(text="Please try again or contact support if the issue persists")
+        
+        if not interaction.response.is_done():
+            await interaction.response.send_message(embed=error_embed, ephemeral=True)
+        else:
+            await interaction.followup.send(embed=error_embed, ephemeral=True)
+
+def format_seconds(seconds):
+    """Format seconds into a human-readable duration string"""
+    # Handle special cases
+    if seconds == float('inf'):
+        return "Unlimited"
+    if seconds <= 0 or seconds != seconds:  # Check for NaN or negative
+        return "0s"
+    
+    # Convert to int to avoid decimal issues
+    seconds = int(seconds)
+    
+    if seconds < 60:
+        return f"{seconds}s"
+    elif seconds < 3600:
+        minutes = seconds // 60
+        remaining_seconds = seconds % 60
+        if remaining_seconds == 0:
+            return f"{minutes}m"
+        else:
+            return f"{minutes}m {remaining_seconds}s"
     else:
-        await interaction.response.send_message("No active translation session found!", ephemeral=True)
+        hours = seconds // 3600
+        remaining_minutes = (seconds % 3600) // 60
+        remaining_seconds = seconds % 60
+        
+        result = f"{hours}h"
+        if remaining_minutes > 0:
+            result += f" {remaining_minutes}m"
+        if remaining_seconds > 0 and hours == 0:  # Only show seconds if less than an hour
+            result += f" {remaining_seconds}s"
+        
+        return result
+
 
 
 # Update the auto_translate command to use the new limits
