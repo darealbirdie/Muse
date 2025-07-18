@@ -1432,43 +1432,107 @@ class RewardDatabase:
         except Exception as e:
             logger.error(f"Error adding points to user {user_id}: {e}")
             return False
-    
+    def debug_database(self):
+        """Debug function to check database state"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+            
+                # Check what tables exist
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                tables = cursor.fetchall()
+                print(f"Database path: {self.db_path}")
+                print(f"Existing tables: {[table[0] for table in tables]}")
+            
+                # Check if reward_history exists specifically
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='reward_history';")
+                reward_table = cursor.fetchone()
+                print(f"reward_history table exists: {reward_table is not None}")
+            
+                # Try to create reward_history table manually
+                try:
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS reward_history (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER,
+                            reward_id TEXT,
+                            points_spent INTEGER,
+                            purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+                        )
+                    """)
+                    conn.commit()
+                    print("Successfully created reward_history table")
+                except Exception as e:
+                    print(f"Error creating reward_history table: {e}")
+                
+        except Exception as e:
+            print(f"Database debug error: {e}")
+
+    # Also add this to your purchase_reward function at the very beginning
     def purchase_reward(self, user_id: int, reward_id: str) -> Dict:
         """Purchase a reward with points"""
         try:
+            # DEBUG: Check if table exists before proceeding
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='reward_history';")
+                if not cursor.fetchone():
+                    print("reward_history table doesn't exist! Creating it now...")
+                    cursor.execute("""
+                        CREATE TABLE reward_history (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER,
+                            reward_id TEXT,
+                            points_spent INTEGER,
+                            purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES user_stats (user_id)
+                        )
+                    """)
+                    conn.commit()
+                    print("Created reward_history table")
+        
+            # Rest of your existing code...
             reward = REWARDS.get(reward_id)
             if not reward:
                 return {'success': False, 'error': 'Invalid reward ID'}
-            
+        
             user_data = self.get_or_create_user(user_id, f"User_{user_id}")
-            
+        
             # Check if user has enough points
             if user_data['points'] < reward['cost']:
                 return {
                     'success': False,
                     'error': f"Not enough points! Need {reward['cost']}, have {user_data['points']}"
                 }
-            
+        
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                
+            
+                # Add reward_type column if it doesn't exist
+                try:
+                    cursor.execute("ALTER TABLE active_rewards ADD COLUMN reward_type TEXT DEFAULT 'temporary'")
+                except sqlite3.OperationalError:
+                    # Column already exists, ignore
+                    pass
+            
                 # Calculate expiration time
                 expires_at = datetime.now() + timedelta(hours=reward['duration_hours'])
-                
+            
                 # Add active reward
                 cursor.execute('''
                     INSERT OR REPLACE INTO active_rewards
-                    (user_id, reward_id, expires_at)
-                    VALUES (?, ?, ?)
-                ''', (user_id, reward_id, expires_at.isoformat()))
-                
+                    (user_id, reward_id, reward_type, expires_at)
+                    VALUES (?, ?, ?, ?)
+                ''', (user_id, reward_id, reward.get('type', 'temporary'), expires_at.isoformat()))
+            
                 # Add to purchase history
                 cursor.execute('''
                     INSERT INTO reward_history
-                    (user_id, reward_id, points_spent)
-                    VALUES (?, ?, ?)
+                    (user_id, reward_id, points_spent, purchased_at)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
                 ''', (user_id, reward_id, reward['cost']))
-                
+            
                 # Deduct points from user
                 cursor.execute('''
                     UPDATE user_stats
@@ -1476,22 +1540,22 @@ class RewardDatabase:
                         updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ?
                 ''', (reward['cost'], user_id))
-                
+            
                 # Record transaction
                 cursor.execute('''
                     INSERT INTO point_transactions (user_id, amount, transaction_type, description)
                     VALUES (?, ?, ?, ?)
                 ''', (user_id, -reward['cost'], "spent", f"Purchased {reward['name']}"))
-                
+            
                 conn.commit()
-                
+            
                 return {
                     'success': True,
                     'reward': reward,
                     'expires_at': expires_at,
                     'points_remaining': user_data['points'] - reward['cost']
                 }
-                
+            
         except Exception as e:
             logger.error(f"Error purchasing reward: {e}")
             return {'success': False, 'error': str(e)}
