@@ -419,57 +419,50 @@ RANK_BADGES = {
         'name': 'Newcomer',
         'emoji': '🆕',
         'color': 0x95a5a6,
-        'next_rank': '🌱 Beginner',
-        'points_needed': 50
+        'next_rank': '🗺️ Explorer',
+        'points_needed': 100
     },
-    50: {
-        'name': 'Beginner',
-        'emoji': '🌱',
-        'color': 0x2ecc71,
-        'next_rank': '📈 Learner',
-        'points_needed': 100  # 150 total - 50 current = 100 more needed
-    },
-    150: {
-        'name': 'Learner',
-        'emoji': '📈',
+    100: {
+        'name': 'Explorer',
+        'emoji': '🗺️',
         'color': 0x3498db,
-        'next_rank': '🎯 Dedicated',
-        'points_needed': 150  # 300 total - 150 current = 150 more needed
-    },
-    300: {
-        'name': 'Dedicated',
-        'emoji': '🎯',
-        'color': 0x9b59b6,
-        'next_rank': '⭐ Expert',
-        'points_needed': 200  # 500 total - 300 current = 200 more needed
+        'next_rank': '📝 Translator',
+        'points_needed': 400  # 500 - 100
     },
     500: {
-        'name': 'Expert',
-        'emoji': '⭐',
-        'color': 0xf1c40f,
-        'next_rank': '👑 Master',
-        'points_needed': 500  # 1000 total - 500 current = 500 more needed
+        'name': 'Translator',
+        'emoji': '📝',
+        'color': 0x2ecc71,
+        'next_rank': '🎓 Linguist',
+        'points_needed': 1000  # 1500 - 500
     },
-    1000: {
-        'name': 'Master',
-        'emoji': '👑',
-        'color': 0xe67e22,
-        'next_rank': '🏆 Legend',
-        'points_needed': 1000  # 2000 total - 1000 current = 1000 more needed
-    },
-    2000: {
-        'name': 'Legend',
-        'emoji': '🏆',
-        'color': 0xe74c3c,
-        'next_rank': '💎 Grandmaster',
-        'points_needed': 3000  # 5000 total - 2000 current = 3000 more needed
+    1500: {
+        'name': 'Linguist',
+        'emoji': '🎓',
+        'color': 0xf39c12,
+        'next_rank': '🌍 Polyglot',
+        'points_needed': 3500  # 5000 - 1500
     },
     5000: {
-        'name': 'Grandmaster',
-        'emoji': '💎',
-        'color': 0x1abc9c,
+        'name': 'Polyglot',
+        'emoji': '🌍',
+        'color': 0x9b59b6,
+        'next_rank': '🏆 Master',
+        'points_needed': 10000  # 15000 - 5000
+    },
+    15000: {
+        'name': 'Master',
+        'emoji': '🏆',
+        'color': 0xe74c3c,
+        'next_rank': '👑 Legend',
+        'points_needed': 35000  # 50000 - 15000
+    },
+    50000: {
+        'name': 'Legend',
+        'emoji': '👑',
+        'color': 0xff6b35,
         'next_rank': 'Max Level!',
-        'points_needed': 0  # Max rank achieved
+        'points_needed': 0
     }
 }
 
@@ -773,57 +766,73 @@ class AchievementDatabase:
 achievement_db = AchievementDatabase()
 
 def get_rank_from_points(points: int) -> dict:
-    """Get rank information based on points - with safe fallbacks"""
+    """Get rank information based on points — using shared rank ladder"""
     try:
-        # Define rank system if RANK_BADGES doesn't exist
-        default_ranks = {
-            0: {'name': 'Newcomer', 'emoji': '🆕', 'color': 0x95a5a6},
-            50: {'name': 'Beginner', 'emoji': '🌱', 'color': 0x2ecc71},
-            150: {'name': 'Regular', 'emoji': '⭐', 'color': 0x3498db},
-            300: {'name': 'Advanced', 'emoji': '🎯', 'color': 0x9b59b6},
-            500: {'name': 'Expert', 'emoji': '💎', 'color': 0xe74c3c},
-            1000: {'name': 'Master', 'emoji': '👑', 'color': 0xf1c40f},
-            2000: {'name': 'Legend', 'emoji': '🏆', 'color': 0xff6b35},
-        }
-        
-        # Use RANK_BADGES if available, otherwise use default
-        ranks_to_use = default_ranks
-        try:
-            if 'RANK_BADGES' in globals() and RANK_BADGES:
-                ranks_to_use = RANK_BADGES
-        except:
-            pass
-        
-        # Find the appropriate rank
-        current_rank = None
-        for min_points in sorted(ranks_to_use.keys(), reverse=True):
-            if points >= min_points:
-                current_rank = ranks_to_use[min_points].copy()
+        rank_ladder = [
+            {"name": "Newcomer", "min_points": 0, "emoji": "🆕", "color": 0x95a5a6},
+            {"name": "Explorer", "min_points": 100, "emoji": "🗺️", "color": 0x3498db},
+            {"name": "Translator", "min_points": 500, "emoji": "📝", "color": 0x2ecc71},
+            {"name": "Linguist", "min_points": 1500, "emoji": "🎓", "color": 0xf39c12},
+            {"name": "Polyglot", "min_points": 5000, "emoji": "🌍", "color": 0x9b59b6},
+            {"name": "Master", "min_points": 15000, "emoji": "🏆", "color": 0xe74c3c},
+            {"name": "Legend", "min_points": 50000, "emoji": "👑", "color": 0xff6b35},
+        ]
+
+        current_rank = rank_ladder[0]  # Fallback to Newcomer
+
+        for rank in reversed(rank_ladder):
+            if points >= rank["min_points"]:
+                current_rank = rank
                 break
-        
-        # Fallback if no rank found
-        if not current_rank:
-            current_rank = {
-                'name': 'Newcomer',
-                'emoji': '🆕', 
-                'color': 0x95a5a6
-            }
-        
-        # Ensure all required keys exist
-        current_rank.setdefault('name', 'Unknown')
-        current_rank.setdefault('emoji', '🎖️')
-        current_rank.setdefault('color', 0x95a5a6)
-        
-        return current_rank
-        
+
+        return {
+            "name": current_rank["name"],
+            "emoji": current_rank.get("emoji", "🎖️"),
+            "color": current_rank.get("color", 0x95a5a6)
+        }
+
     except Exception as e:
         logger.error(f"Error in get_rank_from_points: {e}")
-        # Return safe fallback
         return {
-            'name': 'Newcomer',
-            'emoji': '🆕',
-            'color': 0x95a5a6
+            "name": "Newcomer",
+            "emoji": "🆕",
+            "color": 0x95a5a6
         }
+
+def get_rarest_achievement(user_id: int) -> Optional[dict]:
+    try:
+        achievements = achievement_db.get_user_achievements(user_id)
+        if not achievements:
+            return None
+        
+        # Use your RARITY_INFO keys to rank rarity, rarer = lower index
+        rarity_ranking = {rarity: i for i, rarity in enumerate(['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'])}
+        
+        # Sort achievements by rarity rank, ascending (rarest first)
+        achievements_sorted = sorted(
+            achievements,
+            key=lambda a: rarity_ranking.get(a.get('rarity', 'Common'), 100)
+        )
+        
+        return achievements_sorted[0]
+    except Exception as e:
+        logger.error(f"Error in get_rarest_achievement: {e}")
+        return None
+def get_next_milestone(points: int) -> dict:
+    """Get info about the next rank milestone based on current points."""
+    milestones = sorted(RANK_BADGES.keys())
+    for milestone in milestones:
+        if milestone > points:
+            return {
+                'next_rank_points': milestone,
+                'next_rank_name': RANK_BADGES[milestone]['name'],
+                'points_needed': milestone - points
+            }
+    return {
+        'next_rank_points': None,
+        'next_rank_name': None,
+        'points_needed': 0
+    }
 
 async def send_achievement_notification(client, user_id: int, achievement_ids: List[str]):
     """Send achievement notification to user"""
