@@ -10,7 +10,7 @@ import speech_recognition as sr
 import wave
 import asyncio
 import atexit
-from typing import Dict, Optional
+from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 import json
 import os
@@ -42,9 +42,21 @@ from reward_system import (
     has_enhanced_voice_access,
     reward_db  
 )
+from discord.ui import View, Button
 from add_streak_column import add_streak_column, check_column_exists
 from i18n.translate import t
-# Place this at the top of your file (global scope)
+import pytesseract
+import io
+import cv2
+import moviepy as mp
+import asyncio
+from typing import Optional
+from PIL import Image
+import whisper
+from pydub import AudioSegment
+
+whisper_model = whisper.load_model("base")
+
 new_achievements = []
 YOUR_ADMIN_ID = 1192196672437096520
 YOUR_SERVER_ID = 1332522833326375022
@@ -55,13 +67,29 @@ TIER_COLORS = {
     'premium': 0xf39c12,   # Orange
     'pro': 0x9b59b6        # Purple
 }
+# Global translation cache
+translations_cache: Dict[str, Dict[str, Any]] = {}
 
+# Supported UI languages (add more as you create JSON files)
+SUPPORTED_UI_LANGUAGES = {
+    file.replace(".json", "")
+    for file in os.listdir("i18n")
+    if file.endswith(".json")
+} # Start with these two
 TIER_EMOJIS = {
     'free': '🆓',
     'basic': '🥉',
     'premium': '🥈',
     'pro': '🥇'
 }
+# Somewhere global
+MEDIA_LIMITS_MB = {
+    "free": 4,      # below 8MB Discord limit
+    "basic": 8,
+    "premium": 20,
+    "pro": 50       # Nitro user cap
+}
+
 # Add this after your imports and before your classes
 RANK_BADGES = {
     0: {'name': 'Newcomer', 'emoji': '🆕', 'color': 0x95a5a6},
@@ -141,6 +169,74 @@ async def process_kofi_pro_tier(user_id: int, days: int, kofi_data, tier_name: s
         logger.error(f"❌ Error processing Ko-fi pro tier for user {user_id}: {e}")
 # File-based storage functions
 INVITE_DATA_FILE = "invite_data.json"
+def load_translations():
+    """Load all translation files into memory"""
+    global translations_cache
+    
+    for lang_code in SUPPORTED_UI_LANGUAGES:
+        try:
+            with open(f'i18n/{lang_code}.json', 'r', encoding='utf-8') as f:
+                translations_cache[lang_code] = json.load(f)
+        except FileNotFoundError:
+            print(f"Warning: Translation file i18n/{lang_code}.json not found")
+        except json.JSONDecodeError as e:
+            print(f"Error loading translation file {lang_code}.json: {e}")
+
+def get_translation(lang_code: str, key: str, **kwargs) -> str:
+    """
+    Get translated text for a given language and key
+    
+    Args:
+        lang_code: Language code (e.g., 'en', 'es')
+        key: Translation key (e.g., 'PREF_UPDATED' or 'ERROR_INVALID_SOURCE')
+        **kwargs: Format parameters for the translation string
+    
+    Returns:
+        Translated and formatted string
+    """
+    # Fallback to English if language not supported
+    if lang_code not in SUPPORTED_UI_LANGUAGES:
+        lang_code = 'en'
+    
+    # Get translation from cache
+    lang_translations = translations_cache.get(lang_code, translations_cache.get('en', {}))
+    
+    # Handle nested keys (e.g., 'TRANSLATION.title')
+    keys = key.split('.')
+    translation = lang_translations
+    
+    for k in keys:
+        if isinstance(translation, dict) and k in translation:
+            translation = translation[k]
+        else:
+            # Fallback to English if key not found
+            english_translation = translations_cache.get('en', {})
+            for ek in keys:
+                if isinstance(english_translation, dict) and ek in english_translation:
+                    english_translation = english_translation[ek]
+                else:
+                    return f"[Missing: {key}]"  # Last resort
+            translation = english_translation
+            break
+    
+    # Format the translation if it's a string
+    if isinstance(translation, str) and kwargs:
+        try:
+            return translation.format(**kwargs)
+        except KeyError as e:
+            print(f"Missing format parameter {e} for key {key}")
+            return translation
+    
+    return translation if isinstance(translation, str) else f"[Invalid: {key}]"
+
+async def get_user_ui_language(user_id: int) -> str:
+    """Get user's UI language preference"""
+    # Use your existing database function
+    ui_lang = await db.get_user_ui_language(user_id)
+    return ui_lang if ui_lang in SUPPORTED_UI_LANGUAGES else 'en'
+
+# Load translations when the bot starts
+load_translations()
 
 def load_invite_data():
     """Load invite data from JSON file"""
@@ -526,6 +622,90 @@ languages = {
     'uz': 'Uzbek', 'vi': 'Vietnamese', 'cy': 'Welsh', 'xh': 'Xhosa',
     'yi': 'Yiddish', 'yo': 'Yoruba', 'zu': 'Zulu'
 }
+tesseract_lang_map = {
+    "af": "afr",
+    "sq": "sqi",
+    "am": "amh",
+    "ar": "ara",
+    "hy": "hye",
+    "az": "aze",
+    "eu": "eus",
+    "be": "bel",
+    "bn": "ben",
+    "bs": "bos",
+    "bg": "bul",
+    "ca": "cat",
+    "ceb": "ceb",
+    "zh-CN": "chi_sim",
+    "zh-TW": "chi_tra",
+    "hr": "hrv",
+    "cs": "ces",
+    "da": "dan",
+    "nl": "nld",
+    "en": "eng",
+    "eo": "epo",
+    "et": "est",
+    "tl": "tgl",
+    "fi": "fin",
+    "fr": "fra",
+    "fy": "fry",
+    "gl": "glg",
+    "ka": "kat",
+    "de": "deu",
+    "el": "ell",
+    "gu": "guj",
+    "ht": "hat",
+    "hi": "hin",
+    "hu": "hun",
+    "is": "isl",
+    "id": "ind",
+    "ga": "gle",
+    "it": "ita",
+    "ja": "jpn",
+    "kn": "kan",
+    "kk": "kaz",
+    "km": "khm",
+    "ko": "kor",
+    "ky": "kir",
+    "lo": "lao",
+    "la": "lat",
+    "lv": "lav",
+    "lt": "lit",
+    "mk": "mkd",
+    "ms": "msa",
+    "ml": "mal",
+    "mt": "mlt",
+    "mr": "mar",
+    "mn": "mon",
+    "ne": "nep",
+    "no": "nor",
+    "fa": "fas",
+    "pl": "pol",
+    "pt": "por",
+    "ro": "ron",
+    "ru": "rus",
+    "sk": "slk",
+    "sl": "slv",
+    "es": "spa",
+    "sw": "swa",
+    "sv": "swe",
+    "ta": "tam",
+    "te": "tel",
+    "th": "tha",
+    "tr": "tur",
+    "uk": "ukr",
+    "ur": "urd",
+    "vi": "vie",
+    "cy": "cym",
+    "yi": "yid",
+    "yo": "yor",
+    "zu": "zul",
+}
+
+def get_display_language_name(lang_code: str, ui_lang: str = "en") -> str:
+    from i18n import get_translation
+    return get_translation(ui_lang, f"LANGUAGES.{lang_code}", default=lang_code)
+
     # Language to flag mapping (common languages, can be expanded)
 flag_mapping = {
     'af': '🇿🇦', 'sq': '🇦🇱', 'am': '🇪🇹', 'ar': '🇸🇦',
@@ -1445,6 +1625,10 @@ def get_language_code(lang_input):
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def start(interaction: discord.Interaction):
     try:
+        # Get user's UI language first
+        user_id = interaction.user.id
+        ui_lang = await get_user_ui_language(user_id)
+        
         # Step 1: Track command usage
         try:
             await track_command_usage(interaction)
@@ -1452,15 +1636,17 @@ async def start(interaction: discord.Interaction):
         except Exception as e:
             print(f"❌ Step 1 Error - track_command_usage: {e}")
             # Continue anyway, this isn't critical
-        
+            
         # Step 2: Get user and guild info
         try:
-            user_id = interaction.user.id
             guild_id = interaction.guild_id
             print(f"✅ Step 2: Got user_id={user_id}, guild_id={guild_id}")
         except Exception as e:
             print(f"❌ Step 2 Error - Getting user/guild info: {e}")
-            await interaction.response.send_message("❌ Error getting user information.", ephemeral=True)
+            await interaction.response.send_message(
+                get_translation(ui_lang, "START.error_user_info"), 
+                ephemeral=True
+            )
             return
 
         # Step 3: Initialize user in reward system
@@ -1470,7 +1656,10 @@ async def start(interaction: discord.Interaction):
             print(f"✅ Step 3: User data retrieved, is_new_user={is_new_user}, sessions={user_data['total_sessions']}")
         except Exception as e:
             print(f"❌ Step 3 Error - reward_db.get_or_create_user: {e}")
-            await interaction.response.send_message(f"❌ Error initializing user data: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                get_translation(ui_lang, "START.error_user_data", error=str(e)), 
+                ephemeral=True
+            )
             return
 
         # Step 4: Handle guild-based translator initialization
@@ -1479,11 +1668,11 @@ async def start(interaction: discord.Interaction):
                 if not hasattr(translation_server, 'translators'):
                     translation_server.translators = {}
                     print("✅ Step 4a: Created translation_server.translators")
-                
+                    
                 if guild_id not in translation_server.translators:
                     translation_server.translators[guild_id] = {}
                     print(f"✅ Step 4b: Created translators for guild {guild_id}")
-                
+                    
                 if user_id not in translation_server.translators[guild_id]:
                     translation_server.translators[guild_id][user_id] = {}
                     try:
@@ -1504,11 +1693,11 @@ async def start(interaction: discord.Interaction):
             # Use the synchronous methods from your TierHandler
             current_tier = tier_handler.get_user_tier(user_id)
             print(f"✅ Step 5a: Got current_tier={current_tier}")
-            
+                    
             # Get tier limits
             limits = tier_handler.get_limits(user_id)
             print(f"✅ Step 5b: Got limits: {limits}")
-            
+                    
             # Create tier info manually since your TierHandler doesn't have get_tier_info
             tier_info = {
                 'name': current_tier.title(),
@@ -1516,13 +1705,13 @@ async def start(interaction: discord.Interaction):
                 'color': TIER_COLORS.get(current_tier, 0x95a5a6),
                 'point_multiplier': {
                     'free': '1x',
-                    'basic': '1.5x', 
+                    'basic': '1.5x',
                     'premium': '2x',
                     'pro': '3x'
                 }.get(current_tier, '1x')
             }
             print(f"✅ Step 5c: Created tier_info for {current_tier}")
-            
+                
         except Exception as e:
             print(f"❌ Step 5 Error - Getting tier info: {e}")
             # Use fallback values
@@ -1544,63 +1733,57 @@ async def start(interaction: discord.Interaction):
             if is_new_user:
                 # Create new user welcome embed
                 embed = discord.Embed(
-                    title=f"🎉 Welcome to Muse Translator! {tier_info['emoji']}",
-                    description=f"Hello {interaction.user.display_name}! Your personal translator is ready to use.",
+                    title=get_translation(ui_lang, "START.new_user_title", emoji=tier_info['emoji']),
+                    description=get_translation(ui_lang, "START.new_user_description", username=interaction.user.display_name),
                     color=0x2ecc71
                 )
                 
                 # Add tier status for new users
+                text_limit_str = get_translation(ui_lang, "START.tier_unlimited") if limits['text_limit'] == float('inf') else str(limits['text_limit'])
+                voice_limit_str = get_translation(ui_lang, "START.tier_unlimited") if limits['voice_limit'] == float('inf') else str(limits['voice_limit']//60)
+                
                 embed.add_field(
-                    name=f"⭐ Your Tier: {tier_info['name']}",
-                    value=(
-                        f"📝 Text Limit: {limits['text_limit'] if limits['text_limit'] != float('inf') else 'Unlimited'} chars\n"
-                        f"🎤 Voice Limit: {limits['voice_limit']//60 if limits['voice_limit'] != float('inf') else 'Unlimited'} min\n"
-                        f"💎 Points: {user_data['points']:,}"
-                    ),
+                    name=get_translation(ui_lang, "START.tier_field_name", tier=tier_info['name']),
+                    value=get_translation(ui_lang, "START.tier_field_value", 
+                                        text_limit=text_limit_str,
+                                        voice_limit=voice_limit_str,
+                                        points=f"{user_data['points']:,}"),
                     inline=False
                 )
                 
                 # Getting started tips for new users
                 embed.add_field(
-                    name="🚀 Getting Started",
-                    value=(
-                        "• Use `/daily` to claim daily points\n"
-                        "• Try `/texttr` for your first translation\n"
-                        "• Check `/shop` for temporary upgrades\n"
-                        "• Use `/help` for detailed commands"
-                    ),
+                    name=get_translation(ui_lang, "START.getting_started_name"),
+                    value=get_translation(ui_lang, "START.getting_started_value"),
                     inline=False
                 )
                 print("✅ Step 6a: Created new user embed")
             else:
                 # Returning user embed
                 embed = discord.Embed(
-                    title=f"🚀 Welcome Back to Muse! {tier_info['emoji']}",
-                    description=f"Hello {interaction.user.display_name}! Your translator is ready to use.",
+                    title=get_translation(ui_lang, "START.returning_user_title", emoji=tier_info['emoji']),
+                    description=get_translation(ui_lang, "START.returning_user_description", username=interaction.user.display_name),
                     color=tier_info['color']
                 )
-              # Show admin/mod setup tips only to server admins/mods
+
+            # Show admin/mod setup tips only to server admins/mods
             if interaction.guild:
                 perms = interaction.channel.permissions_for(interaction.user)
-            if perms.administrator or perms.manage_guild:
-                embed.add_field(
-                    name="🛠️ Server Setup Tips (Admins/Mods)",
-                    value=(
-                        "• Use `/setchannel` to restrict translation to specific channels/languages\n"
-                        "• Use `/invite` to add Muse to more servers\n"
-                        "• Use `/help` for all commands"
-                    ),
-            inline=False
-                )  
+                if perms.administrator or perms.manage_guild:
+                    embed.add_field(
+                        name=get_translation(ui_lang, "START.admin_tips_name"),
+                        value=get_translation(ui_lang, "START.admin_tips_value"),
+                        inline=False
+                    )
+                
                 # Show user stats
                 embed.add_field(
-                    name="📊 Your Stats",
-                    value=(
-                        f"💎 Points: {user_data['points']:,}\n"
-                        f"🎯 Sessions: {user_data['total_sessions']}\n"
-                        f"⏱️ Usage: {user_data['total_usage_hours']:.1f}h\n"
-                        f"⭐ Tier: {tier_info['name']}"
-                    ),
+                    name=get_translation(ui_lang, "START.stats_name"),
+                    value=get_translation(ui_lang, "START.stats_value",
+                                        points=f"{user_data['points']:,}",
+                                        sessions=user_data['total_sessions'],
+                                        usage=f"{user_data['total_usage_hours']:.1f}",
+                                        tier=tier_info['name']),
                     inline=True
                 )
                 
@@ -1609,89 +1792,57 @@ async def start(interaction: discord.Interaction):
                 today = datetime.now().date().isoformat()
                 if user_data.get('last_daily_claim') != today:
                     embed.add_field(
-                        name="🎁 Daily Reward Available",
-                        value="Use `/daily` to claim your points!",
+                        name=get_translation(ui_lang, "START.daily_available_name"),
+                        value=get_translation(ui_lang, "START.daily_available_value"),
                         inline=True
                     )
                 else:
                     embed.add_field(
-                        name="✅ Daily Claimed",
-                        value="Come back tomorrow for more points!",
+                        name=get_translation(ui_lang, "START.daily_claimed_name"),
+                        value=get_translation(ui_lang, "START.daily_claimed_value"),
                         inline=True
                     )
                 print("✅ Step 6b: Created returning user embed")
         except Exception as e:
             print(f"❌ Step 6 Error - Creating main embed: {e}")
-            await interaction.response.send_message(f"❌ Error creating welcome message: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                get_translation(ui_lang, "START.error_welcome_message", error=str(e)), 
+                ephemeral=True
+            )
             return
 
         # Step 7: Add command categories
         try:
             # Add command categories (same for both new and returning users)
             embed.add_field(
-                name="🗣️ Voice Commands",
-                value=(
-                    "`/voicechat [source] [target]` - Real-time voice chat translation\n"
-                    "`/voicechat2 [lang1] [lang2]` - Enhanced bidirectional translation\n"
-                    "`/voice [text] [source] [target]` - Text to speech translation\n"
-                    "`/speak [text] [source] [target]` - Translate and play in voice channel"
-                ),
+                name=get_translation(ui_lang, "START.voice_commands_name"),
+                value=get_translation(ui_lang, "START.voice_commands_value"),
                 inline=False
             )
-            
+                    
             embed.add_field(
-                name="📝 Text Commands",
-                value=(
-                    "`/texttr [text] [source] [target]` - Translate text\n"
-                    "`/autotranslate [source] [target]` - Auto-translate all your messages\n"
-                    "`/read [message_id] [target]` - Translate any sent message by ID\n"
-                    "`/dmtr [user] [text] [source] [target]` - Send translated DM"
-                ),
+                name=get_translation(ui_lang, "START.text_commands_name"),
+                value=get_translation(ui_lang, "START.text_commands_value"),
                 inline=False
             )
-            
+                    
             # Reward system commands
             embed.add_field(
-                name="🏆 Achievements & Points",
-                value=(
-                "`/achievements` - View your achievement progress\n"
-                "`/rewards` - Check your points and rank\n"
-                "`/cashout` - Convert achievement points to activity points\n"
-                "`/daily` - Claim daily points\n"
-                "`/shop` - Browse point shop\n"
-                "`/buy [item]` - Purchase items from shop\n"
-                "`/buypoints [amount]` - Purchase additional points\n"
-                "`/gift [amount]` - Gift your friends points\n"
-                "`/profile` - View your profile\n"
-                "`/leaderboard` - See top users\n"
-                "`/transactions` - View point transaction history"
-            ),
-            inline=False
-        )
-            
-            embed.add_field(
-                name="⚙️ Settings & Info",
-                value=(
-                    "`/hide` or `/show` - Toggle original text visibility\n"
-                    "`/preferences` - Adjust language preferences\n"
-                    "`/history` - View translation history\n"
-                    "`/list` - See all supported languages\n"
-                    "`/upgrade` - Unlock premium features\n"
-                    "`/help` - Full command list\n"
-                    "`/stop` - End translation session"
-                ),
+                name=get_translation(ui_lang, "START.achievements_name"),
+                value=get_translation(ui_lang, "START.achievements_value"),
                 inline=False
             )
-            
+                    
+            embed.add_field(
+                name=get_translation(ui_lang, "START.settings_name"),
+                value=get_translation(ui_lang, "START.settings_value"),
+                inline=False
+            )
+                    
             # Add feedback & community section
             embed.add_field(
-                name="💬 Feedback & Community",
-                value=(
-                    "`/feedback` - Rate and review Muse (earn points!)\n"
-                    "`/reviews` - See what other users are saying\n"
-                    "`/invite` - Share Muse with friends (earn points!)\n"
-                    "`/vote` - Support the bot on bot-listing sites (earn points!)"
-                ),
+                name=get_translation(ui_lang, "START.community_name"),
+                value=get_translation(ui_lang, "START.community_value"),
                 inline=False
             )
             print("✅ Step 7: Added command categories")
@@ -1703,23 +1854,20 @@ async def start(interaction: discord.Interaction):
         try:
             if current_tier == 'free':
                 embed.add_field(
-                    name="💡 Upgrade Benefits",
-                    value=(
-                        "🥉 **Basic ($1/month):** 500 chars, 1h voice, history access\n"
-                        "🥈 **Premium ($3/month):** 2000 chars, 2h voice, priority processing\n"
-                        "🥇 **Pro ($5/month):** Unlimited everything + beta features"
-                    ),
+                    name=get_translation(ui_lang, "START.upgrade_benefits_name"),
+                    value=get_translation(ui_lang, "START.upgrade_benefits_value"),
                     inline=False
                 )
             else:
+                text_limit_str = get_translation(ui_lang, "START.tier_unlimited") if limits['text_limit'] == float('inf') else str(limits['text_limit'])
+                voice_limit_str = get_translation(ui_lang, "START.tier_unlimited") if limits['voice_limit'] == float('inf') else str(limits['voice_limit']//60)
+                
                 embed.add_field(
-                    name="🎉 Premium Features Active",
-                    value=(
-                        f"• Enhanced limits: {limits['text_limit'] if limits['text_limit'] != float('inf') else 'Unlimited'} chars\n"
-                        f"• Voice time: {limits['voice_limit']//60 if limits['voice_limit'] != float('inf') else 'Unlimited'} minutes\n"
-                        f"• Point multiplier: {tier_info.get('point_multiplier', '1x')}\n"
-                        "• Thank you for supporting Muse! 💖"
-                    ),
+                    name=get_translation(ui_lang, "START.premium_active_name"),
+                    value=get_translation(ui_lang, "START.premium_active_value",
+                                        text_limit=text_limit_str,
+                                        voice_limit=voice_limit_str,
+                                        multiplier=tier_info.get('point_multiplier', '1x')),
                     inline=False
                 )
             print("✅ Step 8: Added tier-specific info")
@@ -1731,21 +1879,16 @@ async def start(interaction: discord.Interaction):
         try:
             # Add language format help
             embed.add_field(
-                name="📝 Language Format",
-                value=(
-                    "You can use language names or codes:\n"
-                    "• Names: `English`, `Spanish`, `Japanese`\n"
-                    "• Codes: `en`, `es`, `ja`\n"
-                    "• Example: `/texttr text:'Hello World' source_lang:English target_lang:Spanish`"
-                ),
+                name=get_translation(ui_lang, "START.language_format_name"),
+                value=get_translation(ui_lang, "START.language_format_value"),
                 inline=False
             )
-            
+                    
             # Context-specific footer
             if interaction.guild:
-                embed.set_footer(text=f"Server Mode: {interaction.guild.name} | Join our support server: discord.gg/VMpBsbhrff")
+                embed.set_footer(text=get_translation(ui_lang, "START.footer_server", server=interaction.guild.name))
             else:
-                embed.set_footer(text="User Mode: Perfect for DMs | Join our support server: discord.gg/VMpBsbhrff")
+                embed.set_footer(text=get_translation(ui_lang, "START.footer_dm"))
             print("✅ Step 9: Added language help and footer")
         except Exception as e:
             print(f"❌ Step 9 Error - Adding final fields: {e}")
@@ -1760,7 +1903,7 @@ async def start(interaction: discord.Interaction):
             # Try to send a simple error message
             try:
                 await interaction.response.send_message(
-                    "❌ Error sending welcome message. Please try again or contact support.",
+                    get_translation(ui_lang, "START.error_send_welcome"),
                     ephemeral=True
                 )
             except:
@@ -1783,22 +1926,25 @@ async def start(interaction: discord.Interaction):
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
         
+        # Get UI language for error message
+        try:
+            ui_lang = await get_user_ui_language(interaction.user.id)
+        except:
+            ui_lang = 'en'  # Fallback
+            
         try:
             if not interaction.response.is_done():
                 await interaction.response.send_message(
-                    f"❌ A critical error occurred: {str(e)}\n"
-                                        "Please try again or contact support.",
+                    get_translation(ui_lang, "START.error_critical", error=str(e)),
                     ephemeral=True
                 )
             else:
                 await interaction.followup.send(
-                    f"❌ A critical error occurred: {str(e)}\n"
-                    "Please try again or contact support.",
+                    get_translation(ui_lang, "START.error_critical", error=str(e)),
                     ephemeral=True
                 )
         except Exception as send_error:
             print(f"💥 Failed to send error message: {send_error}")
-
 @tree.command(
     name="setchannel",
     description="Restrict or allow translation in specific text/voice channels and languages (admin/mod only)"
@@ -1807,7 +1953,7 @@ async def start(interaction: discord.Interaction):
     channel="Text or voice channel to restrict",
     channel_type="Type of channel: text, voice, or both",
     mode="Choose 'allow' to only allow listed languages, or 'block' to block listed languages",
-    languages="Comma-separated language names to allow/block (type 'all' for all languages, or 'none' to block all)"
+    languages="Comma-separated language codes or names (e.g. 'en, es', or 'English, Spanish')"
 )
 @app_commands.default_permissions(manage_guild=True)
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -1818,30 +1964,42 @@ async def set_channel(
     mode: str,
     languages: str
 ):
-    # Extra check for manage_guild permission
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+    
+
     if not interaction.guild:
-        await interaction.response.send_message("❌ This command can only be used in a server.", ephemeral=True)
+        await interaction.response.send_message(
+            get_translation(ui_lang, "SETCHANNEL.error_server_only"),
+            ephemeral=True
+        )
         return
 
     perms = interaction.guild.get_member(interaction.user.id).guild_permissions
     if not (perms.administrator or perms.manage_guild):
         await interaction.response.send_message(
-            "❌ Only server admins or mods with 'Manage Server' permission can use this command.",
+            get_translation(ui_lang, "SETCHANNEL.error_no_permission"),
             ephemeral=True
         )
         return
 
     if channel_type not in ["text", "voice", "both"]:
-        await interaction.response.send_message("❌ Channel type must be 'text', 'voice', or 'both'.", ephemeral=True)
+        await interaction.response.send_message(
+            get_translation(ui_lang, "SETCHANNEL.error_invalid_channel_type"),
+            ephemeral=True
+        )
         return
 
     if mode not in ["allow", "block"]:
-        await interaction.response.send_message("❌ Mode must be 'allow' or 'block'.", ephemeral=True)
+        await interaction.response.send_message(
+            get_translation(ui_lang, "SETCHANNEL.error_invalid_mode"),
+            ephemeral=True
+        )
         return
 
     if not languages or not languages.strip():
         await interaction.response.send_message(
-            "❌ You must specify at least one language name, 'all' for all languages, or 'none' to block all translations.",
+            get_translation(ui_lang, "SETCHANNEL.error_no_languages"),
             ephemeral=True
         )
         return
@@ -1849,65 +2007,85 @@ async def set_channel(
     guild_id = interaction.guild.id
     languages_clean = languages.strip().lower()
 
-    # Helper: Convert language names to codes
+    # 🔁 Unified name/code conversion using get_language_code
     def names_to_codes(lang_names):
         codes = set()
         for name in lang_names:
-            code = language_names_to_codes.get(name.strip().lower())
+            code = get_language_code(name)
             if code:
                 codes.add(code)
         return codes
 
-    # Helper: Apply restriction for a channel type
+    # 🚧 Apply restriction logic
     async def apply_restriction(chan_type):
         if languages_clean == "none":
-            await db.set_channel_restriction(guild_id, channel.id, chan_type, set(), block_all=True, mode=mode)
-            return f"🚫 All {chan_type} translations are now **blocked** in <#{channel.id}>."
+            await db.set_channel_restriction(guild_id, channel.id, chan_type, set(), block_all=True)
+            return get_translation(ui_lang, "SETCHANNEL.blocked_all",
+                                   channel_type=chan_type, channel_id=channel.id)
         elif languages_clean == "all":
-            await db.set_channel_restriction(guild_id, channel.id, chan_type, set(), block_all=False, mode="allow")
-            return f"✅ All languages are now **allowed** in <#{channel.id}> for {chan_type}."
+            await db.set_channel_restriction(guild_id, channel.id, chan_type, set(), block_all=False)
+            return get_translation(ui_lang, "SETCHANNEL.allowed_all",
+                                   channel_id=channel.id, channel_type=chan_type)
         else:
-            lang_names = [l.strip() for l in languages.split(",") if l.strip()]
-            lang_codes = names_to_codes(lang_names)
+            lang_inputs = [l.strip() for l in languages.split(",") if l.strip()]
+            lang_codes = names_to_codes(lang_inputs)
             if not lang_codes:
-                return "❌ You must specify at least one valid language name."
-            await db.set_channel_restriction(guild_id, channel.id, chan_type, lang_codes, block_all=False, mode=mode)
-            lang_display = ", ".join(lang_names)
-            if mode == "allow":
-                return f"✅ Only these languages are **allowed** in <#{channel.id}> for {chan_type}: {lang_display}."
-            else:
-                return f"🚫 These languages are **blocked** in <#{channel.id}> for {chan_type}: {lang_display}."
+                return get_translation(ui_lang, "SETCHANNEL.error_no_valid_languages")
 
-    # Apply restriction(s)
+            await db.set_channel_restriction(guild_id, channel.id, chan_type, lang_codes, block_all=False)
+
+            lang_display = ", ".join(lang_inputs)
+            if mode == "allow":
+                return get_translation(ui_lang, "SETCHANNEL.allowed_specific",
+                                       channel_id=channel.id, channel_type=chan_type, languages=lang_display)
+            else:
+                return get_translation(ui_lang, "SETCHANNEL.blocked_specific",
+                                       channel_id=channel.id, channel_type=chan_type, languages=lang_display)
+
     if channel_type == "both":
-        msg_text = []
-        for t in ["text", "voice"]:
-            result = await apply_restriction(t)
-            msg_text.append(result)
-        await interaction.response.send_message("\n".join(msg_text), ephemeral=True)
+        results = [await apply_restriction(t) for t in ["text", "voice"]]
+        await interaction.response.send_message("\n".join(results), ephemeral=True)
     else:
         result = await apply_restriction(channel_type)
         await interaction.response.send_message(result, ephemeral=True)
-
-# Add autocomplete for languages (language names)
 async def language_name_autocomplete(
     interaction: discord.Interaction,
     current: str,
 ) -> list[app_commands.Choice[str]]:
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
     current_lower = current.lower()
     matches = []
+
+    # Check language names translated into user's UI language
     for code, name in languages.items():
-        if current_lower in name.lower():
-            matches.append(app_commands.Choice(name=name, value=name))
-    # Add 'all' and 'none' as special options
+        translated_name = get_translation(ui_lang, f"LANGUAGES.{code}", default=name)
+        # Match if input matches part of translated name or code
+        if current_lower in translated_name.lower() or current_lower in code.lower():
+            matches.append(app_commands.Choice(
+                name=f"{translated_name} ({code})",  # What user sees
+                value=code                           # What the command receives
+            ))
+
+    # Add special options with translations
     if "all".startswith(current_lower):
-        matches.insert(0, app_commands.Choice(name="All Languages", value="all"))
+        matches.insert(0, app_commands.Choice(
+            name=get_translation(ui_lang, "SETCHANNEL.autocomplete_all", default="All Languages"),
+            value="all"
+        ))
     if "none".startswith(current_lower):
-        matches.insert(0, app_commands.Choice(name="Block All", value="none"))
+        matches.insert(0, app_commands.Choice(
+            name=get_translation(ui_lang, "SETCHANNEL.autocomplete_none", default="Block All Languages"),
+            value="none"
+        ))
+
     return matches[:25]
 
+# Link autocomplete to set_channel command parameter
 set_channel.autocomplete('languages')(language_name_autocomplete)
-# Update the texttr command to use new limits
+
+
+
 @tree.command(name="texttr", description="Translate text between languages")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -1923,11 +2101,10 @@ async def text_translate(
     target_lang: str
 ):
     user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
 
-    # Create/update user in database
     await db.get_or_create_user(user_id, interaction.user.display_name)
 
-    # Check user tier and get limits
     if user_id in tier_handler.pro_users:
         tier = 'pro'
         is_premium = True
@@ -1943,9 +2120,9 @@ async def text_translate(
 
     limits = tier_handler.get_limits(user_id)
 
-    # Convert language inputs to codes
     source_code = get_language_code(source_lang)
     target_code = get_language_code(target_lang)
+
     if interaction.guild:
         allowed = await db.is_translation_allowed(
             interaction.guild.id,
@@ -1955,47 +2132,42 @@ async def text_translate(
         )
         if not allowed:
             await interaction.response.send_message(
-                "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
+                get_translation(ui_lang, "TEXTTR.error_language_not_allowed"),
                 ephemeral=True
             )
             return
 
-    # Validate language codes
     if not source_code:
         await interaction.response.send_message(
-            f"❌ Invalid source language: '{source_lang}'\nUse /list to see available languages.",
+            get_translation(ui_lang, "TEXTTR.error_invalid_source", language=source_lang),
             ephemeral=True
         )
         return
 
     if not target_code:
         await interaction.response.send_message(
-            f"❌ Invalid target language: '{target_lang}'\nUse /list to see available languages.",
+            get_translation(ui_lang, "TEXTTR.error_invalid_target", language=target_lang),
             ephemeral=True
         )
         return
 
     if len(text) > limits['text_limit']:
         await interaction.response.send_message(
-            f"🔒 Text too long! Your {tier} tier limit: {limits['text_limit']} characters\n"
-            f"💡 Upgrade your tier for higher limits!",
+            get_translation(ui_lang, "TEXTTR.error_text_too_long", tier=tier, limit=limits['text_limit']),
             ephemeral=True
         )
         return
 
-    # Defer response if translation may take >3s
     await interaction.response.defer(ephemeral=False)
 
     try:
         translator = GoogleTranslator(source=source_code, target=target_code)
         translated = translator.translate(text)
 
-        # Award points based on tier (SYNC - no await)
         points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
         points_awarded = points_map[tier]
         reward_db.add_points(user_id, points_awarded, f"Text translation: {source_code}→{target_code}")
 
-        # Track usage and save translation (ASYNC)
         await db.track_usage(user_id, text_chars=len(text))
         await db.save_translation(
             user_id=user_id,
@@ -2007,87 +2179,106 @@ async def text_translate(
             translation_type="text"
         )
 
-        # Track for achievements (SYNC - no await)
         achievement_db.track_translation(user_id, source_code, target_code, is_premium)
         new_achievements = achievement_db.check_achievements(user_id)
         if new_achievements:
             await send_achievement_notification(client, user_id, new_achievements)
 
         await safe_track_translation_achievement(
-            user_id=interaction.user.id,
+            user_id=user_id,
             username=interaction.user.display_name,
             source_lang=source_code,
             target_lang=target_code
         )
 
-        username = interaction.user.display_name
-
-        # After checking/awarding achievements:
         uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
-        await notify_uncashed_achievements(user_id, username, uncashed_points)
+        await notify_uncashed_achievements(user_id, interaction.user.display_name, uncashed_points)
 
-        # Get proper language names and flags
-        source_name = languages.get(source_code, source_code)
-        target_name = languages.get(target_code, target_code)
+        source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+        target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
         source_flag = flag_mapping.get(source_code, '🌐')
         target_flag = flag_mapping.get(target_code, '🌐')
 
-        # Create embed with tier-based colors
         tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
         embed = discord.Embed(
-            title="Text Translation",
+            title=get_translation(ui_lang, "TEXTTR.title"),
             color=tier_colors[tier]
         )
 
-        if interaction.user.id not in hidden_sessions:
+        if user_id not in hidden_sessions:
             embed.add_field(
-                name=f"{source_flag} Original ({source_name})",
+                name=get_translation(ui_lang, "TEXTTR.original_field", flag=source_flag, language=source_name),
                 value=text,
                 inline=False
             )
 
         embed.add_field(
-            name=f"{target_flag} Translation ({target_name})",
+            name=get_translation(ui_lang, "TEXTTR.translation_field", flag=target_flag, language=target_name),
             value=translated,
             inline=False
         )
 
-        # Add points earned indicator
         embed.add_field(
-            name="💎 Points",
-            value=f"+{points_awarded}",
+            name=get_translation(ui_lang, "TEXTTR.points_field"),
+            value=get_translation(ui_lang, "TEXTTR.points_value", points=points_awarded),
             inline=True
         )
 
-        # Add tier-specific footer
-        tier_footers = {
-            'free': f"🆓 Free: {len(text)}/{limits['text_limit']} chars",
-            'basic': f"🥉 Basic: {len(text)}/{limits['text_limit']} chars",
-            'premium': f"🥈 Premium: Text translation",
-            'pro': f"🥇 Pro: Text translation"
-        }
-
-        # Add context indicator
-        if interaction.guild:
-            embed.set_footer(text=f"{tier_footers[tier]} • Server: {interaction.guild.name}")
+        if tier == 'free':
+            footer_text = get_translation(ui_lang, "TEXTTR.footer_free", current=len(text), limit=limits['text_limit'])
+        elif tier == 'basic':
+            footer_text = get_translation(ui_lang, "TEXTTR.footer_basic", current=len(text), limit=limits['text_limit'])
+        elif tier == 'premium':
+            footer_text = get_translation(ui_lang, "TEXTTR.footer_premium")
         else:
-            embed.set_footer(text=f"{tier_footers[tier]} • User Mode: DM Translation")
+            footer_text = get_translation(ui_lang, "TEXTTR.footer_pro")
+
+        if interaction.guild:
+            footer_text += " " + get_translation(ui_lang, "TEXTTR.footer_server", server=interaction.guild.name)
+        else:
+            footer_text += " " + get_translation(ui_lang, "TEXTTR.footer_dm")
+
+        embed.set_footer(text=footer_text)
 
         await interaction.followup.send(embed=embed, ephemeral=False)
+
     except Exception as e:
         await interaction.followup.send(
-            f"❌ Translation failed: {str(e)}\n"
-            f"Please check your language codes (e.g., 'en' for English, 'es' for Spanish')",
+            get_translation(ui_lang, "TEXTTR.error_translation_failed", error=str(e)),
             ephemeral=True
         )
 
-# Add autocomplete to the texttr command
-text_translate.autocomplete('source_lang')(source_language_autocomplete)
-text_translate.autocomplete('target_lang')(language_autocomplete)
+@text_translate.autocomplete('source_lang')
+async def source_lang_autocomplete(interaction: discord.Interaction, current: str):
+    return await translated_language_autocomplete(interaction, current)
+
+@text_translate.autocomplete('target_lang')
+async def target_lang_autocomplete(interaction: discord.Interaction, current: str):
+    return await translated_language_autocomplete(interaction, current)
+
+async def translated_language_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+    current_lower = current.lower()
+    matches = []
+
+    for code, name in languages.items():
+        translated_name = get_translation(ui_lang, f"LANGUAGES.{code}", default=name)
+        if current_lower in translated_name.lower() or current_lower in code.lower():
+            matches.append(app_commands.Choice(
+                name=f"{translated_name} ({code})",  # what the user sees
+                value=code                           # what the command receives
+            ))
+
+    return matches[:25]
 
 # Add autocomplete to the texttr command
-text_translate.autocomplete('source_lang')(source_language_autocomplete)
-text_translate.autocomplete('target_lang')(language_autocomplete)
+text_translate.autocomplete('source_lang')(translated_language_autocomplete)
+text_translate.autocomplete('target_lang')(translated_language_autocomplete)
+
 
 # Also update your /voice command to match the same pattern
 @tree.command(name="voice", description="Translate text and convert to speech")
@@ -2096,20 +2287,21 @@ text_translate.autocomplete('target_lang')(language_autocomplete)
 @app_commands.describe(
     text="Text to translate and convert to speech",
     source_lang="Source language (type to search)",
-    target_lang="Target language (type to search)"
-)
+    target_lang="Target language (type to search)")
 async def translate_and_speak(
     interaction: discord.Interaction,
     text: str,
     source_lang: str,
-    target_lang: str
-):
+    target_lang: str):
     try:
         user_id = interaction.user.id
         
+        # Get user's UI language
+        ui_lang = await get_user_ui_language(user_id)
+               
         # Create/update user in database
         await db.get_or_create_user(user_id, interaction.user.display_name)
-        
+               
         # Check user tier and get limits
         if user_id in tier_handler.pro_users:
             tier = 'pro'
@@ -2123,9 +2315,9 @@ async def translate_and_speak(
         else:
             tier = 'free'
             is_premium = False
-        
+               
         limits = tier_handler.get_limits(user_id)
-
+        
         # Handle both contexts
         if interaction.guild:
             # Server context - existing logic
@@ -2133,10 +2325,11 @@ async def translate_and_speak(
         else:
             # User context (DM) - just create audio file, no voice channel
             pass
-
+        
         # Convert language inputs to codes
         source_code = get_language_code(source_lang)
         target_code = get_language_code(target_lang)
+        
         if interaction.guild:
             allowed = await db.is_translation_allowed(
                 interaction.guild.id,
@@ -2146,36 +2339,37 @@ async def translate_and_speak(
             )
             if not allowed:
                 await interaction.response.send_message(
-                    "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
+                    get_translation(ui_lang, "VOICE.error_language_not_allowed"),
                     ephemeral=True
                 )
                 return
+        
         # Validate language codes
         if not source_code:
             await interaction.response.send_message(
-                f"❌ Invalid source language: '{source_lang}'\nUse /list to see available languages.",
+                get_translation(ui_lang, "VOICE.error_invalid_source", language=source_lang),
                 ephemeral=True
             )
             return
-            
+                   
         if not target_code:
             await interaction.response.send_message(
-                f"❌ Invalid target language: '{target_lang}'\nUse /list to see available languages.",
+                get_translation(ui_lang, "VOICE.error_invalid_target", language=target_lang),
                 ephemeral=True
             )
             return
-
+        
         # Check text length against limits
         if len(text) > limits['text_limit']:
             await interaction.response.send_message(
-                f"🔒 Text too long! Your {tier} tier limit: {limits['text_limit']} characters\n"
-                f"💡 Upgrade your tier for higher limits!",
+                get_translation(ui_lang, "VOICE.error_text_too_long", 
+                              tier=tier, limit=limits['text_limit']),
                 ephemeral=True
             )
             return
-
-        await interaction.response.defer(ephemeral=True)
         
+        await interaction.response.defer(ephemeral=True)
+               
         # Don't translate if source and target are the same
         if source_code == target_code:
             translated_text = text
@@ -2183,12 +2377,12 @@ async def translate_and_speak(
             # Translate the text
             translator = GoogleTranslator(source=source_code, target=target_code)
             translated_text = translator.translate(text)
-
+        
         # Award points based on tier (SYNC - no await)
         points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
         points_awarded = points_map[tier]
         reward_db.add_points(user_id, points_awarded, f"Voice translation: {source_code}→{target_code}")
-        
+               
         # Track usage and save translation (ASYNC)
         await db.track_usage(user_id, text_chars=len(text))
         await db.save_translation(
@@ -2200,77 +2394,84 @@ async def translate_and_speak(
             target_lang=target_code,
             translation_type="voice"
         )
-        
+               
         # Track for achievements (SYNC - no await)
         achievement_db.track_translation(user_id, source_code, target_code, is_premium)
         new_achievements = achievement_db.check_achievements(user_id)
         if new_achievements:
             await send_achievement_notification(client, user_id, new_achievements)
-
+        
         username = interaction.user.display_name
-
+        
         # After checking/awarding achievements:
         uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
         await notify_uncashed_achievements(user_id, username, uncashed_points)
-
+        
         # Create temporary file using BytesIO instead of a file
         mp3_fp = io.BytesIO()
         tts = gTTS(text=translated_text, lang=target_code)
         tts.write_to_fp(mp3_fp)
         mp3_fp.seek(0)
-            
+                   
         # Get language names and flags
-        source_name = languages.get(source_code, source_code)
-        target_name = languages.get(target_code, target_code)
+        source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+        target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
         source_flag = flag_mapping.get(source_code, '🌐')
         target_flag = flag_mapping.get(target_code, '🌐')
-            
+                   
         # Create embed with tier-based colors
         tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
         embed = discord.Embed(
-            title="Text Translation & Speech",
+            title=get_translation(ui_lang, "VOICE.title"),
             color=tier_colors[tier]
         )
-            
+                   
         embed.add_field(
-            name=f"{source_flag} Original ({source_name})",
+            name=get_translation(ui_lang, "VOICE.original_field", 
+                               flag=source_flag, language=source_name),
             value=text,
             inline=False
         )
-            
+                   
         embed.add_field(
-            name=f"{target_flag} Translation ({target_name})",
+            name=get_translation(ui_lang, "VOICE.translation_field", 
+                               flag=target_flag, language=target_name),
             value=translated_text,
             inline=False
         )
-        
+               
         # Add points earned indicator
         embed.add_field(
-            name="💎 Points",
-            value=f"+{points_awarded}",
+            name=get_translation(ui_lang, "VOICE.points_field"),
+            value=get_translation(ui_lang, "VOICE.points_value", points=points_awarded),
             inline=True
         )
-        
+               
         # Add tier-specific footer
-        tier_footers = {
-            'free': f"🆓 Free: Voice translation",
-            'basic': f"🥉 Basic: Voice translation",
-            'premium': f"🥈 Premium: Voice translation",
-            'pro': f"🥇 Pro: Voice translation"
-        }
-        
+        if tier == 'free':
+            footer_text = get_translation(ui_lang, "VOICE.footer_free")
+        elif tier == 'basic':
+            footer_text = get_translation(ui_lang, "VOICE.footer_basic")
+        elif tier == 'premium':
+            footer_text = get_translation(ui_lang, "VOICE.footer_premium")
+        else:  # pro
+            footer_text = get_translation(ui_lang, "VOICE.footer_pro")
+               
         # Add context info
         if interaction.guild:
-            embed.set_footer(text=f"{tier_footers[tier]} • Server: {interaction.guild.name}")
+            footer_text += " " + get_translation(ui_lang, "VOICE.footer_server", 
+                                                server=interaction.guild.name)
         else:
-            embed.set_footer(text=f"{tier_footers[tier]} • User Context: Audio file generated")
-            
+            footer_text += " " + get_translation(ui_lang, "VOICE.footer_dm")
+        
+        embed.set_footer(text=footer_text)
+                   
         # Send the embed as ephemeral
         await interaction.followup.send(
             embed=embed,
             ephemeral=True
         )
-
+        
         # Send the audio file
         if interaction.guild:
             # In server - send to channel
@@ -2282,25 +2483,31 @@ async def translate_and_speak(
             await interaction.followup.send(
                 file=discord.File(mp3_fp, filename='translated_speech.mp3')
             )
-        
+               
         # Close the BytesIO buffer
         mp3_fp.close()
-
+        
     except Exception as e:
+        # Get UI language for error message
+        try:
+            ui_lang = await get_user_ui_language(interaction.user.id)
+        except:
+            ui_lang = 'en'  # Fallback
+            
         if not interaction.response.is_done():
             await interaction.response.send_message(
-                f"❌ An error occurred: {str(e)}",
+                get_translation(ui_lang, "VOICE.error_general", error=str(e)),
                 ephemeral=True
             )
         else:
             await interaction.followup.send(
-                f"❌ An error occurred: {str(e)}",
+                get_translation(ui_lang, "VOICE.error_general", error=str(e)),
                 ephemeral=True
             )
 
 # Add autocomplete to voice command
-translate_and_speak.autocomplete('source_lang')(source_language_autocomplete)
-translate_and_speak.autocomplete('target_lang')(language_autocomplete)
+translate_and_speak.autocomplete('source_lang')(translated_language_autocomplete)
+translate_and_speak.autocomplete('target_lang')(translated_language_autocomplete)
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -2409,35 +2616,41 @@ async def on_voice_state_update(member, before, after):
 @tree.command(name="voicechat", description="Translate voice chat in real-time")
 @app_commands.describe(
     source_lang="Source language (type to search, or 'auto' for detection)",
-    target_lang="Target language (type to search)"
-)
+    target_lang="Target language (type to search)")
 async def voice_chat_translate(
-    interaction: discord.Interaction, 
+    interaction: discord.Interaction,
     source_lang: str,
-    target_lang: str
-):
+    target_lang: str):
+    
     await track_command_usage(interaction)
+    
+    user_id = interaction.user.id
+    
+    # Get user's UI language
+    ui_lang = await get_user_ui_language(user_id)
+    
     # Check if command is used in a guild
     if not interaction.guild:
         embed = discord.Embed(
-            title="❌ Server Only Command",
-            description="This command can only be used if I'm invited to the server!",
+            title=get_translation(ui_lang, "VOICECHAT.error_server_only"),
+            description=get_translation(ui_lang, "VOICECHAT.error_server_only_desc"),
             color=0xFF0000
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
-        
+           
     # Check if user is in a voice channel
     if not interaction.user.voice:
         await interaction.response.send_message(
-            "❌ You need to be in a voice channel to use this command!",
+            get_translation(ui_lang, "VOICECHAT.error_not_in_voice"),
             ephemeral=True
         )
         return
-        
+           
     # Convert language inputs to codes - support both codes and names
     source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
     target_code = get_language_code(target_lang)
+    
     if interaction.guild:
         allowed = await db.is_translation_allowed(
             interaction.guild.id,
@@ -2447,105 +2660,72 @@ async def voice_chat_translate(
         )
         if not allowed:
             await interaction.response.send_message(
-                "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
+                get_translation(ui_lang, "VOICECHAT.error_language_not_allowed"),
                 ephemeral=True
             )
             return
-    # Validate language codes
+    
+        # Validate language codes
     if source_lang.lower() != "auto" and not source_code:
         await interaction.response.send_message(
-            f"❌ Invalid source language: '{source_lang}'\nUse /list to see available languages or use 'auto' for automatic detection.",
+            get_translation(ui_lang, "VOICECHAT.error_invalid_source", language=source_lang),
             ephemeral=True
         )
         return
-        
+           
     if not target_code:
         await interaction.response.send_message(
-            f"❌ Invalid target language: '{target_lang}'\nUse /list to see available languages.",
+            get_translation(ui_lang, "VOICECHAT.error_invalid_target", language=target_lang),
             ephemeral=True
         )
         return
-        
+           
     # Get user's tier and check voice limits
-    user_id = interaction.user.id
     user = await db.get_or_create_user(user_id, interaction.user.display_name)
     current_tier = tier_handler.get_user_tier(user_id)
-
+    
     # Check voice limits using tier handler
     can_use_voice, limit_message = tier_handler.check_usage_limits(
-        user_id, 
-        usage_type='voice_seconds', 
+        user_id,
+        usage_type='voice_seconds',
         amount=1  # Just checking if they can start a session
     )
-
+    
     if not can_use_voice:
         # Get tier-specific upgrade messages
-        tier_upgrade_messages = {
-            'free': (
-                "You've reached your **30-minute** daily voice limit!\n\n"
-                "**Upgrade Options:**\n"
-                "🥉 **Basic ($1/month):** 1 hour daily\n"
-                "🥈 **Premium ($3/month):** 2 hours daily\n"
-                "🥇 **Pro ($5/month):** ♾️ Unlimited\n\n"
-                "Use `/upgrade` to upgrade now!"
-            ),
-            'basic': (
-                "You've reached your **1-hour** daily voice limit!\n\n"
-                "**Upgrade Options:**\n"
-                "🥈 **Premium ($3/month):** 2 hours daily\n"
-                "🥇 **Pro ($5/month):** ♾️ Unlimited\n\n"
-                "Use `/upgrade` to upgrade now!"
-            ),
-            'premium': (
-                "You've reached your **2-hour** daily voice limit!\n\n"
-                "**Upgrade to Pro for unlimited:**\n"
-                "🥇 **Pro ($5/month):** ♾️ Unlimited everything\n\n"
-                "Use `/upgrade` to upgrade now!"
-            )
-        }
-    
+        tier_upgrade_key = f"VOICECHAT.tier_upgrade_{current_tier}"
+        
         embed = discord.Embed(
-            title="🔒 Daily Voice Limit Reached",
-            description=tier_upgrade_messages.get(current_tier, limit_message),
+            title=get_translation(ui_lang, "VOICECHAT.error_daily_limit_title"),
+            description=get_translation(ui_lang, tier_upgrade_key),
             color=0xFF6B6B
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
-
+    
     # Check if user is close to their limit (warn them)
     if current_tier != 'pro':  # Pro has unlimited
         usage_stats = tier_handler.get_usage_stats(user_id)
         remaining_limits = tier_handler.get_remaining_limits(user_id)
-    
+           
         if remaining_limits['voice_seconds'] < 300:  # Less than 5 minutes remaining
-            tier_limits = {
-                'free': '30 minutes',
-                'basic': '1 hour',
-                'premium': '2 hours'
-            }
-        
             embed = discord.Embed(
-                title="⚠️ Voice Limit Warning",
-                description=(
-                    f"You have **{format_seconds(remaining_limits['voice_seconds'])}** remaining today.\n"
-                    f"Your {current_tier.title()} tier limit: {tier_limits[current_tier]}\n\n"
-                    f"Consider upgrading for more time!"
-                ),
+                title=get_translation(ui_lang, "VOICECHAT.warning_limit_title"),
+                description=get_translation(ui_lang, "VOICECHAT.warning_limit_desc", 
+                                          remaining=format_seconds(remaining_limits['voice_seconds'])),
                 color=0xF39C12
             )
             # Don't return here, just warn them
-
-    
+       
     voice_channel = interaction.user.voice.channel
-    user_id = interaction.user.id
     user = await db.get_or_create_user(user_id, interaction.user.display_name)
     limits = get_effective_limits(user_id, tier_handler, reward_db)
-
+    
     # --- TIER PRIORITY LOGIC START ---
     guild_id = interaction.guild_id
     current_tier = tier_handler.get_user_tier(user_id)
     tier_order = ['free', 'basic', 'premium', 'pro']
-
+    
     # If a session is already running in this guild
     if guild_id in voice_translation_sessions:
         session = voice_translation_sessions[guild_id]
@@ -2555,12 +2735,9 @@ async def voice_chat_translate(
             # Only allow takeover if the new user's tier is higher
             if tier_order.index(current_tier) <= tier_order.index(owner_tier):
                 embed = discord.Embed(
-                    title="🔒 Voice Chat In Use",
-                    description=(
-                        f"A voice translation session is already active, started by a **{owner_tier.title()}** tier user.\n"
-                        f"You need a **higher tier** to take over the session.\n"
-                        f"Current session owner: <@{owner_id}> ({owner_tier.title()})"
-                    ),
+                    title=get_translation(ui_lang, "VOICECHAT.error_session_in_use_title"),
+                    description=get_translation(ui_lang, "VOICECHAT.error_session_in_use_desc",
+                                              tier=owner_tier.title(), owner_id=owner_id),
                     color=0xFF6B6B
                 )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -2578,9 +2755,10 @@ async def voice_chat_translate(
                 except Exception as e:
                     logger.error(f"Error stopping previous session: {e}")
                 del voice_translation_sessions[guild_id]
+    
     # Define the TranslationSink class with usage tracking
     class TranslationSink(BasicSink):
-        def __init__(self, *, source_language, target_language, text_channel, client_instance, user_id):
+        def __init__(self, *, source_language, target_language, text_channel, client_instance, user_id, ui_language):
             # Must call super().__init__() as per documentation
             self.event = asyncio.Event()
             super().__init__(self.event)
@@ -2589,6 +2767,7 @@ async def voice_chat_translate(
             self.text_channel = text_channel
             self.client_instance = client_instance
             self.initiating_user_id = user_id
+            self.ui_language = ui_language
             self.user_buffers = {}
             self.processing_queue = queue.Queue()
             self.is_running = True
@@ -2596,37 +2775,37 @@ async def voice_chat_translate(
             self.processing_thread = threading.Thread(target=self._process_audio)
             self.processing_thread.start()
             logger.info("TranslationSink initialized with usage tracking")
-            
+                   
         # Specify that we want PCM data, not opus
         def wants_opus(self) -> bool:
             return False
-            
+                   
         def write(self, user, data):
             # Extract user ID and PCM data from the VoiceData object
             user_id = user.id if hasattr(user, 'id') else str(user)
-            
+                       
             # Check if we have PCM data
             if not hasattr(data, 'pcm'):
                 return  # Skip if no PCM data
-                
+                           
             pcm_data = data.pcm
             if not pcm_data:
                 return  # Skip if PCM data is empty
-            
+                       
             # Buffer audio data by user
             if user_id not in self.user_buffers:
                 self.user_buffers[user_id] = []
                 logger.info(f"New user buffer created for user {user_id}")
-            
+                       
             self.user_buffers[user_id].append(pcm_data)
-            
+                       
             # If we have enough data (about 2 seconds of audio), process it
             if len(self.user_buffers[user_id]) >= 100:  # ~2 seconds at 20ms chunks
                 logger.info(f"Processing audio buffer for user {user_id}")
                 audio_buffer = b''.join(self.user_buffers[user_id])
                 self.user_buffers[user_id] = []
                 self.processing_queue.put((user_id, audio_buffer))
-                
+                       
         def _process_audio(self):
             logger.info("Audio processing thread started")
             while self.is_running:
@@ -2634,46 +2813,46 @@ async def voice_chat_translate(
                     # Get audio data from queue with timeout
                     user_id, audio_buffer = self.processing_queue.get(timeout=0.5)
                     logger.info(f"Got audio data from queue for user {user_id}")
-                    
+                                       
                     # Create a temporary WAV file
                     with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
                         temp_filename = temp_file.name
-                        
+                                           
                     # Write audio data to WAV file
                     with wave.open(temp_filename, 'wb') as wf:
                         wf.setnchannels(2)  # Stereo
                         wf.setsampwidth(2)  # 2 bytes per sample (16-bit)
                         wf.setframerate(48000)  # 48 kHz
                         wf.writeframes(audio_buffer)
-                    
+                                       
                     logger.info(f"Created WAV file: {temp_filename}")
-                    
+                                       
                     # Process in a separate thread to avoid blocking
                     threading.Thread(
                         target=self._transcribe_and_translate,
                         args=(temp_filename, user_id)
                     ).start()
-                    
+                                   
                 except queue.Empty:
                     continue
                 except Exception as e:
                     logger.error(f"Error processing audio: {e}")
-        
+               
         async def _send_translation(self, user_id, original_text, translated_text, detected_lang=None):
             try:
                 # Get user from guild
                 guild = self.text_channel.guild
                 member = await guild.fetch_member(user_id)
-        
+                       
                 if not member:
                     return
-                
+                               
                 username = member.display_name
                 logger.info(f"Sending translation for user {username}")
-            
+                           
                 # Create/update user in database
                 await db.get_or_create_user(user_id, username)
-            
+                           
                 # Check user tier
                 if user_id in tier_handler.pro_users:
                     tier = 'pro'
@@ -2687,12 +2866,12 @@ async def voice_chat_translate(
                 else:
                     tier = 'free'
                     is_premium = False
-            
+                           
                 # Award points based on tier (SYNC - no await)
                 points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
                 points_awarded = points_map[tier]
                 reward_db.add_points(user_id, points_awarded, f"Voice chat: {detected_lang or self.source_language}→{self.target_language}")
-            
+                           
                 # Track usage and save translation (ASYNC)
                 await db.track_usage(user_id, text_chars=len(original_text))
                 await db.save_translation(
@@ -2704,68 +2883,64 @@ async def voice_chat_translate(
                     target_lang=self.target_language,
                     translation_type="voice_chat"
                 )
-            
+                           
                 # Track for achievements (SYNC - no await)
                 achievement_db.track_translation(user_id, detected_lang or self.source_language, self.target_language, is_premium)
                 new_achievements = achievement_db.check_achievements(user_id)
                 if new_achievements:
                     await send_achievement_notification(client, user_id, new_achievements)
-
                 await safe_track_voice_achievement(
-                    user_id=interaction.user.id,
-                    username=interaction.user.display_name
+                    user_id=user_id,
+                    username=username
                 )
-            
+                           
                 # Get source language - either detected or specified
                 source_lang = detected_lang if detected_lang else self.source_language
-                source_name = languages.get(source_lang, source_lang)
-                target_name = languages.get(self.target_language, self.target_language)
-            
+                source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+                target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
+                           
                 source_flag = flag_mapping.get(source_lang, '🌐')
                 target_flag = flag_mapping.get(self.target_language, '🌐')
-            
+                           
                 # Create embed with tier-based colors
                 tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
                 embed = discord.Embed(
-                    title=f"🎤 Voice Translation: {username}",
+                    title=get_translation(self.ui_language, "VOICECHAT.title", username=username),
                     color=tier_colors[tier]
                 )
-            
+                           
                 if user_id not in hidden_sessions:
                     embed.add_field(
-                        name=f"{source_flag} Original ({source_name})",
+                        name=get_translation(self.ui_language, "VOICECHAT.original_field", 
+                                           flag=source_flag, language=source_name),
                         value=original_text,
                         inline=False
                     )
-            
+                           
                 embed.add_field(
-                    name=f"{target_flag} Translation ({target_name})",
+                    name=get_translation(self.ui_language, "VOICECHAT.translation_field", 
+                                       flag=target_flag, language=target_name),
                     value=translated_text,
                     inline=False
                 )
-            
+                           
                 # Add points earned indicator
                 embed.add_field(
-                    name="💎",
-                    value=f"+{points_awarded}",
+                    name=get_translation(self.ui_language, "VOICECHAT.points_field"),
+                    value=get_translation(self.ui_language, "VOICECHAT.points_value", points=points_awarded),
                     inline=True
                 )
-            
+                           
                 # Add tier-specific footer
-                tier_footers = {
-                    'free': f"🆓 Free: Voice chat translation",
-                    'basic': f"🥉 Basic: Voice chat translation",
-                    'premium': f"🥈 Premium: Voice chat translation", 
-                    'pro': f"🥇 Pro: Voice chat translation"
-                }
-                embed.set_footer(text=tier_footers[tier])
-            
+                footer_key = f"VOICECHAT.footer_{tier}"
+                embed.set_footer(text=get_translation(self.ui_language, footer_key))
+                           
                 await self.text_channel.send(embed=embed)
                 logger.info("Translation sent successfully")
-            
+                       
             except Exception as e:
                 logger.error(f"Error sending translation: {e}")
-        
+               
         def _transcribe_and_translate(self, filename, user_id):
             try:
                 logger.info(f"Transcribing audio for user {user_id}")
@@ -2773,7 +2948,7 @@ async def voice_chat_translate(
                 recognizer = sr.Recognizer()
                 with sr.AudioFile(filename) as source:
                     audio = recognizer.record(source)
-                    
+                                       
                     # Try to recognize speech
                     try:
                         # Use specified source language if not auto
@@ -2787,17 +2962,17 @@ async def voice_chat_translate(
                                 detected_lang = detect(text)
                             except:
                                 detected_lang = "auto"
-                        
+                                               
                         logger.info(f"Recognized text: {text}")
-                        
+                                               
                         # Only process if we got actual text
                         if text and len(text.strip()) > 0:
                             # Translate the text
-                            translator = GoogleTranslator(source=self.source_language if self.source_language != "auto" else "auto", 
+                            translator = GoogleTranslator(source=self.source_language if self.source_language != "auto" else "auto",
                                                          target=self.target_language)
                             translated = translator.translate(text)
                             logger.info(f"Translated text: {translated}")
-                            
+                                                       
                             # Send to Discord
                             asyncio.run_coroutine_threadsafe(
                                 self._send_translation(user_id, text, translated, detected_lang),
@@ -2809,7 +2984,7 @@ async def voice_chat_translate(
                         pass
                     except Exception as e:
                         logger.error(f"Error in speech recognition: {e}")
-            
+                       
             except Exception as e:
                 logger.error(f"Error transcribing audio: {e}")
             finally:
@@ -2818,11 +2993,11 @@ async def voice_chat_translate(
                     os.unlink(filename)
                 except:
                     pass
-        
+               
         async def cleanup(self):
             logger.info("Cleaning up TranslationSink")
             self.is_running = False
-            
+                       
             try:
                 # Calculate session duration and track usage
                 session_duration = int(time.time() - self.start_time)
@@ -2830,7 +3005,7 @@ async def voice_chat_translate(
                 logger.info(f"Voice session duration: {session_duration} seconds")
             except Exception as e:
                 logger.error(f"Error tracking usage during cleanup: {e}")
-            
+                       
             # Clean up processing thread
             try:
                 if hasattr(self, 'processing_thread') and self.processing_thread.is_alive():
@@ -2839,7 +3014,7 @@ async def voice_chat_translate(
                         logger.warning("Processing thread didn't shut down cleanly")
             except Exception as e:
                 logger.error(f"Error cleaning up processing thread: {e}")
-            
+                       
             # Clear buffers
             try:
                 self.user_buffers.clear()
@@ -2850,21 +3025,21 @@ async def voice_chat_translate(
                         break
             except Exception as e:
                 logger.error(f"Error clearing buffers: {e}")
-                
+                       
         # Add sink event listeners as per documentation
         @BasicSink.listener()
         def on_voice_member_speaking_start(self, member):
             logger.info(f"Member started speaking: {member.display_name}")
-            
+                   
         @BasicSink.listener()
         def on_voice_member_speaking_stop(self, member):
             logger.info(f"Member stopped speaking: {member.display_name}")
-    
+       
     # Connect to the voice channel
     try:
         await interaction.response.defer(ephemeral=True)
         logger.info(f"Connecting to voice channel: {voice_channel.name}")
-        
+               
         # Clean up any existing connection first
         if interaction.guild.voice_client:
             logger.info("Disconnecting existing voice client")
@@ -2874,10 +3049,10 @@ async def voice_chat_translate(
                 await interaction.guild.voice_client.disconnect()
             except Exception as e:
                 logger.error(f"Error disconnecting existing client: {e}")
-            
-            # Wait a moment for cleanup
-            await asyncio.sleep(1)
-        
+                       
+        # Wait a moment for cleanup
+        await asyncio.sleep(1)
+               
         # Clean up any existing session
         guild_id = interaction.guild_id
         if guild_id in voice_translation_sessions:
@@ -2889,40 +3064,45 @@ async def voice_chat_translate(
             except Exception as e:
                 logger.error(f"Error cleaning up sink: {e}")
             del voice_translation_sessions[guild_id]
-        
+               
         # Connect to voice channel with proper error handling
         logger.info(f"Connecting to voice channel with VoiceRecvClient: {voice_channel.name}")
         try:
             voice_client = await voice_channel.connect(
-                cls=voice_recv.VoiceRecvClient, 
+                cls=voice_recv.VoiceRecvClient,
                 self_deaf=False,
                 self_mute=False,
                 timeout=30.0  # 30 second timeout
             )
             logger.info("Successfully connected to voice channel")
         except asyncio.TimeoutError:
-            await interaction.followup.send("❌ Connection timed out. Please try again.", ephemeral=True)
+            await interaction.followup.send(
+                get_translation(ui_lang, "VOICECHAT.error_connection_timeout"), 
+                ephemeral=True
+            )
             return
         except Exception as e:
             logger.error(f"Failed to connect to voice channel: {e}")
-            await interaction.followup.send(f"❌ Failed to connect to voice channel: {str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                get_translation(ui_lang, "VOICECHAT.error_connection_failed", error=str(e)), 
+                ephemeral=True
+            )
             return
-        
-        # Rest of your voice connection code continues here...
+               
         # After connecting to the voice channel and assigning voice_client
-
-    # 1. Create the sink instance
+        # 1. Create the sink instance
         sink = TranslationSink(
             source_language=source_code,
             target_language=target_code,
             text_channel=interaction.channel,
             client_instance=client,
-            user_id=interaction.user.id
+            user_id=interaction.user.id,
+            ui_language=ui_lang
         )
-
+        
         # 2. Start listening with the sink
         voice_client.listen(sink)
-
+        
         # 3. Track the session with better info
         voice_translation_sessions[interaction.guild_id] = {
             'voice_client': voice_client,
@@ -2934,152 +3114,125 @@ async def voice_chat_translate(
             'start_time': time.time(),
             'text_channel': interaction.channel
         }
-        
+               
         # 4. Send success message with enhanced embed
-        source_name = languages.get(source_code, source_code)
-        target_name = languages.get(target_code, target_code)
+        source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+        target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
 
+        
         # Get user tier and limits info
         current_tier = tier_handler.get_user_tier(user_id)
         tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
         tier_emojis = {'free': '🆓', 'basic': '🥉', 'premium': '🥈', 'pro': '🥇'}
-
+        
         # Get flags for languages
         source_flag = flag_mapping.get(source_code, '🌐')
         target_flag = flag_mapping.get(target_code, '🌐')
-
+        
         # Calculate remaining voice time display using tier handler
         remaining_limits = tier_handler.get_remaining_limits(user_id)
         tier_info = tier_handler.get_tier_info(current_tier)
-
+        
         if current_tier == 'pro':
-            remaining_time_text = "⏱️ **Session Limit:** ♾️ Unlimited"
+            remaining_time_text = get_translation(ui_lang, "VOICECHAT.remaining_unlimited")
         else:
             daily_usage = await db.get_daily_usage(user_id)
-
             # Define limits per tier
             voice_limits = {
                 'free': 1800,    # 30 minutes
                 'basic': 3600,   # 1 hour  
                 'premium': 7200, # 2 hours
             }
-    
+               
             limit_seconds = voice_limits.get(current_tier, 1800)
             remaining_seconds = limit_seconds - daily_usage['voice_seconds']
-    
+               
             # Format the limit display
             limit_display = {
                 'free': '30 minutes',
                 'basic': '1 hour',
                 'premium': '2 hours'
             }
-
             # Ensure remaining_seconds is not negative
             remaining_seconds = max(0, remaining_seconds)
-    
-            remaining_time_text = f"⏱️ **Remaining Today:** {format_seconds(remaining_seconds)} / {limit_display[current_tier]}"
-    
+               
+            remaining_time_text = get_translation(ui_lang, "VOICECHAT.remaining_limited", 
+                                                remaining=format_seconds(remaining_seconds), 
+                                                limit=limit_display[current_tier])
+           
         embed = discord.Embed(
-            title=f"🎤 Voice Translation Active {tier_emojis[current_tier]}",
-            description=f"**Real-time voice translation is now running!**",
+            title=get_translation(ui_lang, "VOICECHAT.active_title", tier_emoji=tier_emojis[current_tier]),
+            description=get_translation(ui_lang, "VOICECHAT.active_desc"),
             color=tier_colors[current_tier]
         )
-
+        
         # Language translation flow with flags
         embed.add_field(
-            name="🌍 Translation Flow",
-            value=f"{source_flag} **{source_name}** ➜ {target_flag} **{target_name}**",
+            name=get_translation(ui_lang, "VOICECHAT.translation_flow"),
+            value=get_translation(ui_lang, "VOICECHAT.translation_flow_value", 
+                                source_flag=source_flag, source_name=source_name,
+                                target_flag=target_flag, target_name=target_name),
             inline=False
         )
-
+        
         # Channel information
         embed.add_field(
-            name="📍 Channels",
-            value=(
-                f"🎙️ **Voice:** {voice_channel.name}\n"
-                f"💬 **Text:** {interaction.channel.mention}"
-            ),
+            name=get_translation(ui_lang, "VOICECHAT.channels"),
+            value=get_translation(ui_lang, "VOICECHAT.channels_value", 
+                                voice_channel=voice_channel.name, 
+                                text_channel=interaction.channel.mention),
             inline=True
         )
-
+        
         # Tier and limits information
         embed.add_field(
-            name=f"{tier_emojis[current_tier]} Your Tier",
-            value=(
-                f"**{current_tier.title()} Tier**\n"
-                f"{remaining_time_text}"
-            ),
+            name=get_translation(ui_lang, "VOICECHAT.your_tier", tier_emoji=tier_emojis[current_tier]),
+            value=get_translation(ui_lang, "VOICECHAT.tier_info", 
+                                tier=current_tier.title(), 
+                                remaining_time=remaining_time_text),
             inline=True
         )
-
+        
         # Points earning info
         points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
         points_per_translation = points_map[current_tier]
         embed.add_field(
-            name="💎 Points Earning",
-            value=f"**+{points_per_translation} points** per translation",
+            name=get_translation(ui_lang, "VOICECHAT.points_earning"),
+            value=get_translation(ui_lang, "VOICECHAT.points_earning_value", points=points_per_translation),
             inline=True
         )
-
+        
         # Instructions section with emojis
         embed.add_field(
-            name="🎯 How to Use",
-            value=(
-                "🎙️ **Start speaking** - Your voice will be translated automatically\n"
-                "👥 **Multiple users** can speak and be translated\n"
-                "💬 **Translations appear** in this text channel\n"
-                "⏹️ **Use `/stop`** to end the session"
-            ),
+            name=get_translation(ui_lang, "VOICECHAT.how_to_use"),
+            value=get_translation(ui_lang, "VOICECHAT.how_to_use_value"),
             inline=False
         )
-
+        
         # Status indicators
         embed.add_field(
-            name="📊 Session Status",
-            value=(
-                "🟢 **Status:** Active & Listening\n"
-                f"👤 **Started by:** {interaction.user.mention}\n"
-                f"⏰ **Started:** <t:{int(time.time())}:R>"
-            ),
+            name=get_translation(ui_lang, "VOICECHAT.session_status"),
+            value=get_translation(ui_lang, "VOICECHAT.session_status_value", 
+                                user=interaction.user.mention, 
+                                timestamp=int(time.time())),
             inline=False
         )
-
+        
         # Add tier-specific footer with upgrade hints
-        if current_tier == 'free':
-            embed.set_footer(
-                text="🆓 Free Tier • Upgrade to Premium for unlimited voice translation! Use /upgrade",
-                icon_url="https://cdn.discordapp.com/emojis/1234567890.png"  # Optional: Add your bot's icon
-            )
-        elif current_tier == 'basic':
-            embed.set_footer(
-                text="🥉 Basic Tier • Upgrade to Premium for unlimited voice translation! Use /upgrade"
-            )
-        elif current_tier == 'premium':
-            embed.set_footer(
-                text="🥈 Premium Tier • Enjoying unlimited voice translation!"
-            )
-        elif current_tier == 'pro':
-            embed.set_footer(
-                text="🥇 Pro Tier • Thank you for supporting Muse with unlimited everything!"
-            )
-
+        footer_key = f"VOICECHAT.footer_{current_tier}_upgrade" if current_tier in ['free', 'basic'] else f"VOICECHAT.footer_{current_tier}_active"
+        embed.set_footer(text=get_translation(ui_lang, footer_key))
+        
         # Add a thumbnail (optional - you can use your bot's avatar or a translation icon)
         embed.set_thumbnail(url=client.user.display_avatar.url)
-
-        if not interaction.response.is_done():
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-        else:
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
         
         if not interaction.response.is_done():
             await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
             await interaction.followup.send(embed=embed, ephemeral=True)
-            
+               
     except Exception as e:
         logger.error(f"Error connecting to voice: {e}")
-        
+               
         # Clean up on error
         try:
             if 'voice_client' in locals() and voice_client and voice_client.is_connected():
@@ -3090,21 +3243,20 @@ async def voice_chat_translate(
                 del voice_translation_sessions[interaction.guild_id]
         except Exception as cleanup_error:
             logger.error(f"Error during cleanup: {cleanup_error}")
+               
+        error_message = get_translation(ui_lang, "VOICECHAT.error_connection_failed", error=str(e))
         
         if not interaction.response.is_done():
-            await interaction.response.send_message(
-                f"❌ Error starting voice translation: {str(e)}\nPlease try again or contact support if the issue persists.",
-                ephemeral=True
-            )
+            await interaction.response.send_message(error_message, ephemeral=True)
         else:
-            await interaction.followup.send(
-                f"❌ Error starting voice translation: {str(e)}\nPlease try again or contact support if the issue persists.",
-                ephemeral=True
-            )
+            await interaction.followup.send(error_message, ephemeral=True)
+
+
+
 
 # Add autocomplete to the command (this should be OUTSIDE the function)
-voice_chat_translate.autocomplete('source_lang')(source_language_autocomplete)
-voice_chat_translate.autocomplete('target_lang')(language_autocomplete)
+voice_chat_translate.autocomplete('source_lang')(translated_language_autocomplete)
+voice_chat_translate.autocomplete('target_lang')(translated_language_autocomplete)
 
 @tree.command(name="voicechat2", description="Enhanced bidirectional voice chat translation between two languages")
 @app_commands.describe(
@@ -3118,11 +3270,19 @@ async def voice_chat_translate_bidirectional_v2(
 ):
     await track_command_usage(interaction)
     
+    user_id = interaction.user.id
+    
+    # Get user's UI language
+    ui_lang = await get_user_ui_language(user_id)
+    
+    # Create/update user in database
+    await db.get_or_create_user(user_id, interaction.user.display_name)
+    
     # Check if command is used in a guild
     if not interaction.guild:
         embed = discord.Embed(
-            title="❌ Server Only Command",
-            description="This command can only be used if I'm invited to the server!",
+            title=get_translation(ui_lang, "VOICECHAT2.error_server_only"),
+            description=get_translation(ui_lang, "VOICECHAT2.error_server_only_desc"),
             color=0xFF0000
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -3131,77 +3291,70 @@ async def voice_chat_translate_bidirectional_v2(
     # Check if user is in a voice channel
     if not interaction.user.voice:
         await interaction.response.send_message(
-            "❌ You need to be in a voice channel to use this command!",
+            get_translation(ui_lang, "VOICECHAT2.error_not_in_voice"),
             ephemeral=True
         )
         return
     
-    # NEW: Check if user has access to Enhanced Voice V2
-    user_id = interaction.user.id
+    # Check user tier and get limits
+    if user_id in tier_handler.pro_users:
+        tier = 'pro'
+        is_premium = True
+    elif user_id in tier_handler.premium_users:
+        tier = 'premium'
+        is_premium = True
+    elif user_id in tier_handler.basic_users:
+        tier = 'basic'
+        is_premium = False
+    else:
+        tier = 'free'
+        is_premium = False
     
-    # Check enhanced voice access using the new shop system
+    # NEW: Check if user has access to Enhanced Voice V2
     if not has_enhanced_voice_access(user_id, reward_db, tier_handler):
         user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
         current_tier = await tier_handler.get_user_tier_async(user_id)
         
         # Create access denied embed with purchase options
         embed = discord.Embed(
-            title="🚀 Enhanced Voice V2 - Beta Feature",
-            description="This advanced voice translation feature is currently in beta testing!",
+            title=get_translation(ui_lang, "VOICECHAT2.access_denied_title"),
+            description=get_translation(ui_lang, "VOICECHAT2.access_denied_desc"),
             color=0x9b59b6
         )
         
         embed.add_field(
-            name="💎 Your Points",
+            name=get_translation(ui_lang, "VOICECHAT2.your_points"),
             value=f"{user_data['points']:,}",
             inline=True
         )
         
         embed.add_field(
-            name="🛍️ Beta Access Options",
-            value=(
-                "• **1-Day Access:** 50 points\n"
-                "• **Beta Trial (48h):** 100 points\n"
-                "• **7-Day Access:** 300 points"
-            ),
+            name=get_translation(ui_lang, "VOICECHAT2.beta_access_options"),
+            value=get_translation(ui_lang, "VOICECHAT2.beta_access_options_desc"),
             inline=True
         )
         
         embed.add_field(
-            name="⭐ Permanent Access",
-            value=(
-                "**Premium ($3/month):** Unlimited Enhanced Voice V2\n"
-                "**Pro ($5/month):** All features + priority support\n"
-                "Use `/upgrade` to upgrade!"
-            ),
+            name=get_translation(ui_lang, "VOICECHAT2.permanent_access"),
+            value=get_translation(ui_lang, "VOICECHAT2.permanent_access_desc"),
             inline=True
         )
         
         embed.add_field(
-            name="🧪 Enhanced Voice V2 Features",
-            value=(
-                "• **Bidirectional translation** between any 2 languages\n"
-                "• **Smart language detection** with priority matching\n"
-                "• **Multi-speaker support** for group conversations\n"
-                "• **Improved audio processing** for better accuracy"
-            ),
+            name=get_translation(ui_lang, "VOICECHAT2.features_title"),
+            value=get_translation(ui_lang, "VOICECHAT2.features_desc"),
             inline=False
         )
         
         embed.add_field(
-            name="🎯 How to Get Points",
-            value=(
-                "• `/daily` - 5-25 points daily (tier-based)\n"
-                "• Use translator regularly (+1-5 per use)\n"
-                "• Complete achievements (+10-100)\n"
-                "• Leave feedback (+15-30)"
-            ),
+            name=get_translation(ui_lang, "VOICECHAT2.how_to_get_points"),
+            value=get_translation(ui_lang, "VOICECHAT2.how_to_get_points_desc"),
             inline=False
         )
         
         embed.add_field(
-            name="📊 Current Status",
-            value=f"**Tier:** {current_tier.title()}\n**Access:** Basic voice features only",
+            name=get_translation(ui_lang, "VOICECHAT2.current_status"),
+            value=get_translation(ui_lang, "VOICECHAT2.current_status_desc", tier=current_tier.title()),
             inline=False
         )
         
@@ -3211,13 +3364,13 @@ async def voice_chat_translate_bidirectional_v2(
         # 1-Day Access Button
         if user_data['points'] >= 50:
             view.add_item(discord.ui.Button(
-                label="Buy 1-Day Access (50 points)",
+                label=get_translation(ui_lang, "VOICECHAT2.buy_1day"),
                 style=discord.ButtonStyle.green,
                 custom_id="buy_enhanced_voice_1day"
             ))
         else:
             view.add_item(discord.ui.Button(
-                label="1-Day Access (50 points) - Need more points",
+                label=get_translation(ui_lang, "VOICECHAT2.buy_1day_need_points"),
                 style=discord.ButtonStyle.gray,
                 disabled=True
             ))
@@ -3225,13 +3378,13 @@ async def voice_chat_translate_bidirectional_v2(
         # Beta Trial Button
         if user_data['points'] >= 100:
             view.add_item(discord.ui.Button(
-                label="Buy Beta Trial (100 points)",
+                label=get_translation(ui_lang, "VOICECHAT2.buy_trial"),
                 style=discord.ButtonStyle.blurple,
                 custom_id="buy_enhanced_voice_trial"
             ))
         else:
             view.add_item(discord.ui.Button(
-                label="Beta Trial (100 points) - Need more points",
+                label=get_translation(ui_lang, "VOICECHAT2.buy_trial_need_points"),
                 style=discord.ButtonStyle.gray,
                 disabled=True
             ))
@@ -3239,23 +3392,24 @@ async def voice_chat_translate_bidirectional_v2(
         # 7-Day Access Button
         if user_data['points'] >= 300:
             view.add_item(discord.ui.Button(
-                label="Buy 7-Day Access (300 points)",
+                label=get_translation(ui_lang, "VOICECHAT2.buy_7day"),
                 style=discord.ButtonStyle.red,
                 custom_id="buy_enhanced_voice_7day"
             ))
         else:
             view.add_item(discord.ui.Button(
-                label="7-Day Access (300 points) - Need more points",
+                label=get_translation(ui_lang, "VOICECHAT2.buy_7day_need_points"),
                 style=discord.ButtonStyle.gray,
                 disabled=True
             ))
         
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         return
-    
+
     # Convert language inputs to codes - support both codes and names
     source_code = "auto" if language1.lower() == "auto" else get_language_code(language1)
     target_code = "auto" if language2.lower() == "auto" else get_language_code(language2)
+    
     if interaction.guild:
         allowed_lang1 = await db.is_translation_allowed(
             interaction.guild.id,
@@ -3271,21 +3425,22 @@ async def voice_chat_translate_bidirectional_v2(
         )
         if not allowed_lang1 or not allowed_lang2:
             await interaction.response.send_message(
-                "❌ One or both selected languages are not allowed for voice translation in this channel. Please use an approved channel or language.",
+                get_translation(ui_lang, "VOICECHAT2.error_language_not_allowed"),
                 ephemeral=True
             )
             return
+    
     # Validate language codes (at least one must not be auto)
     if language1.lower() != "auto" and not source_code:
         await interaction.response.send_message(
-            f"❌ Invalid language: '{language1}'\nUse /list to see available languages or use 'auto' for automatic detection.",
+            get_translation(ui_lang, "ERRORS.invalid_source", language=language1),
             ephemeral=True
         )
         return
         
     if language2.lower() != "auto" and not target_code:
         await interaction.response.send_message(
-            f"❌ Invalid language: '{language2}'\nUse /list to see available languages or use 'auto' for automatic detection.",
+            get_translation(ui_lang, "ERRORS.invalid_target", language=language2),
             ephemeral=True
         )
         return
@@ -3293,7 +3448,7 @@ async def voice_chat_translate_bidirectional_v2(
     # Don't allow both languages to be auto
     if source_code == "auto" and target_code == "auto":
         await interaction.response.send_message(
-            "❌ At least one language must be specified (not 'auto'). Example: `/voicechat2 auto english`",
+            get_translation(ui_lang, "VOICECHAT2.error_both_auto"),
             ephemeral=True
         )
         return
@@ -3305,13 +3460,14 @@ async def voice_chat_translate_bidirectional_v2(
     
     # Define the Enhanced Bidirectional TranslationSink class for voicechat2
     class EnhancedBidirectionalTranslationSink(BasicSink):
-        def __init__(self, *, language1, language2, text_channel, client_instance):
+        def __init__(self, *, language1, language2, text_channel, client_instance, ui_lang):
             self.event = asyncio.Event()
             super().__init__(self.event)
             self.language1 = language1  # Can be "auto"
             self.language2 = language2  # Can be "auto"
             self.text_channel = text_channel
             self.client_instance = client_instance
+            self.ui_lang = ui_lang  # Store user's language preference
             self.user_buffers = {}
             self.user_detected_languages = {}  # Track detected languages per user
             self.processing_queue = queue.Queue()
@@ -3528,12 +3684,9 @@ async def voice_chat_translate_bidirectional_v2(
                         # Only allow takeover if the new user's tier is higher
                         if tier_order.index(current_tier) <= tier_order.index(owner_tier):
                             embed = discord.Embed(
-                                title="🔒 Voice Chat In Use",
-                                description=(
-                                    f"A voice translation session is already active, started by a **{owner_tier.title()}** tier user.\n"
-                                    f"You need a **higher tier** to take over the session.\n"
-                                    f"Current session owner: <@{owner_id}> ({owner_tier.title()})"
-                                ),
+                                title=get_translation(self.ui_lang, "VOICECHAT2.error_session_in_use_title"),
+                                description=get_translation(self.ui_lang, "VOICECHAT2.error_session_in_use_desc", 
+                                                          tier=owner_tier.title(), owner_id=owner_id),
                                 color=0xFF6B6B
                             )
                             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -3551,6 +3704,7 @@ async def voice_chat_translate_bidirectional_v2(
                             except Exception as e:
                                 logger.error(f"Error stopping previous session: {e}")
                             del voice_translation_sessions[guild_id]
+                
                 # Award points based on tier (SYNC - no await)
                 points_map = {'free': 2, 'basic': 3, 'premium': 4, 'pro': 5}  # Higher points for enhanced voice chat
                 points_awarded = points_map[tier]
@@ -3575,34 +3729,36 @@ async def voice_chat_translate_bidirectional_v2(
                     await send_achievement_notification(client, user_id, new_achievements)
                 
                 # Get language names and flags
-                source_name = languages.get(detected_lang, detected_lang)
-                target_name = languages.get(target_lang, target_lang)
+                source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+                target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
                 source_flag = flag_mapping.get(detected_lang, '🌐')
                 target_flag = flag_mapping.get(target_lang, '🌐')
                 
                 # Create embed with tier-based colors
                 tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
                 embed = discord.Embed(
-                    title=f"🚀 Enhanced Voice Translation: {username}",
+                    title=get_translation(self.ui_lang, "VOICECHAT2.translation_title", username=username),
                     color=tier_colors[tier]
                 )
                 
                 if user_id not in hidden_sessions:
                     embed.add_field(
-                        name=f"{source_flag} Detected ({source_name})",
+                        name=get_translation(self.ui_lang, "VOICECHAT2.detected_field", 
+                                           source_flag=source_flag, source_name=source_name),
                         value=original_text[:1024],
                         inline=False
                     )
                 
                 embed.add_field(
-                    name=f"{target_flag} Translation ({target_name})",
+                    name=get_translation(self.ui_lang, "VOICECHAT2.translation_field",
+                                       target_flag=target_flag, target_name=target_name),
                     value=translated_text[:1024],
                     inline=False
                 )
                 
                 # Add points earned indicator
                 embed.add_field(
-                    name="💎",
+                    name=get_translation(self.ui_lang, "VOICECHAT2.points_field"),
                     value=f"+{points_awarded}",
                     inline=True
                 )
@@ -3612,7 +3768,10 @@ async def voice_chat_translate_bidirectional_v2(
                 lang2_display = "Auto-detect" if self.language2 == "auto" else languages.get(self.language2, self.language2)
                 
                 tier_indicators = {'free': '🆓', 'basic': '🥉', 'premium': '🥈', 'pro': '🥇'}
-                embed.set_footer(text=f"Enhanced V2 {tier_indicators[tier]} | {lang1_display} ↔ {lang2_display}")
+                embed.set_footer(text=get_translation(self.ui_lang, "VOICECHAT2.footer_enhanced",
+                                                    tier_indicator=tier_indicators[tier],
+                                                    lang1_display=lang1_display,
+                                                    lang2_display=lang2_display))
                 
                 await self.text_channel.send(embed=embed)
                 logger.info("Enhanced translation sent successfully")
@@ -3785,23 +3944,23 @@ async def voice_chat_translate_bidirectional_v2(
         if current_tier != 'pro' and daily_usage['voice_seconds'] >= limit_seconds:
             remaining_seconds = 0
             embed = discord.Embed(
-                title="⏱️ Voice Limit Reached",
-                description=f"You've reached your daily voice translation limit for **{current_tier.title()}** tier.",
+                title=get_translation(ui_lang, "VOICECHAT.error_daily_limit_title"),
+                description=get_translation(ui_lang, "VOICECHAT.error_daily_limit_desc"),
                 color=0xFF6B6B
             )
             embed.add_field(
-                name="Daily Limit",
+                name=get_translation(ui_lang, "VOICECHAT.daily_limit"),
                 value=f"{format_seconds(limit_seconds)} per day",
                 inline=True
             )
             embed.add_field(
-                name="Used Today",
+                name=get_translation(ui_lang, "VOICECHAT.used_today"),
                 value=f"{format_seconds(daily_usage['voice_seconds'])}",
                 inline=True
             )
             embed.add_field(
-                name="💡 Solutions",
-                value="• Wait until tomorrow for reset\n• Upgrade your tier for more time\n• Use `/upgrade` to see options",
+                name=get_translation(ui_lang, "VOICECHAT.solutions"),
+                value=get_translation(ui_lang, "VOICECHAT.solutions_desc"),
                 inline=False
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -3833,7 +3992,7 @@ async def voice_chat_translate_bidirectional_v2(
         if not voice_client.is_connected():
             logger.error("Voice client not connected after connection attempt")
             await interaction.followup.send(
-                "❌ Failed to connect to voice channel. Please try again.",
+                get_translation(ui_lang, "VOICECHAT2.error_connection_failed", error="Connection failed"),
                 ephemeral=True
             )
             return
@@ -3846,7 +4005,8 @@ async def voice_chat_translate_bidirectional_v2(
             language1=source_code,
             language2=target_code,
             text_channel=interaction.channel,
-            client_instance=client
+            client_instance=client,
+            ui_lang=ui_lang
         )
         logger.info("Successfully created EnhancedBidirectionalTranslationSink")
     
@@ -3876,42 +4036,45 @@ async def voice_chat_translate_bidirectional_v2(
         
             # Create embed with tier-based styling
             embed = discord.Embed(
-                title="🚀 Enhanced Voice Translation V2 Active",
-                description="Real-time bidirectional voice translation is now running!",
+                title=get_translation(ui_lang, "VOICECHAT2.success_title"),
+                description=get_translation(ui_lang, "VOICECHAT2.success_desc",
+                                          lang1_flag=lang1_flag, lang1_display=lang1_display,
+                                          lang2_flag=lang2_flag, lang2_display=lang2_display),
                 color=tier_colors[current_tier]
             )
         
             # Translation flow section
             if source_code != "auto" and target_code != "auto":
                 flow_text = f"{lang1_flag} **{lang1_display}** ↔ {lang2_flag} **{lang2_display}**"
-                how_it_works = (
-                    f"• Speak in **{lang1_display}** → Translates to **{lang2_display}**\n"
-                    f"• Speak in **{lang2_display}** → Translates to **{lang1_display}**\n"
-                    f"• Other languages → Translates to **{lang2_display}** (default)"
-                )
+                how_it_works = get_translation(ui_lang, "VOICECHAT2.how_it_works_bidirectional",
+                                              lang1_display=lang1_display, lang2_display=lang2_display)
             elif source_code == "auto":
                 flow_text = f"🔍 **Auto-detect** ➜ {lang2_flag} **{lang2_display}**"
-                how_it_works = f"• Speak in any language → Translates to **{lang2_display}**"
+                how_it_works = get_translation(ui_lang, "VOICECHAT2.how_it_works_auto_source",
+                                              lang2_display=lang2_display)
             else:  # target_code == "auto"
                 flow_text = f"🔍 **Auto-detect** ➜ {lang1_flag} **{lang1_display}**"
-                how_it_works = f"• Speak in any language → Translates to **{lang1_display}**"
+                how_it_works = get_translation(ui_lang, "VOICECHAT2.how_it_works_auto_target",
+                                              lang1_display=lang1_display)
         
             embed.add_field(
-                name="🔄 Translation Flow",
+                name=get_translation(ui_lang, "VOICECHAT.translation_flow"),
                 value=flow_text,
                 inline=False
             )
         
             # Channels info
             embed.add_field(
-                name="📍 Channels",
-                value=f"**Voice:** {voice_channel.mention}\n**Text:** {interaction.channel.mention}",
+                name=get_translation(ui_lang, "VOICECHAT.channels"),
+                value=get_translation(ui_lang, "VOICECHAT.channels_value",
+                                    voice_channel=voice_channel.mention,
+                                    text_channel=interaction.channel.mention),
                 inline=True
             )
         
             # Your tier with remaining limits
             if current_tier == 'pro':
-                remaining_time_text = "⏱️ **Session Limit:** ♾️ Unlimited"
+                remaining_time_text = get_translation(ui_lang, "VOICECHAT.remaining_unlimited")
             else:
                 remaining_seconds = max(0, limit_seconds - daily_usage['voice_seconds'])
                 limit_display = {
@@ -3919,58 +4082,55 @@ async def voice_chat_translate_bidirectional_v2(
                     'basic': '1 hour',
                     'premium': '2 hours'
                 }
-                remaining_time_text = f"⏱️ **Remaining Today:** {format_seconds(remaining_seconds)} / {limit_display[current_tier]}"
+                remaining_time_text = get_translation(ui_lang, "VOICECHAT.remaining_limited",
+                                                    remaining=format_seconds(remaining_seconds),
+                                                    limit=limit_display[current_tier])
         
             embed.add_field(
-                name="🎯 Your Tier",
-                value=f"{tier_emojis[current_tier]} **{current_tier.title()} Tier**\n{remaining_time_text}",
+                name=get_translation(ui_lang, "VOICECHAT.your_tier", tier_emoji=tier_emojis[current_tier]),
+                value=get_translation(ui_lang, "VOICECHAT.tier_info",
+                                    tier=current_tier.title(),
+                                    remaining_time=remaining_time_text),
                 inline=True
             )
         
             # Points earning (tier-based)
             points_per_translation = {'free': 2, 'basic': 3, 'premium': 4, 'pro': 5}[current_tier]
             embed.add_field(
-                name="💎 Points Earning",
-                value=f"+{points_per_translation} points per translation\n(Enhanced V2 bonus!)",
+                name=get_translation(ui_lang, "VOICECHAT2.enhanced_rewards"),
+                value=get_translation(ui_lang, "VOICECHAT2.enhanced_rewards_desc", points=points_per_translation),
                 inline=True
             )
         
             # How to use section
             embed.add_field(
-                name="🎤 How to Use",
-                value=(
-                    "• **Start speaking** - Your voice will be translated automatically\n"
-                    "• **Multiple users** can speak and be translated\n"
-                    "• **Translations appear** in this text channel\n"
-                    "• **Use `/stop`** to end the session"
-                ),
+                name=get_translation(ui_lang, "VOICECHAT.how_to_use"),
+                value=get_translation(ui_lang, "VOICECHAT.how_to_use_value"),
                 inline=False
             )
         
             # Enhanced V2 features
             embed.add_field(
-                name="✨ Enhanced V2 Features",
+                name=get_translation(ui_lang, "VOICECHAT2.how_it_works"),
                 value=how_it_works,
                 inline=False
             )
         
             # Session status
             embed.add_field(
-                name="📊 Session Status",
-                value=(
-                    f"**Status:** Active & Listening\n"
-                    f"**Started by:** {interaction.user.mention}\n"
-                    f"**Started:** <t:{int(time.time())}:R>"
-                ),
+                name=get_translation(ui_lang, "VOICECHAT.session_status"),
+                value=get_translation(ui_lang, "VOICECHAT.session_status_value",
+                                    user=interaction.user.mention,
+                                    timestamp=int(time.time())),
                 inline=False
             )
         
             # Tier-specific footer
             tier_benefits = {
-                'free': '🆓 Free Tier • 30 min daily voice limit',
-                'basic': '🥉 Basic Tier • 1 hour daily voice limit + translation history',
-                'premium': '🥈 Premium Tier • 2 hours daily voice limit + priority processing',
-                'pro': '🥇 Pro Tier • Unlimited everything + beta access'
+                'free': get_translation(ui_lang, "VOICECHAT.footer_free_upgrade"),
+                'basic': get_translation(ui_lang, "VOICECHAT.footer_basic_upgrade"),
+                'premium': get_translation(ui_lang, "VOICECHAT.footer_premium_active"),
+                'pro': get_translation(ui_lang, "VOICECHAT.footer_pro_active")
             }
         
             embed.set_footer(text=f"{tier_benefits[current_tier]} • Enhanced Voice V2")
@@ -3997,7 +4157,7 @@ async def voice_chat_translate_bidirectional_v2(
         except Exception as e:
             logger.error(f"Error starting listening: {e}")
             await interaction.followup.send(
-                f"❌ Error starting listening: {str(e)}",
+                get_translation(ui_lang, "VOICECHAT2.error_listening_failed", error=str(e)),
                 ephemeral=True
             )
         
@@ -4005,14 +4165,15 @@ async def voice_chat_translate_bidirectional_v2(
         logger.error(f"Error connecting to voice: {e}")
         if not interaction.response.is_done():
             await interaction.response.send_message(
-                f"❌ Error starting voice translation: {str(e)}",
+                get_translation(ui_lang, "VOICECHAT2.error_connection_failed", error=str(e)),
                 ephemeral=True
             )
         else:
             await interaction.followup.send(
-                f"❌ Error starting voice translation: {str(e)}",
+                get_translation(ui_lang, "VOICECHAT2.error_connection_failed", error=str(e)),
                 ephemeral=True
             )
+
 
 
 # Add autocomplete to the command
@@ -4026,14 +4187,17 @@ async def on_interaction(interaction):
         custom_id = interaction.data.get('custom_id')
         user_id = interaction.user.id
         
+        # Get user's UI language
+        ui_lang = await get_user_ui_language(user_id)
+        
         if custom_id in ['buy_enhanced_voice_1day', 'buy_enhanced_voice_trial', 'buy_enhanced_voice_7day']:
             user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
             
             # Define purchase options
             purchase_options = {
-                'buy_enhanced_voice_1day': {'cost': 50, 'duration': 1, 'name': '1-Day Access'},
-                'buy_enhanced_voice_trial': {'cost': 100, 'duration': 2, 'name': 'Beta Trial (48h)'},
-                'buy_enhanced_voice_7day': {'cost': 300, 'duration': 7, 'name': '7-Day Access'}
+                'buy_enhanced_voice_1day': {'cost': 50, 'duration': 1, 'name_key': 'SHOP.enhanced_voice_1day'},
+                'buy_enhanced_voice_trial': {'cost': 100, 'duration': 2, 'name_key': 'SHOP.enhanced_voice_trial'},
+                'buy_enhanced_voice_7day': {'cost': 300, 'duration': 7, 'name_key': 'SHOP.enhanced_voice_7day'}
             }
             
             option = purchase_options[custom_id]
@@ -4041,7 +4205,9 @@ async def on_interaction(interaction):
             # Check if user has enough points
             if user_data['points'] < option['cost']:
                 await interaction.response.send_message(
-                    f"❌ Insufficient points! You need {option['cost']} points but only have {user_data['points']}.",
+                    get_translation(ui_lang, "SHOP.insufficient_points", 
+                                  cost=option['cost'], 
+                                  current=user_data['points']),
                     ephemeral=True
                 )
                 return
@@ -4049,7 +4215,8 @@ async def on_interaction(interaction):
             # Process the purchase
             try:
                 # Deduct points
-                reward_db.add_points(user_id, -option['cost'], f"Purchased Enhanced Voice V2: {option['name']}")
+                item_name = get_translation(ui_lang, option['name_key'])
+                reward_db.add_points(user_id, -option['cost'], f"Purchased Enhanced Voice V2: {item_name}")
                 
                 # Grant access
                 from datetime import datetime, timedelta
@@ -4066,32 +4233,32 @@ async def on_interaction(interaction):
                 
                 # Success message
                 embed = discord.Embed(
-                    title="✅ Purchase Successful!",
-                    description=f"You've successfully purchased **{option['name']}** for Enhanced Voice V2!",
+                    title=get_translation(ui_lang, "SHOP.purchase_success_title"),
+                    description=get_translation(ui_lang, "SHOP.purchase_success_desc", item_name=item_name),
                     color=0x2ecc71
                 )
                 
                 embed.add_field(
-                    name="💎 Points Spent",
-                    value=f"{option['cost']} points",
+                    name=get_translation(ui_lang, "SHOP.points_spent"),
+                    value=get_translation(ui_lang, "SHOP.points_spent_value", points=option['cost']),
                     inline=True
                 )
                 
                 embed.add_field(
-                    name="💰 Remaining Points",
-                    value=f"{user_data['points'] - option['cost']} points",
+                    name=get_translation(ui_lang, "SHOP.remaining_points"),
+                    value=get_translation(ui_lang, "SHOP.remaining_points_value", points=user_data['points'] - option['cost']),
                     inline=True
                 )
                 
                 embed.add_field(
-                    name="⏰ Access Expires",
+                    name=get_translation(ui_lang, "SHOP.access_expires"),
                     value=f"{expiry_date.strftime('%Y-%m-%d %H:%M UTC')}",
                     inline=False
                 )
                 
                 embed.add_field(
-                    name="🚀 Ready to Use!",
-                    value="You can now use `/voicechat2` for enhanced voice translation!",
+                    name=get_translation(ui_lang, "SHOP.ready_to_use_title"),
+                    value=get_translation(ui_lang, "SHOP.ready_to_use_desc"),
                     inline=False
                 )
                 
@@ -4100,9 +4267,10 @@ async def on_interaction(interaction):
             except Exception as e:
                 logger.error(f"Error processing Enhanced Voice V2 purchase: {e}")
                 await interaction.response.send_message(
-                    "❌ An error occurred while processing your purchase. Please try again.",
+                    get_translation(ui_lang, "SHOP.purchase_error"),
                     ephemeral=True
                 )
+
 
 # Helper function to check Enhanced Voice V2 access
 def has_enhanced_voice_access(user_id, reward_db, tier_handler):
@@ -4178,7 +4346,7 @@ async def check_voice_channel_enhanced(voice_client, voice_channel):
             await asyncio.sleep(5)
 
 # Helper function to send voicechat2 session stats
-async def send_voicechat2_session_stats(guild_id, reason="ended"):
+async def send_voicechat2_session_stats(guild_id, reason="ended", user_id=None):
     """Send session statistics for voicechat2 sessions"""
     try:
         logger.info(f"Attempting to send voicechat2 session stats for guild {guild_id}, reason: {reason}")
@@ -4196,6 +4364,17 @@ async def send_voicechat2_session_stats(guild_id, reason="ended"):
             logger.info(f"Skipping stats for non-voicechat2 session type: {session_type}")
             return
             
+        # Get user's UI language (use session initiator if no user_id provided)
+        if not user_id:
+            user_id = session.get('initiating_user_id')
+        
+        ui_lang = 'en'  # Default fallback
+        if user_id:
+            try:
+                ui_lang = await get_user_ui_language(user_id)
+            except:
+                ui_lang = 'en'
+        
         # Calculate session duration
         session_duration_seconds = 0
         if 'start_time' in session:
@@ -4212,19 +4391,23 @@ async def send_voicechat2_session_stats(guild_id, reason="ended"):
             lang_names = []
             for lang in languages:
                 if lang == "auto":
-                    lang_names.append("Auto-detect")
+                    lang_names.append(get_translation(ui_lang, "VOICECHAT2.auto_detect"))
                 else:
                     lang_names.append(languages.get(lang, lang))
             
+            # Determine title and description based on reason
             if reason == "auto_disconnect":
-                title = "🔄 Enhanced Voice Translation Auto-Disconnected"
-                description = f"Bot automatically disconnected from voice channel due to inactivity."
+                title = get_translation(ui_lang, "VOICECHAT2.session_auto_disconnect_title")
+                description = get_translation(ui_lang, "VOICECHAT2.session_auto_disconnect_desc")
             elif reason == "manual_stop":
-                title = "🛑 Enhanced Voice Translation Session Ended"
-                description = f"Your Enhanced Voice V2 session has been stopped."
+                title = get_translation(ui_lang, "VOICECHAT2.session_manual_stop_title")
+                description = get_translation(ui_lang, "VOICECHAT2.session_manual_stop_desc")
+            elif reason == "error":
+                title = get_translation(ui_lang, "VOICECHAT2.session_error_title")
+                description = get_translation(ui_lang, "VOICECHAT2.session_error_desc")
             else:
-                title = "🚀 Enhanced Voice Translation Session Ended"
-                description = f"Your Enhanced Voice V2 session has ended."
+                title = get_translation(ui_lang, "VOICECHAT2.session_ended_title")
+                description = get_translation(ui_lang, "VOICECHAT2.session_ended_desc")
             
             embed = discord.Embed(
                 title=title,
@@ -4232,18 +4415,20 @@ async def send_voicechat2_session_stats(guild_id, reason="ended"):
                 color=0x9b59b6
             )
             embed.add_field(
-                name="📊 Session Stats",
-                value=f"🎤 Voice session duration: {duration_str}\n🌐 Languages: {' ↔ '.join(lang_names)}",
+                name=get_translation(ui_lang, "VOICECHAT2.session_stats_title"),
+                value=get_translation(ui_lang, "VOICECHAT2.session_stats_value", 
+                                    duration=duration_str, 
+                                    languages=' ↔ '.join(lang_names)),
                 inline=False
             )
-            embed.set_footer(text="Start a new session with /voicechat2")
+            embed.set_footer(text=get_translation(ui_lang, "VOICECHAT2.session_restart_footer"))
             
             # Ensure text_channel is valid before sending
             if hasattr(text_channel, 'send'):
                 await text_channel.send(embed=embed)
             else:
                 logger.error(f"Invalid text_channel object: {text_channel}")
-            
+                
     except Exception as e:
         logger.error(f"Error sending voicechat2 session stats: {e}")
 
@@ -4256,6 +4441,10 @@ async def check_voice_channel_enhanced(voice_client, voice_channel):
     consecutive_empty_checks = 0
     error_count = 0
     guild_id = voice_client.guild.id
+    
+    # Get session info for user language preference
+    session = voice_translation_sessions.get(guild_id, {})
+    user_id = session.get('initiating_user_id')
     
     while voice_client.is_connected():
         try:
@@ -4276,7 +4465,7 @@ async def check_voice_channel_enhanced(voice_client, voice_channel):
                     logger.info(f"🔇 Enhanced V2 disconnecting from {voice_channel.name} - everyone left")
                     
                     # Send session stats before disconnecting
-                    await send_voicechat2_session_stats(guild_id, "auto_disconnect")
+                    await send_voicechat2_session_stats(guild_id, "auto_disconnect", user_id)
                     
                     # Clean up session data
                     if guild_id in voice_translation_sessions:
@@ -4292,13 +4481,13 @@ async def check_voice_channel_enhanced(voice_client, voice_channel):
                             except:
                                 pass
                         del voice_translation_sessions[guild_id]
-                    
+                        
                     await voice_client.disconnect()
                     break
             else:
                 consecutive_empty_checks = 0  # Reset counter when people are present
                 error_count = 0  # Reset error counter on successful check
-            
+                
             # Check every 5 seconds
             await asyncio.sleep(5)
             
@@ -4310,7 +4499,7 @@ async def check_voice_channel_enhanced(voice_client, voice_channel):
             if error_count > 5:
                 logger.error("Too many voice channel check errors, disconnecting")
                 try:
-                    await send_voicechat2_session_stats(guild_id, "error")
+                    await send_voicechat2_session_stats(guild_id, "error", user_id)
                     if guild_id in voice_translation_sessions:
                         del voice_translation_sessions[guild_id]
                     await voice_client.disconnect()
@@ -4319,43 +4508,43 @@ async def check_voice_channel_enhanced(voice_client, voice_channel):
                 break
                 
             await asyncio.sleep(5)
-           
+
 @tree.command(name="speak", description="Translate text and play speech in voice channel")
 @app_commands.describe(
     text="Text to translate and play in voice channel",
     source_lang="Source language (type to search)",
-    target_lang="Target language (type to search)"
-)
+    target_lang="Target language (type to search)")
 async def translate_and_speak_voice(
     interaction: discord.Interaction,
     text: str,
     source_lang: str,
-    target_lang: str
-):
+    target_lang: str):
     try:
+        user_id = interaction.user.id
+        
+        # Get user's UI language
+        ui_lang = await get_user_ui_language(user_id)
+        
+        # Create/update user in database
+        await db.get_or_create_user(user_id, interaction.user.display_name)
+        
         # Check if command is used in a guild
         if not interaction.guild:
             embed = discord.Embed(
-                title="❌ Server Only Command",
-                description="This command can only be used if I'm invited to the server!\n"
-                "🔗 Use `/invite` to get the proper invite link",
+                title=get_translation(ui_lang, "SPEAK.error_server_only"),
+                description=get_translation(ui_lang, "SPEAK.error_server_only_desc"),
                 color=0xFF0000
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-
+            
         # Check if user is in a voice channel
         if not interaction.user.voice:
             await interaction.response.send_message(
-                "❌ You need to be in a voice channel to use this command!",
+                get_translation(ui_lang, "SPEAK.error_not_in_voice"),
                 ephemeral=True
             )
             return
-
-        user_id = interaction.user.id
-        
-        # Create/update user in database
-        await db.get_or_create_user(user_id, interaction.user.display_name)
         
         # Check user tier and get limits
         if user_id in tier_handler.pro_users:
@@ -4370,16 +4559,14 @@ async def translate_and_speak_voice(
         else:
             tier = 'free'
             is_premium = False
-        
+            
         limits = tier_handler.get_limits(user_id)
-
-        # ...existing code...
-
+        
         # --- TIER PRIORITY LOGIC START ---
         guild_id = interaction.guild_id
         current_tier = tier_handler.get_user_tier(user_id)
         tier_order = ['free', 'basic', 'premium', 'pro']
-
+        
         # If a session is already running in this guild
         if guild_id in voice_translation_sessions:
             session = voice_translation_sessions[guild_id]
@@ -4389,12 +4576,9 @@ async def translate_and_speak_voice(
                 # Only allow takeover if the new user's tier is higher
                 if tier_order.index(current_tier) <= tier_order.index(owner_tier):
                     embed = discord.Embed(
-                        title="🔒 Voice Chat In Use",
-                        description=(
-                            f"A voice translation session is already active, started by a **{owner_tier.title()}** tier user.\n"
-                            f"You need a **higher tier** to take over the session.\n"
-                            f"Current session owner: <@{owner_id}> ({owner_tier.title()})"
-                        ),
+                        title=get_translation(ui_lang, "SPEAK.error_session_in_use_title"),
+                        description=get_translation(ui_lang, "SPEAK.error_session_in_use_desc",
+                                                  tier=owner_tier.title(), owner_id=owner_id),
                         color=0xFF6B6B
                     )
                     await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -4414,48 +4598,48 @@ async def translate_and_speak_voice(
                     del voice_translation_sessions[guild_id]
         # --- TIER PRIORITY LOGIC END ---
 
-# ...continue with connecting to the voice channel and playing audio...
-
         # Convert language inputs to codes
         source_code = get_language_code(source_lang)
         target_code = get_language_code(target_lang)
+        
         if interaction.guild:
             allowed = await db.is_translation_allowed(
                 interaction.guild.id,
                 interaction.channel.id,
-                "text" or "voice",  # depends on the command
-                target_code         # or the relevant language code
+                "text",  # or "voice" depending on your preference
+                target_code
             )
             if not allowed:
                 await interaction.response.send_message(
-                    "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
+                    get_translation(ui_lang, "SPEAK.error_language_not_allowed"),
                     ephemeral=True
                 )
                 return
+        
         # Validate language codes
         if not source_code:
             await interaction.response.send_message(
-                f"❌ Invalid source language: '{source_lang}'\nUse /list to see available languages.",
+                get_translation(ui_lang, "SPEAK.error_invalid_source", language=source_lang),
                 ephemeral=True
             )
             return
             
         if not target_code:
             await interaction.response.send_message(
-                f"❌ Invalid target language: '{target_lang}'\nUse /list to see available languages.",
+                get_translation(ui_lang, "SPEAK.error_invalid_target", language=target_lang),
                 ephemeral=True
             )
             return
-
+        
         # Check text length against limits
         if len(text) > limits['text_limit']:
             await interaction.response.send_message(
-                f"🔒 Text too long! Your {tier} tier limit: {limits['text_limit']} characters\n"
-                f"💡 Upgrade your tier for higher limits!",
+                get_translation(ui_lang, "SPEAK.error_text_too_long", 
+                              tier=tier, limit=limits['text_limit']),
                 ephemeral=True
             )
             return
-
+        
         await interaction.response.defer(ephemeral=True)
         
         # Don't translate if source and target are the same
@@ -4463,9 +4647,16 @@ async def translate_and_speak_voice(
             translated_text = text
         else:
             # Translate the text
-            translator = GoogleTranslator(source=source_code, target=target_code)
-            translated_text = translator.translate(text)
-
+            try:
+                translator = GoogleTranslator(source=source_code, target=target_code)
+                translated_text = translator.translate(text)
+            except Exception as e:
+                await interaction.followup.send(
+                    get_translation(ui_lang, "SPEAK.error_translation_failed", error=str(e)),
+                    ephemeral=True
+                )
+                return
+        
         # Award points based on tier (SYNC - no await)
         points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
         points_awarded = points_map[tier]
@@ -4488,18 +4679,17 @@ async def translate_and_speak_voice(
         new_achievements = achievement_db.check_achievements(user_id)
         if new_achievements:
             await send_achievement_notification(client, user_id, new_achievements)
-
+        
         await safe_track_voice_achievement(
             user_id=interaction.user.id,
             username=interaction.user.display_name
         )
-
+        
         username = interaction.user.display_name
-
         # After checking/awarding achievements:
         uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
         await notify_uncashed_achievements(user_id, username, uncashed_points)
-
+        
         # Create temporary file using BytesIO
         mp3_fp = io.BytesIO()
         tts = gTTS(text=translated_text, lang=target_code)
@@ -4513,53 +4703,51 @@ async def translate_and_speak_voice(
             temp_file.write(mp3_fp.read())
             
         # Get language names and flags
-        source_name = languages.get(source_code, source_code)
-        target_name = languages.get(target_code, target_code)
+        source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+        target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
         source_flag = flag_mapping.get(source_code, '🌐')
         target_flag = flag_mapping.get(target_code, '🌐')
-            
+        
         # Create embed with tier-based colors
         tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
         embed = discord.Embed(
-            title="Text Translation & Speech",
+            title=get_translation(ui_lang, "SPEAK.title"),
             color=tier_colors[tier]
         )
-            
+        
         embed.add_field(
-            name=f"{source_flag} Original ({source_name})",
+            name=get_translation(ui_lang, "SPEAK.original_field", 
+                               flag=source_flag, language=source_name),
             value=text,
             inline=False
         )
-            
+        
         embed.add_field(
-            name=f"{target_flag} Translation ({target_name})",
+            name=get_translation(ui_lang, "SPEAK.translation_field",
+                               flag=target_flag, language=target_name),
             value=translated_text,
             inline=False
         )
         
         # Add points earned indicator
         embed.add_field(
-            name="💎 Points",
-            value=f"+{points_awarded}",
+            name=get_translation(ui_lang, "SPEAK.points_field"),
+            value=get_translation(ui_lang, "SPEAK.points_value", points=points_awarded),
             inline=True
         )
         
         # Add tier-specific footer
-        tier_footers = {
-            'free': f"🆓 Free: Speak translation",
-            'basic': f"🥉 Basic: Speak translation", 
-            'premium': f"🥈 Premium: Speak translation",
-            'pro': f"🥇 Pro: Speak translation"
-        }
+        footer_key = f"SPEAK.footer_{tier}"
+        if interaction.guild:
+            footer_text = get_translation(ui_lang, footer_key) + get_translation(ui_lang, "SPEAK.footer_server", server=interaction.guild.name)
+        else:
+            footer_text = get_translation(ui_lang, footer_key) + get_translation(ui_lang, "SPEAK.footer_dm")
         
-        embed.set_footer(text=f"{tier_footers[tier]} • Server: {interaction.guild.name}")
-            
+        embed.set_footer(text=footer_text)
+        
         # Send the embed as ephemeral
-        await interaction.followup.send(
-            embed=embed,
-            ephemeral=True
-        )
-
+        await interaction.followup.send(embed=embed, ephemeral=True)
+        
         # Connect to voice channel and play audio
         try:
             voice_channel = interaction.user.voice.channel
@@ -4570,11 +4758,11 @@ async def translate_and_speak_voice(
                 voice_client = await voice_channel.connect()
             elif voice_client.channel != voice_channel:
                 await voice_client.move_to(voice_channel)
-            
+                
             # Stop any currently playing audio
             if voice_client.is_playing():
                 voice_client.stop()
-            
+                
             # Start a task to check if users leave the voice channel
             client.loop.create_task(check_voice_channel(voice_client, voice_channel))
             
@@ -4586,11 +4774,11 @@ async def translate_and_speak_voice(
                     ffmpeg_available = True
                 except (subprocess.SubprocessError, FileNotFoundError):
                     ffmpeg_available = False
-                
+                    
                 if not ffmpeg_available:
                     # FFmpeg not found, send the file instead
                     await interaction.channel.send(
-                        "⚠️ Voice playback unavailable (FFmpeg not installed). Sending audio file instead:",
+                        get_translation(ui_lang, "SPEAK.ffmpeg_unavailable"),
                         file=discord.File(temp_filename, filename='translated_speech.mp3')
                     )
                     # Clean up the temp file after sending
@@ -4599,19 +4787,19 @@ async def translate_and_speak_voice(
                     except:
                         pass
                     return
-                
+                    
                 # Create FFmpeg audio source
                 try:
                     audio_source = discord.FFmpegPCMAudio(temp_filename)
                 except Exception as e1:
                     error_message = str(e1)
                     await interaction.followup.send(
-                        f"⚠️ FFmpeg error: {error_message}\nTrying to send file instead...",
+                        get_translation(ui_lang, "SPEAK.ffmpeg_error", error=error_message),
                         ephemeral=True
                     )
                     # Send the file as fallback
                     await interaction.channel.send(
-                        "⚠️ Voice playback failed. Sending audio file instead:",
+                        get_translation(ui_lang, "SPEAK.playback_failed_fallback"),
                         file=discord.File(temp_filename, filename='translated_speech.mp3')
                     )
                     # Clean up the temp file after sending
@@ -4620,23 +4808,27 @@ async def translate_and_speak_voice(
                     except:
                         pass
                     return
-                
+                    
                 # Play the audio
                 voice_client.play(audio_source, after=lambda e: asyncio.run_coroutine_threadsafe(
                     cleanup_after_playback(temp_filename, voice_client), client.loop))
-                
+                    
                 # Send a public message that audio is playing
-                await interaction.followup.send(f"🔊 Playing translated audio in {voice_channel.name}", ephemeral=True)
+                await interaction.followup.send(
+                    get_translation(ui_lang, "SPEAK.playing_audio", channel=voice_channel.name), 
+                    ephemeral=True
+                )
+                
             except Exception as e:
                 # Get detailed error information
                 error_message = str(e)
                 await interaction.followup.send(
-                    f"⚠️ Detailed error: {error_message}\nSending audio file instead...",
+                    get_translation(ui_lang, "SPEAK.detailed_error", error=error_message),
                     ephemeral=True
                 )
                 # Send the file as fallback
                 await interaction.channel.send(
-                    "⚠️ Voice playback failed. Sending audio file instead:",
+                    get_translation(ui_lang, "SPEAK.playback_failed_fallback"),
                     file=discord.File(temp_filename, filename='translated_speech.mp3')
                 )
                 # Clean up the temp file after sending
@@ -4644,7 +4836,7 @@ async def translate_and_speak_voice(
                     os.unlink(temp_filename)
                 except:
                     pass
-            
+                    
         except Exception as e:
             # Clean up the temp file if voice playback fails
             try:
@@ -4652,27 +4844,28 @@ async def translate_and_speak_voice(
             except:
                 pass
             await interaction.followup.send(
-                f"❌ Failed to play audio: {str(e)}",
+                get_translation(ui_lang, "SPEAK.error_general", error=str(e)),
                 ephemeral=True
             )
-        
+            
         # Close the BytesIO buffer
         mp3_fp.close()
-
+        
     except Exception as e:
         if not interaction.response.is_done():
             await interaction.response.send_message(
-                f"❌ An error occurred: {str(e)}",
+                get_translation(ui_lang, "SPEAK.error_general", error=str(e)),
                 ephemeral=True
             )
         else:
             await interaction.followup.send(
-                f"❌ An error occurred: {str(e)}",
+                get_translation(ui_lang, "SPEAK.error_general", error=str(e)),
                 ephemeral=True
             )
+
 # Add autocomplete
-translate_and_speak_voice.autocomplete('source_lang')(source_language_autocomplete)
-translate_and_speak_voice.autocomplete('target_lang')(language_autocomplete)
+translate_and_speak_voice.autocomplete('source_lang')(translated_language_autocomplete)
+translate_and_speak_voice.autocomplete('target_lang')(translated_language_autocomplete)
 
 # Add this function to check if users leave the voice channel
 async def check_voice_channel(voice_client, voice_channel):
@@ -4748,280 +4941,380 @@ async def source_language_autocomplete(
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def hide_speech(interaction: discord.Interaction):
     user_id = interaction.user.id
+    
+    # Get user's UI language
+    ui_lang = await get_user_ui_language(user_id)
+    
     hidden_sessions.add(user_id)
-    await interaction.response.send_message("Original speech will be hidden! 🙈", ephemeral=True)
+    await interaction.response.send_message(
+        get_translation(ui_lang, "HIDE.success_message"), 
+        ephemeral=True
+    )
 
 @tree.command(name="show", description="Show original speech")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def show_speech(interaction: discord.Interaction):
     user_id = interaction.user.id
+    
+    # Get user's UI language
+    ui_lang = await get_user_ui_language(user_id)
+    
     hidden_sessions.discard(user_id)
-    await interaction.response.send_message("Original speech will be shown! 👀", ephemeral=True)
+    await interaction.response.send_message(
+        get_translation(ui_lang, "SHOW.success_message"), 
+        ephemeral=True
+    )
 
 @tree.command(name="stop", description="Stop your active translation sessions")
 async def stop_voice_translation(interaction: discord.Interaction):
-    """Stop the active voice translation session with detailed stats"""
+    """Stop the active voice translation session and/or auto-translate with detailed stats"""
     try:
         await track_command_usage(interaction)
+        
+        user_id = interaction.user.id
         guild_id = interaction.guild_id
         
-        if guild_id not in voice_translation_sessions:
+        # Get user's UI language
+        ui_lang = await get_user_ui_language(user_id)
+        
+        # Check what sessions are active
+        has_voice_session = guild_id in voice_translation_sessions
+        has_auto_translate = user_id in auto_translate_users
+        
+        if not has_voice_session and not has_auto_translate:
             embed = discord.Embed(
-                title="❌ No Active Session",
-                description="No active voice translation session found.",
+                title=get_translation(ui_lang, "STOP.no_session_title"),
+                description=get_translation(ui_lang, "STOP.no_session_desc"),
                 color=0xFF6B6B
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
         
-        session = voice_translation_sessions[guild_id]
+        # Handle auto-translate stopping
+        auto_translate_stopped = False
+        if has_auto_translate:
+            auto_settings = auto_translate_users[user_id]
+            # Check if auto-translate is active in this guild/channel
+            if auto_settings['guild_id'] == guild_id and auto_settings['channel_id'] == interaction.channel_id:
+                del auto_translate_users[user_id]
+                auto_translate_stopped = True
         
-        # Check if user has permission to stop (original user or admin)
-        user_id = interaction.user.id
-        original_user = session.get('initiating_user_id')
-        
-        if (user_id != original_user and
-            not interaction.user.guild_permissions.administrator and
-            not interaction.user.guild_permissions.manage_guild):
-            embed = discord.Embed(
-                title="🔒 Permission Denied",
-                description=f"Only the user who started the session (<@{original_user}>) or server admins can stop it.",
-                color=0xFF6B6B
-            )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            return
-        
-        await interaction.response.defer(ephemeral=True)
-        
-        # Collect session information before stopping
-        session_type = session.get('type', 'voicechat')
-        start_time = session.get('start_time', time.time())
-        duration_seconds = int(time.time() - start_time)
-        voice_channel = session.get('channel')
-        languages = session.get('languages', [])
-        
-        # Get user info
-        try:
-            original_user_obj = await interaction.guild.fetch_member(original_user) if original_user else None
-            original_username = original_user_obj.display_name if original_user_obj else "Unknown User"
-        except:
-            original_username = f"User {original_user}"
-        
-        # Stop the session
-        cleanup_success = True
-        cleanup_errors = []
-        
-        try:
-            voice_client = session.get('voice_client')
-            sink = session.get('sink')
+        # Handle voice session stopping
+        voice_session_data = None
+        if has_voice_session:
+            session = voice_translation_sessions[guild_id]
             
-            # Send voicechat2 session stats if it's an enhanced session
-            if session_type in ['voicechat2', 'enhanced_v2']:
-                try:
-                    await send_voicechat2_session_stats(guild_id, "manual_stop")
-                except Exception as e:
-                    cleanup_errors.append(f"Stats collection: {str(e)}")
+            # Check if user has permission to stop (original user or admin)
+            original_user = session.get('initiating_user_id')
             
-            # Stop listening if voice client exists and is listening
-            if voice_client and hasattr(voice_client, 'is_listening'):
-                try:
-                    if voice_client.is_listening():
-                        voice_client.stop_listening()
-                except Exception as e:
-                    cleanup_errors.append(f"Stop listening: {str(e)}")
-            
-            # Clean up sink properly
-            if sink and hasattr(sink, 'cleanup'):
-                try:
-                    if asyncio.iscoroutinefunction(sink.cleanup):
-                        await sink.cleanup()
-                    else:
-                        # Run sync cleanup in executor to avoid blocking
-                        loop = asyncio.get_event_loop()
-                        await loop.run_in_executor(None, sink.cleanup)
-                except Exception as e:
-                    cleanup_errors.append(f"Sink cleanup: {str(e)}")
-            
-            # Stop playing and disconnect
-            if voice_client:
-                try:
-                    if hasattr(voice_client, 'is_playing') and voice_client.is_playing():
-                        voice_client.stop()
-                except Exception as e:
-                    cleanup_errors.append(f"Stop playing: {str(e)}")
+            if (user_id != original_user and
+                not interaction.user.guild_permissions.administrator and
+                not interaction.user.guild_permissions.manage_guild):
                 
-                try:
-                    if hasattr(voice_client, 'is_connected') and voice_client.is_connected():
-                        await voice_client.disconnect()
-                except Exception as e:
-                    cleanup_errors.append(f"Disconnect: {str(e)}")
+                # If they can stop auto-translate but not voice, handle that
+                if auto_translate_stopped:
+                    embed = discord.Embed(
+                        title=get_translation(ui_lang, "STOP.auto_translate_stopped_title"),
+                        description=get_translation(ui_lang, "STOP.auto_translate_stopped_desc"),
+                        color=0x00FF00
+                    )
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                    return
+                else:
+                    embed = discord.Embed(
+                        title=get_translation(ui_lang, "STOP.permission_denied_title"),
+                        description=get_translation(ui_lang, "STOP.permission_denied_desc",
+                                                  original_user=original_user),
+                        color=0xFF6B6B
+                    )
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                    return
             
-            # Remove session
-            del voice_translation_sessions[guild_id]
+            await interaction.response.defer(ephemeral=True)
             
-        except Exception as e:
-            logger.error(f"Error stopping voice session: {e}")
-            cleanup_success = False
-            cleanup_errors.append(f"General error: {str(e)}")
-            # Force cleanup
-            if guild_id in voice_translation_sessions:
+            # Collect session information before stopping
+            session_type = session.get('type', 'voicechat')
+            start_time = session.get('start_time', time.time())
+            duration_seconds = int(time.time() - start_time)
+            voice_channel = session.get('channel')
+            languages = session.get('languages', [])
+            
+            # Store session data for the embed
+            voice_session_data = {
+                'type': session_type,
+                'duration': duration_seconds,
+                'channel': voice_channel,
+                'languages': languages,
+                'original_user': original_user
+            }
+            
+            # Get user info
+            try:
+                original_user_obj = await interaction.guild.fetch_member(original_user) if original_user else None
+                original_username = original_user_obj.display_name if original_user_obj else get_translation(ui_lang, "STOP.unknown_user")
+            except:
+                original_username = get_translation(ui_lang, "STOP.user_id_format", user_id=original_user)
+            
+            voice_session_data['original_username'] = original_username
+            
+            # Stop the session (same cleanup logic as before)
+            cleanup_success = True
+            cleanup_errors = []
+            
+            try:
+                voice_client = session.get('voice_client')
+                sink = session.get('sink')
+                
+                # Send voicechat2 session stats if it's an enhanced session
+                if session_type in ['voicechat2', 'enhanced_v2']:
+                    try:
+                        await send_voicechat2_session_stats(guild_id, "manual_stop", user_id)
+                    except Exception as e:
+                        cleanup_errors.append(get_translation(ui_lang, "STOP.cleanup_error_stats", error=str(e)))
+                
+                # Stop listening if voice client exists and is listening
+                if voice_client and hasattr(voice_client, 'is_listening'):
+                    try:
+                        if voice_client.is_listening():
+                            voice_client.stop_listening()
+                    except Exception as e:
+                        cleanup_errors.append(get_translation(ui_lang, "STOP.cleanup_error_listening", error=str(e)))
+                
+                # Clean up sink properly
+                if sink and hasattr(sink, 'cleanup'):
+                    try:
+                        if asyncio.iscoroutinefunction(sink.cleanup):
+                            await sink.cleanup()
+                        else:
+                            # Run sync cleanup in executor to avoid blocking
+                            loop = asyncio.get_event_loop()
+                            await loop.run_in_executor(None, sink.cleanup)
+                    except Exception as e:
+                        cleanup_errors.append(get_translation(ui_lang, "STOP.cleanup_error_sink", error=str(e)))
+                
+                # Stop playing and disconnect
+                if voice_client:
+                    try:
+                        if hasattr(voice_client, 'is_playing') and voice_client.is_playing():
+                            voice_client.stop()
+                    except Exception as e:
+                        cleanup_errors.append(get_translation(ui_lang, "STOP.cleanup_error_playing", error=str(e)))
+                    
+                    try:
+                        if hasattr(voice_client, 'is_connected') and voice_client.is_connected():
+                            await voice_client.disconnect()
+                    except Exception as e:
+                        cleanup_errors.append(get_translation(ui_lang, "STOP.cleanup_error_disconnect", error=str(e)))
+                
+                # Remove session
                 del voice_translation_sessions[guild_id]
-        
-        # Create detailed session summary embed
-        if cleanup_success and not cleanup_errors:
-            embed_color = 0x00FF00  # Green for success
-            embed_title = "✅ Voice Translation Session Ended"
-        elif cleanup_errors:
-            embed_color = 0xFFA500  # Orange for warnings
-            embed_title = "⚠️ Voice Translation Session Ended (With Warnings)"
+                
+            except Exception as e:
+                logger.error(f"Error stopping voice session: {e}")
+                cleanup_success = False
+                cleanup_errors.append(get_translation(ui_lang, "STOP.cleanup_error_general", error=str(e)))
+                # Force cleanup
+                if guild_id in voice_translation_sessions:
+                    del voice_translation_sessions[guild_id]
+            
+            voice_session_data['cleanup_success'] = cleanup_success
+            voice_session_data['cleanup_errors'] = cleanup_errors
         else:
-            embed_color = 0xFF6B6B  # Red for errors
-            embed_title = "❌ Voice Translation Session Ended (With Errors)"
+            # Only auto-translate was stopped
+            await interaction.response.defer(ephemeral=True)
+        
+        # Create the response embed based on what was stopped
+        if voice_session_data and auto_translate_stopped:
+            # Both were stopped
+            embed_title = get_translation(ui_lang, "STOP.both_stopped_title")
+            embed_color = 0x00FF00
+        elif voice_session_data:
+            # Only voice session was stopped
+            cleanup_success = voice_session_data['cleanup_success']
+            cleanup_errors = voice_session_data['cleanup_errors']
+            
+            if cleanup_success and not cleanup_errors:
+                embed_color = 0x00FF00  # Green for success
+                embed_title = get_translation(ui_lang, "STOP.success_title")
+            elif cleanup_errors:
+                embed_color = 0xFFA500  # Orange for warnings
+                embed_title = get_translation(ui_lang, "STOP.warning_title")
+            else:
+                embed_color = 0xFF6B6B  # Red for errors
+                embed_title = get_translation(ui_lang, "STOP.error_title")
+        else:
+            # Only auto-translate was stopped
+            embed_title = get_translation(ui_lang, "STOP.auto_translate_stopped_title")
+            embed_color = 0x00FF00
         
         embed = discord.Embed(
             title=embed_title,
-            description=f"Session successfully terminated by {interaction.user.mention}",
+            description=get_translation(ui_lang, "STOP.session_terminated", user=interaction.user.mention),
             color=embed_color,
             timestamp=datetime.utcnow()
         )
         
-        # Session Duration Info
-        duration_str = format_seconds(duration_seconds)
-        embed.add_field(
-            name="⏱️ Session Duration",
-            value=duration_str,
-            inline=True
-        )
-        
-        # Session Type
-        session_type_display = {
-            'voicechat': '🎤 Standard Voice Chat',
-            'voicechat2': '🚀 Enhanced Voice V2',
-            'enhanced_v2': '🚀 Enhanced Voice V2'
-        }.get(session_type, f'🎤 {session_type.title()}')
-        
-        embed.add_field(
-            name="🔧 Session Type",
-            value=session_type_display,
-            inline=True
-        )
-        
-        # Voice Channel
-        if voice_channel:
+        # Add auto-translate info if it was stopped
+        if auto_translate_stopped:
             embed.add_field(
-                name="📢 Voice Channel",
-                value=f"#{voice_channel.name}",
-                inline=True
-            )
-        
-        # Languages - FIXED: Handle languages as a list properly
-        if languages and isinstance(languages, list) and len(languages) >= 2:
-            source_lang = languages[0] if languages[0] != 'auto' else 'auto'
-            target_lang = languages[1]
-            
-            # Get language names and flags - FIXED: Use proper dictionary access
-            try:
-                # Use the languages dictionary from your codebase
-                source_name = languages.get(source_lang, source_lang) if source_lang != 'auto' else 'Auto-detect'
-                target_name = languages.get(target_lang, target_lang)
-                source_flag = flag_mapping.get(source_lang, '🌐') if source_lang != 'auto' else '🔍'
-                target_flag = flag_mapping.get(target_lang, '🌐')
-                
-                embed.add_field(
-                    name="🌍 Translation Direction",
-                    value=f"{source_flag} {source_name} → {target_flag} {target_name}",
-                    inline=False
-                )
-            except Exception as e:
-                logger.error(f"Error formatting languages: {e}")
-                # Fallback display
-                embed.add_field(
-                    name="🌍 Translation Direction",
-                    value=f"{source_lang} → {target_lang}",
-                    inline=False
-                )
-        
-        # Original User Info
-        embed.add_field(
-            name="👤 Session Started By",
-            value=f"{original_username} (<@{original_user}>)",
-            inline=True
-        )
-        
-        # Session Statistics
-        if duration_seconds > 0:
-            # Calculate some basic stats
-            minutes = duration_seconds // 60
-            hours = minutes // 60
-            
-            stats_text = []
-            if hours > 0:
-                stats_text.append(f"🕐 {hours} hour{'s' if hours != 1 else ''}")
-            if minutes % 60 > 0:
-                stats_text.append(f"⏰ {minutes % 60} minute{'s' if minutes % 60 != 1 else ''}")
-            if duration_seconds % 60 > 0 and duration_seconds < 300:  # Show seconds only for short sessions
-                stats_text.append(f"⏱️ {duration_seconds % 60} second{'s' if duration_seconds % 60 != 1 else ''}")
-            
-            if stats_text:
-                embed.add_field(
-                    name="📊 Detailed Duration",
-                    value=" • ".join(stats_text),
-                    inline=False
-                )
-        
-        # Usage tracking (if available) - FIXED: Proper error handling
-        try:
-            if original_user:
-                daily_usage = await db.get_daily_usage(original_user)
-                if daily_usage and isinstance(daily_usage, dict):
-                    embed.add_field(
-                        name="📈 Today's Usage",
-                        value=(
-                            f"🔤 Text: {daily_usage.get('text_chars', 0):,} chars\n"
-                            f"🎤 Voice: {format_seconds(daily_usage.get('voice_seconds', 0))}\n"
-                            f"📝 Translations: {daily_usage.get('translations', 0)}"
-                        ),
-                        inline=True
-                    )
-        except Exception as e:
-            logger.error(f"Error getting usage stats: {e}")
-        
-        # Points awarded (if applicable) - FIXED: Better error handling
-        if original_user and duration_seconds > 60:  # Only for sessions longer than 1 minute
-            try:
-                # Calculate points based on session duration
-                base_points = max(1, duration_seconds // 60)  # 1 point per minute
-                
-                # Get user tier for multiplier
-                current_tier = tier_handler.get_user_tier(original_user)
-                tier_multipliers = {'free': 1, 'basic': 1.5, 'premium': 2, 'pro': 3}
-                multiplier = tier_multipliers.get(current_tier, 1)
-                
-                final_points = int(base_points * multiplier)
-                
-                # Award the points
-                reward_db.add_points(original_user, final_points, f"Voice session completion ({duration_str})")
-                
-                embed.add_field(
-                    name="💎 Points Awarded",
-                    value=f"+{final_points} points\n({current_tier.title()} tier bonus)",
-                    inline=True
-                )
-            except Exception as e:
-                logger.error(f"Error awarding session points: {e}")
-        
-        # Cleanup warnings/errors
-        if cleanup_errors:
-            embed.add_field(
-                name="⚠️ Cleanup Issues",
-                value="\n".join([f"• {error}" for error in cleanup_errors[:3]]),  # Limit to 3 errors
+                name=get_translation(ui_lang, "STOP.auto_translate_field"),
+                value=get_translation(ui_lang, "STOP.auto_translate_disabled"),
                 inline=False
             )
         
+        # Add voice session details if applicable
+        if voice_session_data:
+            duration_seconds = voice_session_data['duration']
+            
+            # Session Duration Info
+            duration_str = format_seconds(duration_seconds)
+            embed.add_field(
+                name=get_translation(ui_lang, "STOP.duration_field"),
+                value=duration_str,
+                inline=True
+            )
+            
+            # Session Type
+            session_type = voice_session_data['type']
+            session_type_key = f"STOP.session_type_{session_type}"
+            session_type_display = get_translation(ui_lang, session_type_key, fallback=f"🎤 {session_type.title()}")
+            
+            embed.add_field(
+                name=get_translation(ui_lang, "STOP.session_type_field"),
+                value=session_type_display,
+                inline=True
+            )
+            
+            # Voice Channel
+            voice_channel = voice_session_data['channel']
+            if voice_channel:
+                embed.add_field(
+                    name=get_translation(ui_lang, "STOP.voice_channel_field"),
+                    value=f"#{voice_channel.name}",
+                    inline=True
+                )
+            
+            # Languages - Handle languages as a list properly
+            languages = voice_session_data['languages']
+            if languages and isinstance(languages, list) and len(languages) >= 2:
+                source_lang = languages[0] if languages[0] != 'auto' else 'auto'
+                target_lang = languages[1]
+                
+                # Get language names and flags
+                try:
+                    source_name = languages.get(source_lang, source_lang)
+                    target_name = languages.get(target_lang, target_lang)
+                    source_flag = flag_mapping.get(source_lang, '🌐') if source_lang != 'auto' else '🔍'
+                    target_flag = flag_mapping.get(target_lang, '🌐')
+                    
+                    embed.add_field(
+                        name=get_translation(ui_lang, "STOP.translation_direction_field"),
+                        value=f"{source_flag} {source_name} → {target_flag} {target_name}",
+                        inline=False
+                    )
+                except Exception as e:
+                    logger.error(f"Error formatting languages: {e}")
+                    # Fallback display
+                    embed.add_field(
+                        name=get_translation(ui_lang, "STOP.translation_direction_field"),
+                        value=f"{source_lang} → {target_lang}",
+                        inline=False
+                    )
+            
+            # Original User Info
+            original_user = voice_session_data['original_user']
+            original_username = voice_session_data['original_username']
+            embed.add_field(
+                name=get_translation(ui_lang, "STOP.started_by_field"),
+                value=get_translation(ui_lang, "STOP.started_by_value", username=original_username, user_id=original_user),
+                inline=True
+            )
+            
+            # Session Statistics
+            if duration_seconds > 0:
+                # Calculate some basic stats
+                minutes = duration_seconds // 60
+                hours = minutes // 60
+                
+                stats_text = []
+                if hours > 0:
+                    hour_text = get_translation(ui_lang, "STOP.hours_plural" if hours != 1 else "STOP.hours_singular", count=hours)
+                    stats_text.append(f"🕐 {hour_text}")
+                if minutes % 60 > 0:
+                    minute_text = get_translation(ui_lang, "STOP.minutes_plural" if minutes % 60 != 1 else "STOP.minutes_singular", count=minutes % 60)
+                    stats_text.append(f"⏰ {minute_text}")
+                if duration_seconds % 60 > 0 and duration_seconds < 300:  # Show seconds only for short sessions
+                    second_text = get_translation(ui_lang, "STOP.seconds_plural" if duration_seconds % 60 != 1 else "STOP.seconds_singular", count=duration_seconds % 60)
+                    stats_text.append(f"⏱️ {second_text}")
+                
+                if stats_text:
+                    embed.add_field(
+                        name=get_translation(ui_lang, "STOP.detailed_duration_field"),
+                        value=" • ".join(stats_text),
+                        inline=False
+                    )
+            
+            # Usage tracking (if available)
+            try:
+                if original_user:
+                    daily_usage = await db.get_daily_usage(original_user)
+                    if daily_usage and isinstance(daily_usage, dict):
+                        embed.add_field(
+                            name=get_translation(ui_lang, "STOP.todays_usage_field"),
+                            value=get_translation(ui_lang, "STOP.todays_usage_value",
+                                                text_chars=daily_usage.get('text_chars', 0),
+                                                voice_time=format_seconds(daily_usage.get('voice_seconds', 0)),
+                                                translations=daily_usage.get('translations', 0)),
+                            inline=True
+                        )
+            except Exception as e:
+                logger.error(f"Error getting usage stats: {e}")
+            
+            # Points awarded (if applicable)
+            if original_user and duration_seconds > 60:  # Only for sessions longer than 1 minute
+                try:
+                    # Calculate points based on session duration
+                    base_points = max(1, duration_seconds // 60)  # 1 point per minute
+                    
+                    # Get user tier for multiplier
+                    current_tier = tier_handler.get_user_tier(original_user)
+                    tier_multipliers = {'free': 1, 'basic': 1.5, 'premium': 2, 'pro': 3}
+                    multiplier = tier_multipliers.get(current_tier, 1)
+                    
+                    final_points = int(base_points * multiplier)
+                    
+                    # Award the points
+                    reward_db.add_points(original_user, final_points, f"Voice session completion ({duration_str})")
+                    
+                    embed.add_field(
+                        name=get_translation(ui_lang, "STOP.points_awarded_field"),
+                                                value=get_translation(ui_lang, "STOP.points_awarded_value",
+                                            points=final_points, tier=current_tier.title()),
+                        inline=True
+                    )
+                except Exception as e:
+                    logger.error(f"Error awarding session points: {e}")
+            
+            # Cleanup warnings/errors
+            cleanup_errors = voice_session_data.get('cleanup_errors', [])
+            if cleanup_errors:
+                embed.add_field(
+                    name=get_translation(ui_lang, "STOP.cleanup_issues_field"),
+                    value="\n".join([f"• {error}" for error in cleanup_errors[:3]]),  # Limit to 3 errors
+                    inline=False
+                )
+        
         # Footer with helpful info
+        if auto_translate_stopped and voice_session_data:
+            footer_text = get_translation(ui_lang, "STOP.footer_both_stopped")
+        elif auto_translate_stopped:
+            footer_text = get_translation(ui_lang, "STOP.footer_auto_stopped")
+        else:
+            footer_text = get_translation(ui_lang, "STOP.footer_text")
+        
         embed.set_footer(
-            text="💡 Use /voicechat to start a new session • /daily to claim daily points",
+            text=footer_text,
             icon_url=interaction.user.display_avatar.url
         )
         
@@ -5030,14 +5323,20 @@ async def stop_voice_translation(interaction: discord.Interaction):
     except Exception as e:
         logger.error(f"Error in stop voice command: {e}")
         
+        # Get UI language for error message
+        try:
+            ui_lang = await get_user_ui_language(interaction.user.id)
+        except:
+            ui_lang = 'en'
+        
         # Fallback error embed
         error_embed = discord.Embed(
-            title="❌ Error Stopping Session",
-            description=f"An error occurred while stopping the voice translation session:\n```{str(e)}```",
+            title=get_translation(ui_lang, "STOP.error_stopping_title"),
+            description=get_translation(ui_lang, "STOP.error_stopping_desc", error=str(e)),
             color=0xFF0000,
             timestamp=datetime.utcnow()
         )
-        error_embed.set_footer(text="Please try again or contact support if the issue persists")
+        error_embed.set_footer(text=get_translation(ui_lang, "STOP.error_footer"))
         
         if not interaction.response.is_done():
             await interaction.response.send_message(embed=error_embed, ephemeral=True)
@@ -5078,100 +5377,223 @@ def format_seconds(seconds):
         return result
 
 
-
 # Update the auto_translate command to use the new limits
 # Fixed /autotranslate command with proper database integration
 @tree.command(name="autotranslate", description="Automatically translate all your messages")
 @app_commands.describe(
     source_lang="Source language (type to search, or 'auto' for detection)",
-    target_lang="Target language (type to search)"
-)
+    target_lang="Target language (type to search)")
 async def auto_translate(
     interaction: discord.Interaction,
     source_lang: str,
-    target_lang: str
-):
-    user_id = interaction.user.id
-    guild_id = interaction.guild_id
+    target_lang: str):
     
-    # Convert language inputs to codes
-    source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
-    target_code = get_language_code(target_lang)
-    if interaction.guild:
-        allowed = await db.is_translation_allowed(
-            interaction.guild.id,
-            interaction.channel.id,
-            "text" or "voice",  # depends on the command
-            target_code         # or the relevant language code
-        )
-        if not allowed:
-            await interaction.response.send_message(
-                "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
-                ephemeral=True
-            )
-            return
-    # Validate language codes
-    if source_lang.lower() != "auto" and not source_code:
-        await interaction.response.send_message(
-            f"❌ Invalid source language: '{source_lang}'\nUse /list to see available languages or use 'auto' for automatic detection.",
-            ephemeral=True
-        )
-        return
+    try:
+        await track_command_usage(interaction)
         
-    if not target_code:
-        await interaction.response.send_message(
-            f"❌ Invalid target language: '{target_lang}'\nUse /list to see available languages.",
-            ephemeral=True
+        user_id = interaction.user.id
+        guild_id = interaction.guild_id
+        
+        # Get user's UI language
+        ui_lang = await get_user_ui_language(user_id)
+        
+        # Convert language inputs to codes
+        source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
+        target_code = get_language_code(target_lang)
+        
+        # Check channel permissions if in a guild
+        if interaction.guild:
+            allowed = await db.is_translation_allowed(
+                interaction.guild.id,
+                interaction.channel.id,
+                "text",
+                target_code
+            )
+            if not allowed:
+                embed = discord.Embed(
+                    title=get_translation(ui_lang, "AUTOTRANSLATE.error_not_allowed_title"),
+                    description=get_translation(ui_lang, "AUTOTRANSLATE.error_not_allowed_desc"),
+                    color=0xFF6B6B
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+        
+        # Validate language codes
+        if source_lang.lower() != "auto" and not source_code:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "AUTOTRANSLATE.error_invalid_source_title"),
+                description=get_translation(ui_lang, "AUTOTRANSLATE.error_invalid_source_desc", 
+                                          language=source_lang),
+                color=0xFF6B6B
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+        
+        if not target_code:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "AUTOTRANSLATE.error_invalid_target_title"),
+                description=get_translation(ui_lang, "AUTOTRANSLATE.error_invalid_target_desc", 
+                                          language=target_lang),
+                color=0xFF6B6B
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+        
+        # Create/update user in database
+        await db.get_or_create_user(user_id, interaction.user.display_name)
+        
+        # Check if user already has auto-translate enabled
+        already_enabled = user_id in auto_translate_users
+        if already_enabled:
+            old_settings = auto_translate_users[user_id]
+            # Check if it's the same settings
+            if (old_settings['source'] == source_code and 
+                old_settings['target'] == target_code and
+                old_settings['guild_id'] == guild_id and
+                old_settings['channel_id'] == interaction.channel_id):
+                
+                embed = discord.Embed(
+                    title=get_translation(ui_lang, "AUTOTRANSLATE.already_enabled_title"),
+                    description=get_translation(ui_lang, "AUTOTRANSLATE.already_enabled_desc"),
+                    color=0xFFA500
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+        
+        # Store user's auto-translation preferences
+        auto_translate_users[user_id] = {
+            'source': source_code,
+            'target': target_code,
+            'guild_id': guild_id,
+            'channel_id': interaction.channel_id
+        }
+        
+        # Get proper language names and flags for display
+        source_display = get_translation(ui_lang, "AUTOTRANSLATE.auto_detect") if source_code == "auto" else languages.get(source_code, source_code)
+        target_display = languages.get(target_code, target_code)
+        source_flag = '🔍' if source_code == "auto" else flag_mapping.get(source_code, '🌐')
+        target_flag = flag_mapping.get(target_code, '🌐')
+        
+        # Get user tier and limits
+        current_tier = tier_handler.get_user_tier(user_id)
+        limits = tier_handler.get_limits(user_id)
+        
+        # Create success embed
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "AUTOTRANSLATE.enabled_title"),
+            description=get_translation(ui_lang, "AUTOTRANSLATE.enabled_desc"),
+            color=0x00FF00,
+            timestamp=datetime.utcnow()
         )
-        return
-    
-    # Create/update user in database
-    await db.get_or_create_user(user_id, interaction.user.display_name)
-    
-    # Store user's auto-translation preferences
-    auto_translate_users[user_id] = {
-        'source': source_code,
-        'target': target_code,
-        'guild_id': guild_id,
-        'channel_id': interaction.channel_id
-    }
-    
-    # Get proper language names and flags for display
-    source_display = "Auto-detect" if source_code == "auto" else languages.get(source_code, source_code)
-    target_display = languages.get(target_code, target_code)
-    source_flag = '🔍' if source_code == "auto" else flag_mapping.get(source_code, '🌐')
-    target_flag = flag_mapping.get(target_code, '🌐')
-    
-    # Check user tier and get limits
-    if user_id in tier_handler.pro_users:
-        tier = 'pro'
-        limits = tier_handler.get_limits(user_id)
-        limit_warning = ""
-    elif user_id in tier_handler.premium_users:
-        tier = 'premium'
-        limits = tier_handler.get_limits(user_id)
-        limit_warning = ""
-    elif user_id in tier_handler.basic_users:
-        tier = 'basic'
-        limits = tier_handler.get_limits(user_id)
-        limit_warning = f"\n⚠️ **Basic users:** Messages over {limits['text_limit']} characters will be skipped."
-    else:
-        tier = 'free'
-        limits = tier_handler.get_limits(user_id)
-        limit_warning = f"\n⚠️ **Free users:** Messages over {limits['text_limit']} characters will be skipped. Upgrade for unlimited!"
-    
-    await interaction.response.send_message(
-        f"✅ Auto-translation enabled!\n"
-        f"All your messages will be translated from {source_flag} {source_display} to {target_flag} {target_display}.\n"
-        f"Use `/stop` to disable auto-translation.{limit_warning}",
-        ephemeral=True
-    )
+        
+        # Translation flow
+        embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.translation_flow_field"),
+            value=f"{source_flag} **{source_display}** ➜ {target_flag} **{target_display}**",
+            inline=False
+        )
+        
+        # Channel info
+        embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.active_channel_field"),
+            value=f"#{interaction.channel.name}",
+            inline=True
+        )
+        
+        # Your tier with limits
+        tier_emojis = {'free': '🆓', 'basic': '🥉', 'premium': '🥈', 'pro': '🥇'}
+        
+        if current_tier == 'pro':
+            limit_text = get_translation(ui_lang, "AUTOTRANSLATE.unlimited_limit")
+        else:
+            limit_text = get_translation(ui_lang, "AUTOTRANSLATE.character_limit", 
+                                       limit=limits['text_limit'])
+        
+        embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.your_tier_field"),
+            value=f"{tier_emojis[current_tier]} **{current_tier.title()}**\n{limit_text}",
+            inline=True
+        )
+        
+        # Points earning
+        points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
+        points_per_message = points_map[current_tier]
+        
+        embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.points_earning_field"),
+            value=get_translation(ui_lang, "AUTOTRANSLATE.points_earning_value", 
+                                points=points_per_message),
+            inline=True
+        )
+        
+        # How it works
+        embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.how_it_works_field"),
+            value=get_translation(ui_lang, "AUTOTRANSLATE.how_it_works_value"),
+            inline=False
+        )
+        
+        # Important notes based on tier
+        if current_tier in ['free', 'basic']:
+            embed.add_field(
+                name=get_translation(ui_lang, "AUTOTRANSLATE.important_notes_field"),
+                value=get_translation(ui_lang, "AUTOTRANSLATE.important_notes_limited", 
+                                    limit=limits['text_limit'], tier=current_tier),
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name=get_translation(ui_lang, "AUTOTRANSLATE.important_notes_field"),
+                value=get_translation(ui_lang, "AUTOTRANSLATE.important_notes_unlimited"),
+                inline=False
+            )
+        
+        # Status info
+        status_text = get_translation(ui_lang, "AUTOTRANSLATE.status_updated") if already_enabled else get_translation(ui_lang, "AUTOTRANSLATE.status_enabled")
+        embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.status_field"),
+            value=f"🟢 {status_text}\n⏹️ {get_translation(ui_lang, 'AUTOTRANSLATE.stop_instruction')}",
+            inline=False
+        )
+        
+        # Footer with tier-specific info
+        tier_footers = {
+            'free': get_translation(ui_lang, "AUTOTRANSLATE.footer_free"),
+            'basic': get_translation(ui_lang, "AUTOTRANSLATE.footer_basic"),
+            'premium': get_translation(ui_lang, "AUTOTRANSLATE.footer_premium"),
+            'pro': get_translation(ui_lang, "AUTOTRANSLATE.footer_pro")
+        }
+        
+        embed.set_footer(
+            text=tier_footers[current_tier],
+            icon_url=interaction.user.display_avatar.url
+        )
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+    except Exception as e:
+        logger.error(f"Error in autotranslate command: {e}")
+        
+        # Get UI language for error message
+        try:
+            ui_lang = await get_user_ui_language(interaction.user.id)
+        except:
+            ui_lang = 'en'
+        
+        error_embed = discord.Embed(
+            title=get_translation(ui_lang, "AUTOTRANSLATE.error_general_title"),
+            description=get_translation(ui_lang, "AUTOTRANSLATE.error_general_desc", error=str(e)),
+            color=0xFF0000
+        )
+        
+        if not interaction.response.is_done():
+            await interaction.response.send_message(embed=error_embed, ephemeral=True)
+        else:
+            await interaction.followup.send(embed=error_embed, ephemeral=True)
 
 # Add autocomplete
-auto_translate.autocomplete('source_lang')(source_language_autocomplete)
-auto_translate.autocomplete('target_lang')(language_autocomplete)
-
-# Fixed on_message event with proper database integration
+auto_translate.autocomplete('source_lang')(translated_language_autocomplete)
+auto_translate.autocomplete('target_lang')(translated_language_autocomplete)
 @client.event
 async def on_message(message):
     # Ignore messages from bots to prevent loops
@@ -5184,43 +5606,48 @@ async def on_message(message):
         settings = auto_translate_users[user_id]
         
         # Only translate in the same guild and channel where it was enabled
-        if message.guild.id == settings['guild_id'] and message.channel.id == settings['channel_id']:
-            # Get user tier and limits
-            if user_id in tier_handler.pro_users:
-                tier = 'pro'
-                is_premium = True
-            elif user_id in tier_handler.premium_users:
-                tier = 'premium'
-                is_premium = True
-            elif user_id in tier_handler.basic_users:
-                tier = 'basic'
-                is_premium = False
-            else:
-                tier = 'free'
-                is_premium = False
-            
-            limits = tier_handler.get_limits(user_id)
-            
-            # Check text length against limits
-            if len(message.content) > limits['text_limit']:
-                # Send a private notification about the limit (only once to avoid spam)
-                try:
-                    daily_usage = await db.get_daily_usage(user_id)
-                    if daily_usage['translations'] == 0:  # First translation attempt today
-                        await message.author.send(
-                            f"🔒 Auto-translation paused: Message too long ({len(message.content)} characters)\n"
-                            f"Your {tier} tier limit: {limits['text_limit']} characters\n"
-                            f"💡 Try shorter messages or upgrade your tier!"
-                        )
-                except:
-                    pass
-                return
-            
-            # Don't translate if the message is a command
-            if message.content.startswith('/'):
-                return
-                
+        if message.guild and message.guild.id == settings['guild_id'] and message.channel.id == settings['channel_id']:
             try:
+                # Get user's UI language
+                ui_lang = await get_user_ui_language(user_id)
+                
+                # Get user tier and limits
+                current_tier = tier_handler.get_user_tier(user_id)
+                is_premium = current_tier in ['premium', 'pro']
+                limits = tier_handler.get_limits(user_id)
+                
+                # Check text length against limits
+                if len(message.content) > limits['text_limit']:
+                    # Send a private notification about the limit (only once per day to avoid spam)
+                    try:
+                        daily_usage = await db.get_daily_usage(user_id)
+                        if daily_usage['translations'] == 0:  # First translation attempt today
+                            limit_embed = discord.Embed(
+                                title=get_translation(ui_lang, "AUTOTRANSLATE.limit_exceeded_title"),
+                                description=get_translation(ui_lang, "AUTOTRANSLATE.limit_exceeded_desc",
+                                                          length=len(message.content),
+                                                          tier=current_tier,
+                                                          limit=limits['text_limit']),
+                                color=0xFFA500
+                            )
+                            limit_embed.add_field(
+                                name=get_translation(ui_lang, "AUTOTRANSLATE.limit_solutions_field"),
+                                value=get_translation(ui_lang, "AUTOTRANSLATE.limit_solutions_value"),
+                                inline=False
+                            )
+                            await message.author.send(embed=limit_embed)
+                    except Exception as dm_error:
+                        logger.debug(f"Could not send DM to user {user_id}: {dm_error}")
+                    return
+                
+                # Don't translate if the message is a command
+                if message.content.startswith('/'):
+                    return
+                
+                # Don't translate very short messages
+                if len(message.content.strip()) < 2:
+                    return
+                
                 source_code = settings['source']
                 target_code = settings['target']
                 
@@ -5230,7 +5657,7 @@ async def on_message(message):
                         detected_lang = detect(message.content)
                         source_code = detected_lang
                     except:
-                        source_code = "en"
+                        source_code = "en"  # Fallback to English
                 
                 # Don't translate if source and target are the same
                 if source_code == target_code:
@@ -5240,9 +5667,12 @@ async def on_message(message):
                 translator = GoogleTranslator(source=source_code, target=target_code)
                 translated = translator.translate(message.content)
                 
+                if not translated or translated.strip() == message.content.strip():
+                    return  # Skip if translation failed or is identical
+                
                 # Award points based on tier (SYNC - no await)
                 points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
-                points_awarded = points_map[tier]
+                points_awarded = points_map[current_tier]
                 reward_db.add_points(user_id, points_awarded, f"Auto-translation: {source_code}→{target_code}")
                 
                 # Track usage in database (ASYNC)
@@ -5265,144 +5695,241 @@ async def on_message(message):
                 if new_achievements:
                     await send_achievement_notification(client, user_id, new_achievements)
                 
-                # Check for achievements (SYNC - no await)
-                achievement_db.check_achievements(user_id)
-                new_achievements = achievement_db.check_achievements(user_id)
-                if new_achievements:
-                    await send_achievement_notification(client, user_id, new_achievements)
                 # Get proper language names and flags
-                source_name = languages.get(source_code, source_code)
-                target_name = languages.get(target_code, target_code)
+                source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+                target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
                 source_flag = flag_mapping.get(source_code, '🌐')
                 target_flag = flag_mapping.get(target_code, '🌐')
                 
                 username = message.author.display_name
-                # After checking/awarding achievements:
+                
+                # Check for uncashed achievements
                 uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
                 await notify_uncashed_achievements(user_id, username, uncashed_points)
+                
                 # Create embed with tier-based colors
                 tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
                 embed = discord.Embed(
-                    title="Auto Translation",
-                    color=tier_colors[tier]
+                    title=get_translation(ui_lang, "AUTOTRANSLATE.message_title"),
+                    color=tier_colors[current_tier]
                 )
                 
                 # Check if user wants to hide original text
                 if user_id not in hidden_sessions:
                     embed.add_field(
-                        name=f"{source_flag} Original ({source_name})",
-                        value=message.content,
+                        name=get_translation(ui_lang, "AUTOTRANSLATE.original_field", 
+                                           flag=source_flag, language=source_name),
+                        value=message.content[:1024],  # Discord embed field limit
                         inline=False
                     )
                 
                 embed.add_field(
-                    name=f"{target_flag} Translation ({target_name})",
-                    value=translated,
+                    name=get_translation(ui_lang, "AUTOTRANSLATE.translation_field", 
+                                       flag=target_flag, language=target_name),
+                    value=translated[:1024],  # Discord embed field limit
                     inline=False
                 )
                 
                 # Add points earned indicator
                 embed.add_field(
-                    name="💎",
-                    value=f"+{points_awarded}",
+                    name=get_translation(ui_lang, "AUTOTRANSLATE.points_field"),
+                    value=get_translation(ui_lang, "AUTOTRANSLATE.points_value", points=points_awarded),
                     inline=True
                 )
                 
                 # Add tier-specific footer
                 tier_footers = {
-                    'free': f"🆓 Free: {len(message.content)}/{limits['text_limit']} chars • /premium to upgrade",
-                    'basic': f"🥉 Basic: {len(message.content)}/{limits['text_limit']} chars",
-                    'premium': "🥈 Premium: Auto-translate",
-                    'pro': "🥇 Pro: Auto-translate"
+                    'free': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_free", 
+                                          current=len(message.content), limit=limits['text_limit']),
+                    'basic': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_basic", 
+                                           current=len(message.content), limit=limits['text_limit']),
+                    'premium': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_premium"),
+                    'pro': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_pro")
                 }
-                embed.set_footer(text=tier_footers[tier])
+                
+                embed.set_footer(text=tier_footers[current_tier])
                 
                 # Send the translation
                 await message.channel.send(embed=embed)
+                
             except Exception as e:
-                print(f"Auto-translation error: {e}")
+                logger.error(f"Auto-translation error for user {user_id}: {e}")
+                # Don't send error messages to avoid spam, just log it
     
     return
 
-# Update the dmtr command to use new limits
 @tree.command(name="dmtr", description="Translate and send a message to another user")
+@app_commands.describe(
+    user="User to send the translated message to",
+    text="Text to translate and send",
+    source_lang="Source language (type to search, or 'auto' for detection)",
+    target_lang="Target language (type to search)"
+)
 async def dm_translate(
     interaction: discord.Interaction,
     user: discord.Member,
     text: str,
     source_lang: str,
-    target_lang: str
-):
+    target_lang: str):
+    
     try:
-        # Get user ID
+        await track_command_usage(interaction)
+        
         sender_id = interaction.user.id
+        
+        # Get user's UI language
+        ui_lang = await get_user_ui_language(sender_id)
         
         # Convert language inputs to codes
         source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
         target_code = get_language_code(target_lang)
+        
+        # Check channel permissions if in a guild
         if interaction.guild:
             allowed = await db.is_translation_allowed(
                 interaction.guild.id,
                 interaction.channel.id,
-                "text" or "voice",  # depends on the command
-                target_code         # or the relevant language code
+                "text",
+                target_code
             )
             if not allowed:
-                await interaction.response.send_message(
-                    "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
-                    ephemeral=True
+                embed = discord.Embed(
+                    title=get_translation(ui_lang, "DMTR.error_not_allowed_title"),
+                    description=get_translation(ui_lang, "DMTR.error_not_allowed_desc"),
+                    color=0xFF6B6B
                 )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
+        
         # Validate language codes
         if source_lang.lower() != "auto" and not source_code:
-            await interaction.response.send_message(
-                f"❌ Invalid source language: '{source_lang}'\nUse /list to see available languages or use 'auto' for automatic detection.",
-                ephemeral=True
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "DMTR.error_invalid_source_title"),
+                description=get_translation(ui_lang, "DMTR.error_invalid_source_desc", 
+                                          language=source_lang),
+                color=0xFF6B6B
             )
-            return
-            
-        if not target_code:
-            await interaction.response.send_message(
-                f"❌ Invalid target language: '{target_lang}'\nUse /list to see available languages.",
-                ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
         
-        # Check usage limits (per translation)
+        if not target_code:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "DMTR.error_invalid_target_title"),
+                description=get_translation(ui_lang, "DMTR.error_invalid_target_desc", 
+                                          language=target_lang),
+                color=0xFF6B6B
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+        
+        # Check if trying to DM themselves
+        if user.id == sender_id:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "DMTR.error_self_dm_title"),
+                description=get_translation(ui_lang, "DMTR.error_self_dm_desc"),
+                color=0xFFA500
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+        
+        # Check if trying to DM a bot
+        if user.bot:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "DMTR.error_bot_dm_title"),
+                description=get_translation(ui_lang, "DMTR.error_bot_dm_desc"),
+                color=0xFFA500
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+        
+        # Get user tier and check limits
+        current_tier = tier_handler.get_user_tier(sender_id)
+        limits = tier_handler.get_limits(sender_id)
+        
+        # Check text length limits
+        if len(text) > limits['text_limit']:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "DMTR.error_text_too_long_title"),
+                description=get_translation(ui_lang, "DMTR.error_text_too_long_desc",
+                                          length=len(text),
+                                          tier=current_tier,
+                                          limit=limits['text_limit']),
+                color=0xFF6B6B
+            )
+            
+            embed.add_field(
+                name=get_translation(ui_lang, "DMTR.upgrade_benefits_field"),
+                value=get_translation(ui_lang, "DMTR.upgrade_benefits_value"),
+                inline=False
+            )
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+        
+        # Check usage limits
         can_translate, limit_message = await tier_handler.check_usage_limits(sender_id, text_chars=len(text))
         if not can_translate:
-            await interaction.response.send_message(
-                f"🔒 {limit_message}\n💡 Try shorter text or use /upgrade for unlimited translation!",
-                ephemeral=True
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "DMTR.error_limit_reached_title"),
+                description=get_translation(ui_lang, "DMTR.error_limit_reached_desc", 
+                                          message=limit_message),
+                color=0xFF6B6B
             )
+            
+            embed.add_field(
+                name=get_translation(ui_lang, "DMTR.limit_solutions_field"),
+                value=get_translation(ui_lang, "DMTR.limit_solutions_value"),
+                inline=False
+            )
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
         
         await interaction.response.defer(ephemeral=True)
         
+        # Create/update user in database
+        await db.get_or_create_user(sender_id, interaction.user.display_name)
+        
         # Detect language if set to auto
+        detected_message = ""
         if source_code == "auto":
             try:
                 detected_lang = detect(text)
                 source_code = detected_lang
+                detected_message = get_translation(ui_lang, "DMTR.detected_suffix")
                 logger.info(f"Detected language: {detected_lang}")
             except Exception as e:
                 logger.error(f"Language detection error: {e}")
                 source_code = "en"  # Default to English if detection fails
+                detected_message = get_translation(ui_lang, "DMTR.detection_failed_suffix")
         
         # Skip translation if detected language matches target
         if source_code == target_code:
             translated_text = text
-            detected_message = " (same as target language)"
+            same_language = True
         else:
             # Translate the text
-            translator = GoogleTranslator(source=source_code, target=target_code)
-            translated_text = translator.translate(text)
-            detected_message = ""
+            try:
+                translator = GoogleTranslator(source=source_code, target=target_code)
+                translated_text = translator.translate(text)
+                same_language = False
+                
+                if not translated_text or translated_text.strip() == "":
+                    raise Exception("Translation returned empty result")
+                    
+            except Exception as e:
+                logger.error(f"Translation error: {e}")
+                embed = discord.Embed(
+                    title=get_translation(ui_lang, "DMTR.error_translation_failed_title"),
+                    description=get_translation(ui_lang, "DMTR.error_translation_failed_desc", 
+                                              error=str(e)),
+                    color=0xFF6B6B
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
         
-        # Track usage in database
+        # Track usage and save translation
         await db.track_usage(sender_id, text_chars=len(text))
-        
-        # Save translation to history
         await db.save_translation(
             user_id=sender_id,
             guild_id=interaction.guild_id or 0,
@@ -5413,219 +5940,408 @@ async def dm_translate(
             translation_type="dm"
         )
         
+        # Award points based on tier
+        points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
+        points_awarded = points_map[current_tier]
+        reward_db.add_points(sender_id, points_awarded, f"DM translation: {source_code}→{target_code}")
+        
+        # Track for achievements
+        is_premium = current_tier in ['premium', 'pro']
+        achievement_db.track_translation(sender_id, source_code, target_code, is_premium)
+        new_achievements = achievement_db.check_achievements(sender_id)
+        if new_achievements:
+            await send_achievement_notification(client, sender_id, new_achievements)
+        
         # Get language names and flags
-        source_name = languages.get(source_code, source_code)
-        target_name = languages.get(target_code, target_code)
+        source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+        target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
         source_flag = flag_mapping.get(source_code, '🌐')
         target_flag = flag_mapping.get(target_code, '🌐')
         
+        # Get recipient's UI language (fallback to English if not found)
+        try:
+            recipient_ui_lang = await get_user_ui_language(user.id)
+        except:
+            recipient_ui_lang = 'en'
+        
         # Create embed for the recipient
         recipient_embed = discord.Embed(
-            title=f"Message from {interaction.user.display_name}",
-            color=0x3498db
+            title=get_translation(recipient_ui_lang, "DMTR.recipient_title", 
+                                sender=interaction.user.display_name),
+            description=get_translation(recipient_ui_lang, "DMTR.recipient_desc"),
+            color=0x3498db,
+            timestamp=datetime.utcnow()
         )
         
         # Add source language field
-        source_field_name = f"{source_flag} Original ({source_name})"
+        source_field_name = get_translation(recipient_ui_lang, "DMTR.original_field", 
+                                          flag=source_flag, language=source_name)
         if source_lang.lower() == "auto":
-            source_field_name += f" (Detected{detected_message})"
-            
+            source_field_name += detected_message
+        
         recipient_embed.add_field(
             name=source_field_name,
-            value=text,
+            value=text[:1024],  # Discord embed field limit
             inline=False
         )
         
         # Add target language field
-        recipient_embed.add_field(
-            name=f"{target_flag} Translation ({target_name})",
-            value=translated_text,
-            inline=False
+        if same_language:
+            recipient_embed.add_field(
+                name=get_translation(recipient_ui_lang, "DMTR.same_language_field", 
+                                   flag=target_flag, language=target_name),
+                value=get_translation(recipient_ui_lang, "DMTR.same_language_value"),
+                inline=False
+            )
+        else:
+            recipient_embed.add_field(
+                name=get_translation(recipient_ui_lang, "DMTR.translation_field", 
+                                   flag=target_flag, language=target_name),
+                value=translated_text[:1024],
+                inline=False
+            )
+        
+        # Add server context if sent from a server
+        if interaction.guild:
+            recipient_embed.add_field(
+                name=get_translation(recipient_ui_lang, "DMTR.server_context_field"),
+                value=get_translation(recipient_ui_lang, "DMTR.server_context_value", 
+                                    server=interaction.guild.name, 
+                                    channel=interaction.channel.name),
+                inline=True
+            )
+        
+        recipient_embed.set_footer(
+            text=get_translation(recipient_ui_lang, "DMTR.recipient_footer"),
+            icon_url=interaction.user.display_avatar.url
         )
         
         # Try to send the DM
         try:
-            # Create a DM channel with the user
             dm_channel = await user.create_dm()
-            
-            # Send the message
             await dm_channel.send(embed=recipient_embed)
-            
-            # Confirm to the sender
-            sender_embed = discord.Embed(
-                title=f"Message sent to {user.display_name}",
-                description="Your message has been translated and delivered!",
-                color=0x2ecc71
-            )
-            
-            sender_embed.add_field(
-                name=f"{source_flag} Original ({source_name})",
-                value=text,
-                inline=False
-            )
-            
-            sender_embed.add_field(
-                name=f"{target_flag} Translation ({target_name})",
-                value=translated_text,
-                inline=False
-            )
-            
-            # Add character count for free users
-            sender_user = await db.get_or_create_user(sender_id)
-            if not sender_user['is_premium']:
-                sender_embed.set_footer(text=f"Characters used: {len(text)}/50 • /upgrade for unlimited")
-            
-            await interaction.followup.send(embed=sender_embed, ephemeral=True)
-            
+            dm_sent = True
         except discord.Forbidden:
-            await interaction.followup.send(
-                f"❌ I couldn't send a DM to {user.display_name}. They might have DMs disabled or haven't added me as a friend.",
-                ephemeral=True
+            dm_sent = False
+        except Exception as e:
+            logger.error(f"Error sending DM: {e}")
+            dm_sent = False
+        
+        # Create confirmation embed for sender
+        if dm_sent:
+            sender_embed = discord.Embed(
+                title=get_translation(ui_lang, "DMTR.success_title", user=user.display_name),
+                description=get_translation(ui_lang, "DMTR.success_desc"),
+                color=0x2ecc71,
+                timestamp=datetime.utcnow()
             )
+        else:
+            sender_embed = discord.Embed(
+                title=get_translation(ui_lang, "DMTR.failed_title", user=user.display_name),
+                description=get_translation(ui_lang, "DMTR.failed_desc"),
+                color=0xFFA500,
+                timestamp=datetime.utcnow()
+            )
+        
+        # Add translation details
+        sender_embed.add_field(
+            name=get_translation(ui_lang, "DMTR.original_field", 
+                               flag=source_flag, language=source_name),
+            value=text[:1024],
+            inline=False
+        )
+        
+        if same_language:
+            sender_embed.add_field(
+                name=get_translation(ui_lang, "DMTR.same_language_field", 
+                                   flag=target_flag, language=target_name),
+                value=get_translation(ui_lang, "DMTR.same_language_value"),
+                inline=False
+            )
+        else:
+            sender_embed.add_field(
+                name=get_translation(ui_lang, "DMTR.translation_field", 
+                                   flag=target_flag, language=target_name),
+                value=translated_text[:1024],
+                inline=False
+            )
+        
+        # Add points earned
+        sender_embed.add_field(
+            name=get_translation(ui_lang, "DMTR.points_field"),
+            value=get_translation(ui_lang, "DMTR.points_value", points=points_awarded),
+            inline=True
+        )
+        
+        # Add character usage for limited tiers
+        if current_tier in ['free', 'basic']:
+            sender_embed.add_field(
+                name=get_translation(ui_lang, "DMTR.usage_field"),
+                value=get_translation(ui_lang, "DMTR.usage_value", 
+                                    current=len(text), limit=limits['text_limit']),
+                inline=True
+            )
+        
+        # Tier-specific footer
+        tier_footers = {
+            'free': get_translation(ui_lang, "DMTR.footer_free", 
+                                  current=len(text), limit=limits['text_limit']),
+            'basic': get_translation(ui_lang, "DMTR.footer_basic", 
+                                   current=len(text), limit=limits['text_limit']),
+            'premium': get_translation(ui_lang, "DMTR.footer_premium"),
+            'pro': get_translation(ui_lang, "DMTR.footer_pro")
+        }
+        
+        sender_embed.set_footer(text=tier_footers[current_tier])
+        
+        await interaction.followup.send(embed=sender_embed, ephemeral=True)
         
     except Exception as e:
         logger.error(f"DM translation error: {e}")
+        
+        # Get UI language for error message
+        try:
+            ui_lang = await get_user_ui_language(interaction.user.id)
+        except:
+            ui_lang = 'en'
+        
+        error_embed = discord.Embed(
+            title=get_translation(ui_lang, "DMTR.error_general_title"),
+            description=get_translation(ui_lang, "DMTR.error_general_desc", error=str(e)),
+            color=0xFF0000
+        )
+        
         if not interaction.response.is_done():
-            await interaction.response.send_message(
-                f"❌ An error occurred: {str(e)}",
-                ephemeral=True
-            )
+            await interaction.response.send_message(embed=error_embed, ephemeral=True)
         else:
-            await interaction.followup.send(
-                f"❌ An error occurred: {str(e)}",
-                    ephemeral=True
-            )
+            await interaction.followup.send(embed=error_embed, ephemeral=True)
 
-# Add autocomplete to dmtr command
-dm_translate.autocomplete('source_lang')(source_language_autocomplete)
-dm_translate.autocomplete('target_lang')(language_autocomplete)
+# Add autocomplete
+dm_translate.autocomplete('source_lang')(translated_language_autocomplete)
+dm_translate.autocomplete('target_lang')(translated_language_autocomplete)
 
-# Fixed /read command with proper database integration
+
+
 @tree.command(name="read", description="Translate a message by ID")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(
     message_id="The ID of the message you want to translate",
-    target_lang="Target language to translate to"
+    target_lang="Target language to translate to (type to search)"
 )
 async def translate_by_id(
     interaction: discord.Interaction,
     message_id: str,
-    target_lang: str
-):
+    target_lang: str):
+    
     try:
-        # Get message and validate
+        await track_command_usage(interaction)
+        
+        user_id = interaction.user.id
+        
+        # Get user's UI language
+        ui_lang = await get_user_ui_language(user_id)
+        
+        # Validate and fetch message
         try:
             message_to_translate = await interaction.channel.fetch_message(int(message_id))
         except ValueError:
-            await interaction.response.send_message(
-                "❌ Invalid message ID! Please provide a valid message ID.",
-                ephemeral=True
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "READ.error_invalid_id_title"),
+                description=get_translation(ui_lang, "READ.error_invalid_id_desc"),
+                color=0xFF6B6B
             )
+            embed.add_field(
+                name=get_translation(ui_lang, "READ.how_to_get_id_field"),
+                value=get_translation(ui_lang, "READ.how_to_get_id_value"),
+                inline=False
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
         except discord.NotFound:
-            await interaction.response.send_message(
-                "❌ Message not found! Make sure the ID is correct and the message is in this channel.",
-                ephemeral=True
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "READ.error_message_not_found_title"),
+                description=get_translation(ui_lang, "READ.error_message_not_found_desc"),
+                color=0xFF6B6B
             )
+            embed.add_field(
+                name=get_translation(ui_lang, "READ.troubleshooting_field"),
+                value=get_translation(ui_lang, "READ.troubleshooting_value"),
+                inline=False
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-
+        except discord.Forbidden:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "READ.error_no_permission_title"),
+                description=get_translation(ui_lang, "READ.error_no_permission_desc"),
+                color=0xFF6B6B
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+        
         # Check if message has content
         if not message_to_translate.content or not message_to_translate.content.strip():
-            await interaction.response.send_message(
-                "❌ This message has no text content to translate!",
-                ephemeral=True
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "READ.error_no_content_title"),
+                description=get_translation(ui_lang, "READ.error_no_content_desc"),
+                color=0xFFA500
             )
+            
+            # Check if message has embeds or attachments
+            content_types = []
+            if message_to_translate.embeds:
+                content_types.append(get_translation(ui_lang, "READ.content_type_embeds"))
+            if message_to_translate.attachments:
+                content_types.append(get_translation(ui_lang, "READ.content_type_attachments"))
+            if message_to_translate.stickers:
+                content_types.append(get_translation(ui_lang, "READ.content_type_stickers"))
+            
+            if content_types:
+                embed.add_field(
+                    name=get_translation(ui_lang, "READ.message_contains_field"),
+                    value=", ".join(content_types),
+                    inline=False
+                )
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-
-        user_id = interaction.user.id
+        
+        # Check if trying to translate own message
+        if message_to_translate.author.id == user_id:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "READ.translating_own_message_title"),
+                description=get_translation(ui_lang, "READ.translating_own_message_desc"),
+                color=0x3498db
+            )
+            # Continue with translation, just show a friendly notice
         
         # Create/update user in database
         await db.get_or_create_user(user_id, interaction.user.display_name)
         
-        # Check user tier and get limits
-        if user_id in tier_handler.pro_users:
-            tier = 'pro'
-            is_premium = True
-        elif user_id in tier_handler.premium_users:
-            tier = 'premium'
-            is_premium = True
-        elif user_id in tier_handler.basic_users:
-            tier = 'basic'
-            is_premium = False
-        else:
-            tier = 'free'
-            is_premium = False
-        
+        # Get user tier and limits
+        current_tier = tier_handler.get_user_tier(user_id)
         limits = tier_handler.get_limits(user_id)
+        is_premium = current_tier in ['premium', 'pro']
         
         # Check message length against limits
         if len(message_to_translate.content) > limits['text_limit']:
-            await interaction.response.send_message(
-                f"🔒 Message too long! Your {tier} tier limit: {limits['text_limit']} characters\n"
-                f"💡 Upgrade your tier for higher limits!",
-                ephemeral=True
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "READ.error_text_too_long_title"),
+                description=get_translation(ui_lang, "READ.error_text_too_long_desc",
+                                          length=len(message_to_translate.content),
+                                          tier=current_tier,
+                                          limit=limits['text_limit']),
+                color=0xFF6B6B
             )
+            
+            embed.add_field(
+                name=get_translation(ui_lang, "READ.upgrade_benefits_field"),
+                value=get_translation(ui_lang, "READ.upgrade_benefits_value"),
+                inline=False
+            )
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
         
         # Convert language input to code
         target_code = get_language_code(target_lang)
+        
+        # Check channel permissions if in a guild
         if interaction.guild:
             allowed = await db.is_translation_allowed(
                 interaction.guild.id,
                 interaction.channel.id,
-                "text" or "voice",  # depends on the command
-                target_code         # or the relevant language code
+                "text",
+                target_code
             )
             if not allowed:
-                await interaction.response.send_message(
-                    "❌ Translations to this language are not allowed in this channel. Please use an approved channel or language.",
-                    ephemeral=True
+                embed = discord.Embed(
+                    title=get_translation(ui_lang, "READ.error_not_allowed_title"),
+                    description=get_translation(ui_lang, "READ.error_not_allowed_desc"),
+                    color=0xFF6B6B
                 )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
+        
         # Validate target language
         if not target_code:
-            await interaction.response.send_message(
-                f"❌ Invalid target language: '{target_lang}'\nUse /list to see available languages.",
-                ephemeral=True
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "READ.error_invalid_target_title"),
+                description=get_translation(ui_lang, "READ.error_invalid_target_desc", 
+                                          language=target_lang),
+                color=0xFF6B6B
             )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-            
+        
+        await interaction.response.defer(ephemeral=True)
+        
         # Detect the source language
         try:
             source_lang = detect(message_to_translate.content)
-        except:
-            await interaction.response.send_message(
-                "❌ Could not detect the message language.",
-                ephemeral=True
-            )
-            return
-            
+            detection_successful = True
+        except Exception as e:
+            logger.error(f"Language detection error: {e}")
+            source_lang = "en"  # Fallback to English
+            detection_successful = False
+        
         # Don't translate if source and target are the same
         if source_lang == target_code:
-            await interaction.response.send_message(
-                "Message is already in the target language! 🎯",
-                ephemeral=True
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "READ.same_language_title"),
+                description=get_translation(ui_lang, "READ.same_language_desc", 
+                                          language=languages.get(target_code, target_code)),
+                color=0x3498db
             )
-            return
             
+            # Still show the message content
+            embed.add_field(
+                name=get_translation(ui_lang, "READ.message_content_field"),
+                value=message_to_translate.content[:1024],
+                inline=False
+            )
+            
+            embed.add_field(
+                name=get_translation(ui_lang, "READ.message_author_field"),
+                value=message_to_translate.author.display_name,
+                inline=True
+            )
+            
+            embed.add_field(
+                name=get_translation(ui_lang, "READ.message_time_field"),
+                value=f"<t:{int(message_to_translate.created_at.timestamp())}:R>",
+                inline=True
+            )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+        
         # Create translator and translate
         try:
             translator = GoogleTranslator(source=source_lang, target=target_code)
             translated = translator.translate(message_to_translate.content)
+            
+            if not translated or translated.strip() == "":
+                raise Exception("Translation returned empty result")
+                
         except Exception as e:
-            await interaction.response.send_message(
-                f"❌ Translation failed: {str(e)}",
-                ephemeral=True
+            logger.error(f"Translation error: {e}")
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "READ.error_translation_failed_title"),
+                description=get_translation(ui_lang, "READ.error_translation_failed_desc", 
+                                          error=str(e)),
+                color=0xFF6B6B
             )
+            await interaction.followup.send(embed=embed, ephemeral=True)
             return
         
-        # Award points based on tier (SYNC - no await)
+        # Award points based on tier
         points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
-        points_awarded = points_map[tier]
+        points_awarded = points_map[current_tier]
         reward_db.add_points(user_id, points_awarded, f"Read translation: {source_lang}→{target_code}")
         
-        # Track usage and save translation (ASYNC)
+        # Track usage and save translation
         await db.track_usage(user_id, text_chars=len(message_to_translate.content))
         await db.save_translation(
             user_id=user_id,
@@ -5637,195 +6353,525 @@ async def translate_by_id(
             translation_type="read"
         )
         
-        # Track for achievements (SYNC - no await)
+        # Track for achievements
         achievement_db.track_translation(user_id, source_lang, target_code, is_premium)
         new_achievements = achievement_db.check_achievements(user_id)
         if new_achievements:
             await send_achievement_notification(client, user_id, new_achievements)
-        await safe_track_translation_achievement(
-            user_id=interaction.user.id,
-            username=interaction.user.display_name,
-            source_lang=source_lang,
-            target_lang=target_code
-        )
+        
         # Get proper language names and flags
-        source_name = languages.get(source_lang, source_lang)
-        target_name = languages.get(target_code, target_code)
+        source_name = get_translation(ui_lang, f"LANGUAGES.{source_lang}", default=languages.get(source_lang, source_lang))
+        target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
         source_flag = flag_mapping.get(source_lang, '🌐')
         target_flag = flag_mapping.get(target_code, '🌐')
         
         # Create embed with tier-based colors
         tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
         embed = discord.Embed(
-            title="Message Translation",
-            color=tier_colors[tier]
+            title=get_translation(ui_lang, "READ.translation_title"),
+            color=tier_colors[current_tier],
+            timestamp=datetime.utcnow()
+        )
+        
+        # Add original message field
+        source_field_name = get_translation(ui_lang, "READ.original_field", 
+                                          flag=source_flag, language=source_name)
+        if not detection_successful:
+            source_field_name += get_translation(ui_lang, "READ.detection_failed_suffix")
+        
+        embed.add_field(
+            name=source_field_name,
+            value=message_to_translate.content[:1024],  # Discord embed field limit
+            inline=False
+        )
+        
+        # Add translation field
+        embed.add_field(
+            name=get_translation(ui_lang, "READ.translation_field", 
+                               flag=target_flag, language=target_name),
+            value=translated[:1024],
+            inline=False
+        )
+        
+        # Add message info
+        embed.add_field(
+            name=get_translation(ui_lang, "READ.message_author_field"),
+            value=message_to_translate.author.display_name,
+            inline=True
         )
         
         embed.add_field(
-            name=f"{source_flag} Original ({source_name})",
-            value=message_to_translate.content,
-            inline=False
-        )
-        embed.add_field(
-            name=f"{target_flag} Translation ({target_name})",
-            value=translated,
-            inline=False
+            name=get_translation(ui_lang, "READ.message_time_field"),
+            value=f"<t:{int(message_to_translate.created_at.timestamp())}:R>",
+            inline=True
         )
         
         # Add points earned indicator
         embed.add_field(
-            name="💎 Points",
-            value=f"+{points_awarded}",
+            name=get_translation(ui_lang, "READ.points_field"),
+            value=get_translation(ui_lang, "READ.points_value", points=points_awarded),
             inline=True
         )
         
+        # Add character usage for limited tiers
+        if current_tier in ['free', 'basic']:
+            embed.add_field(
+                name=get_translation(ui_lang, "READ.usage_field"),
+                value=get_translation(ui_lang, "READ.usage_value", 
+                                    current=len(message_to_translate.content), 
+                                    limit=limits['text_limit']),
+                inline=True
+            )
+        
         # Add tier-specific footer
         tier_footers = {
-            'free': f"🆓 Free: {len(message_to_translate.content)}/{limits['text_limit']} chars",
-            'basic': f"🥉 Basic: {len(message_to_translate.content)}/{limits['text_limit']} chars", 
-            'premium': f"🥈 Premium: Message translation",
-            'pro': f"🥇 Pro: Message translation"
+            'free': get_translation(ui_lang, "READ.footer_free", 
+                                  current=len(message_to_translate.content), 
+                                  limit=limits['text_limit']),
+            'basic': get_translation(ui_lang, "READ.footer_basic", 
+                                   current=len(message_to_translate.content), 
+                                   limit=limits['text_limit']),
+            'premium': get_translation(ui_lang, "READ.footer_premium"),
+            'pro': get_translation(ui_lang, "READ.footer_pro")
         }
-        embed.set_footer(text=f"{tier_footers[tier]} • From: {message_to_translate.author.display_name}")
         
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        embed.set_footer(text=tier_footers[current_tier])
+        
+        await interaction.followup.send(embed=embed, ephemeral=True)
         
     except Exception as e:
         logger.error(f"Read command error: {e}")
+        
+        # Get UI language for error message
+        try:
+            ui_lang = await get_user_ui_language(interaction.user.id)
+        except:
+            ui_lang = 'en'
+        
+        error_embed = discord.Embed(
+            title=get_translation(ui_lang, "READ.error_general_title"),
+            description=get_translation(ui_lang, "READ.error_general_desc", error=str(e)),
+            color=0xFF0000
+        )
+        
         if not interaction.response.is_done():
-            await interaction.response.send_message(
-                f"❌ An unexpected error occurred: {str(e)}",
-                ephemeral=True
-            )
+            await interaction.response.send_message(embed=error_embed, ephemeral=True)
+        else:
+            await interaction.followup.send(embed=error_embed, ephemeral=True)
 
-# Add autocomplete to the read command
-translate_by_id.autocomplete('target_lang')(language_autocomplete)
+# Add autocomplete
+translate_by_id.autocomplete('target_lang')(translated_language_autocomplete)
+@tree.command(name="readimage", description="Extract and translate text from an image file")
+@app_commands.describe(
+    image="Image attachment or URL to read text from",
+    target_lang="Translate extracted text to this language (type to search)"
+)
+@app_commands.autocomplete(target_lang=translated_language_autocomplete)
+async def readimage_command(
+    interaction: discord.Interaction,
+    image: discord.Attachment,
+    target_lang: str
+):
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+    await db.get_or_create_user(user_id, interaction.user.display_name)
+
+    if user_id in tier_handler.pro_users:
+        tier = "pro"
+    elif user_id in tier_handler.premium_users:
+        tier = "premium"
+    elif user_id in tier_handler.basic_users:
+        tier = "basic"
+    else:
+        tier = "free"
+
+    max_size = MEDIA_LIMITS_MB[tier] * 1024 * 1024
+    if image.size > max_size:
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "MEDIAREAD.error_title"),
+            description=get_translation(ui_lang, "MEDIAREAD.error_image_too_large", tier=tier, limit=MEDIA_LIMITS_MB[tier]),
+            color=0xe74c3c
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    await interaction.response.defer()
+
+    try:
+        image_bytes = await image.read()
+        pil_image = Image.open(io.BytesIO(image_bytes))
+
+        # Map UI language code to Tesseract language code for OCR
+        tesseract_lang = tesseract_lang_map.get(ui_lang, "eng")
+
+        extracted_text = pytesseract.image_to_string(pil_image, lang=tesseract_lang)
+
+        if not extracted_text.strip():
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "MEDIAREAD.error_title"),
+                description=get_translation(ui_lang, "MEDIAREAD.error_no_text_found"),
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+
+        # Map target language UI code to translation code (Google Translate)
+        target_code = get_language_code(target_lang)
+        if not target_code:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "MEDIAREAD.error_title"),
+                description=get_translation(ui_lang, "MEDIAREAD.error_invalid_target", language=target_lang),
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+
+        translator = GoogleTranslator(source="auto", target=target_code)
+        translated_text = translator.translate(extracted_text)
+
+        target_name = get_display_language_name(target_code, ui_lang)
+        flag = flag_mapping.get(target_code, "🌐")
+
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "MEDIAREAD.title_image"),
+            description=get_translation(ui_lang, "MEDIAREAD.description"),
+            color=0x2ecc71
+        )
+
+        embed.add_field(
+            name=get_translation(ui_lang, "MEDIAREAD.original_text"),
+            value=extracted_text[:1024],
+            inline=False
+        )
+
+        embed.add_field(
+            name=get_translation(ui_lang, "MEDIAREAD.translated_text", flag=flag, language=target_name),
+            value=translated_text[:1024],
+            inline=False
+        )
+
+        embed.set_footer(text=get_translation(ui_lang, f"MEDIAREAD.footer_{tier}"))
+
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+    except Exception as e:
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "MEDIAREAD.error_title"),
+            description=get_translation(ui_lang, "MEDIAREAD.error_processing", error=str(e)),
+            color=0xe74c3c
+        )
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+
+@tree.command(name="readaudio", description="Transcribe and translate speech from an audio file")
+@app_commands.describe(
+    audio="Audio attachment (must be under your tier's limit)",
+    target_lang="Translate transcript to this language (type to search)"
+)
+@app_commands.autocomplete(target_lang=translated_language_autocomplete)
+async def readaudio_command(
+    interaction: discord.Interaction,
+    audio: discord.Attachment,
+    target_lang: str
+):
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+    await db.get_or_create_user(user_id, interaction.user.display_name)
+
+    # Determine user tier for file size limit
+    if user_id in tier_handler.pro_users:
+        tier = "pro"
+    elif user_id in tier_handler.premium_users:
+        tier = "premium"
+    elif user_id in tier_handler.basic_users:
+        tier = "basic"
+    else:
+        tier = "free"
+
+    max_size = MEDIA_LIMITS_MB[tier] * 1024 * 1024
+    if audio.size > max_size:
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "AUDIOREAD.title"),
+            description=get_translation(ui_lang, "AUDIOREAD.error_too_large", tier=tier, limit=MEDIA_LIMITS_MB[tier]),
+            color=0xe74c3c
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    await interaction.response.defer()
+
+    audio_path = None
+    wav_path = None
+
+    try:
+        # Save uploaded audio to a temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(audio.filename)[-1]) as temp_audio_file:
+            audio_bytes = await audio.read()
+            temp_audio_file.write(audio_bytes)
+            audio_path = temp_audio_file.name
+
+        # Convert to WAV for Whisper
+        wav_path = audio_path.rsplit(".", 1)[0] + ".wav"
+        sound = AudioSegment.from_file(audio_path)
+        sound.export(wav_path, format="wav")
+
+        # Transcribe with Whisper
+        result = whisper_model.transcribe(wav_path)
+        transcription = result.get("text", "").strip()
+
+        if not transcription:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "AUDIOREAD.title"),
+                description=get_translation(ui_lang, "AUDIOREAD.error_no_text"),
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+
+        # Translate
+        target_code = get_language_code(target_lang)
+        if not target_code:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "AUDIOREAD.title"),
+                description=get_translation(ui_lang, "AUDIOREAD.error_invalid_language", language=target_lang),
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+
+        translator = GoogleTranslator(source="auto", target=target_code)
+        translated_text = translator.translate(transcription)
+
+        target_name = get_display_language_name(target_code, ui_lang)
+        flag = flag_mapping.get(target_code, "🌐")
+
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "AUDIOREAD.title"),
+            description=get_translation(ui_lang, "AUDIOREAD.description"),
+            color=0x2ecc71
+        )
+        embed.add_field(
+            name=get_translation(ui_lang, "AUDIOREAD.original_text"),
+            value=transcription[:1024],
+            inline=False
+        )
+        embed.add_field(
+            name=get_translation(ui_lang, "AUDIOREAD.translated_text", flag=flag, language=target_name),
+            value=translated_text[:1024],
+            inline=False
+        )
+        embed.set_footer(text=get_translation(ui_lang, f"AUDIOREAD.footer_{tier}"))
+
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+    except Exception as e:
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "AUDIOREAD.title"),
+            description=get_translation(ui_lang, "AUDIOREAD.error_generic", error=str(e)),
+            color=0xe74c3c
+        )
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+    finally:
+        if audio_path and os.path.exists(audio_path):
+            os.remove(audio_path)
+        if wav_path and os.path.exists(wav_path):
+            os.remove(wav_path)
 
 @tree.context_menu(name="Read Message")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def translate_message_context(interaction: discord.Interaction, message: discord.Message):
     try:
-        # Check if message has content to translate
+        await track_command_usage(interaction)
+        
+        user_id = interaction.user.id
+        ui_lang = await get_user_ui_language(user_id)
+        await db.get_or_create_user(user_id, interaction.user.display_name)
+        
+        current_tier = tier_handler.get_user_tier(user_id)
+        limits = tier_handler.get_limits(user_id)
+        is_premium = current_tier in ['premium', 'pro']
+        
         if not message.content or not message.content.strip():
-            await interaction.response.send_message(
-                "❌ This message has no text content to translate!",
-                ephemeral=True
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "CONTEXT.error_no_content_title"),
+                description=get_translation(ui_lang, "CONTEXT.error_no_content_desc"),
+                color=0xFFA500
             )
+            content_types = []
+            if message.embeds:
+                content_types.append(get_translation(ui_lang, "CONTEXT.content_type_embeds"))
+            if message.attachments:
+                content_types.append(get_translation(ui_lang, "CONTEXT.content_type_attachments"))
+            if message.stickers:
+                content_types.append(get_translation(ui_lang, "CONTEXT.content_type_stickers"))
+            if message.reactions:
+                content_types.append(get_translation(ui_lang, "CONTEXT.content_type_reactions"))
+            if content_types:
+                embed.add_field(
+                    name=get_translation(ui_lang, "CONTEXT.message_contains_field"),
+                    value=", ".join(content_types),
+                    inline=False
+                )
+            embed.add_field(
+                name=get_translation(ui_lang, "CONTEXT.alternative_field"),
+                value=get_translation(ui_lang, "CONTEXT.alternative_value"),
+                inline=False
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-
-        # Check bot permissions (only for guild channels)
+        
         if interaction.guild:
             permissions = interaction.channel.permissions_for(interaction.guild.me)
             if not permissions.read_message_history:
                 embed = discord.Embed(
-                    title="❌ Permission Error",
-                    description=(
-                        "I don't have permission to read message history in this channel.\n\n"
-                        "**Required Permission:**\n"
-                        "• Read Message History\n\n"
-                        "🔗 Ask a server admin to fix my permissions"
-                    ),
+                    title=get_translation(ui_lang, "CONTEXT.error_no_permission_title"),
+                    description=get_translation(ui_lang, "CONTEXT.error_no_permission_desc"),
                     color=0xFF0000
+                )
+                embed.add_field(
+                    name=get_translation(ui_lang, "CONTEXT.required_permission_field"),
+                    value=get_translation(ui_lang, "CONTEXT.required_permission_value"),
+                    inline=False
+                )
+                embed.add_field(
+                    name=get_translation(ui_lang, "CONTEXT.fix_permission_field"),
+                    value=get_translation(ui_lang, "CONTEXT.fix_permission_value"),
+                    inline=False
                 )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
-
-        user_id = interaction.user.id
         
-        # Create/update user in database
-        await db.get_or_create_user(user_id, interaction.user.display_name)
-        
-        # Check user tier and get limits
-        if user_id in tier_handler.pro_users:
-            tier = 'pro'
-            is_premium = True
-        elif user_id in tier_handler.premium_users:
-            tier = 'premium'
-            is_premium = True
-        elif user_id in tier_handler.basic_users:
-            tier = 'basic'
-            is_premium = False
-        else:
-            tier = 'free'
-            is_premium = False
-        
-        limits = tier_handler.get_limits(user_id)
-        
-        # Check message length against limits
         if len(message.content) > limits['text_limit']:
-            await interaction.response.send_message(
-                f"🔒 Message too long! Your {tier} tier limit: {limits['text_limit']} characters\n"
-                f"💡 Upgrade your tier for higher limits!",
-                ephemeral=True
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "CONTEXT.error_text_too_long_title"),
+                description=get_translation(ui_lang, "CONTEXT.error_text_too_long_desc",
+                                          length=len(message.content),
+                                          tier=current_tier,
+                                          limit=limits['text_limit']),
+                color=0xFF6B6B
             )
+            embed.add_field(
+                name=get_translation(ui_lang, "CONTEXT.upgrade_benefits_field"),
+                value=get_translation(ui_lang, "CONTEXT.upgrade_benefits_value"),
+                inline=False
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-
-        # Create a modal for language selection with tier-aware styling
-        class LanguageModal(discord.ui.Modal, title="Select Target Language"):
-            target_lang = discord.ui.TextInput(
-                label="Target Language Code or Name",
-                placeholder="Enter language code or name (e.g., es, Spanish, français)...",
-                max_length=30,
-                required=True
-            )
-
-            def __init__(self, message_to_translate, user_tier, user_id, is_premium):
-                super().__init__()
+        
+        class EnhancedLanguageModal(discord.ui.Modal):
+            def __init__(self, message_to_translate, user_tier, user_id, is_premium, ui_language):
                 self.message_to_translate = message_to_translate
                 self.user_tier = user_tier
                 self.user_id = user_id
                 self.is_premium = is_premium
-
+                self.ui_lang = ui_language
+                
+                super().__init__(
+                    title=get_translation(ui_language, "CONTEXT.modal_title"),
+                    timeout=300.0
+                )
+                
+                self.target_lang = discord.ui.TextInput(
+                    label=get_translation(ui_language, "CONTEXT.modal_input_label"),
+                    placeholder=get_translation(ui_language, "CONTEXT.modal_input_placeholder"),
+                    max_length=50,
+                    required=True
+                )
+                self.add_item(self.target_lang)
+            
             async def on_submit(self, modal_interaction: discord.Interaction):
                 target_lang_input = self.target_lang.value.strip()
-                
-                # Convert language input to code
                 target_code = get_language_code(target_lang_input)
                 
-                # Validate target language
                 if not target_code:
-                    await modal_interaction.response.send_message(
-                        f"❌ Invalid target language: '{target_lang_input}'\nUse /list to see available languages.",
-                        ephemeral=True
+                    # Warning embed for invalid language input
+                    warning_embed = discord.Embed(
+                        title=get_translation(self.ui_lang, "CONTEXT.warning_title"),
+                        description=(
+                            get_translation(self.ui_lang, "CONTEXT.warning_desc") + "\n\n" +
+                            get_translation(self.ui_lang, "CONTEXT.warning_note_read_command") + "\n\n" +
+                            get_translation(self.ui_lang, "CONTEXT.warning_note_only_command")
+                        ),
+                        color=0xFFA500
                     )
+                    warning_embed.add_field(
+                        name=get_translation(self.ui_lang, "CONTEXT.warning_use_list_title"),
+                        value=get_translation(self.ui_lang, "CONTEXT.warning_use_list_desc"),
+                        inline=False
+                    )
+                    await modal_interaction.response.send_message(embed=warning_embed, ephemeral=True)
                     return
                 
-                # Detect the source language
+                if modal_interaction.guild:
+                    allowed = await db.is_translation_allowed(
+                        modal_interaction.guild.id,
+                        modal_interaction.channel.id,
+                        "text",
+                        target_code
+                    )
+                    if not allowed:
+                        embed = discord.Embed(
+                            title=get_translation(self.ui_lang, "CONTEXT.error_not_allowed_title"),
+                            description=get_translation(self.ui_lang, "CONTEXT.error_not_allowed_desc"),
+                            color=0xFF6B6B
+                        )
+                        await modal_interaction.response.send_message(embed=embed, ephemeral=True)
+                        return
+                
+                await modal_interaction.response.defer(ephemeral=True)
+                
+                # Detect source language
                 try:
                     source_lang = detect(self.message_to_translate.content)
-                except:
-                    await modal_interaction.response.send_message(
-                        "❌ Could not detect the message language. The text might be too short or contain unsupported characters.",
-                        ephemeral=True
-                    )
-                    return
+                    detection_successful = True
+                except Exception:
+                    source_lang = "en"
+                    detection_successful = False
                 
-                # Don't translate if source and target are the same
                 if source_lang == target_code:
-                    await modal_interaction.response.send_message(
-                        "Message is already in the target language! 🎯",
-                        ephemeral=True
+                    embed = discord.Embed(
+                        title=get_translation(self.ui_lang, "CONTEXT.same_language_title"),
+                        description=get_translation(self.ui_lang, "CONTEXT.same_language_desc", language=languages.get(target_code, target_code)),
+                        color=0x3498db
                     )
+                    embed.add_field(
+                        name=get_translation(self.ui_lang, "CONTEXT.message_content_field"),
+                        value=self.message_to_translate.content[:1024],
+                        inline=False
+                    )
+                    embed.add_field(
+                        name=get_translation(self.ui_lang, "CONTEXT.message_author_field"),
+                        value=self.message_to_translate.author.display_name,
+                        inline=True
+                    )
+                    embed.add_field(
+                        name=get_translation(self.ui_lang, "CONTEXT.message_time_field"),
+                        value=f"<t:{int(self.message_to_translate.created_at.timestamp())}:R>",
+                        inline=True
+                    )
+                    await modal_interaction.followup.send(embed=embed, ephemeral=True)
                     return
                 
-                # Create translator and translate
                 try:
                     translator = GoogleTranslator(source=source_lang, target=target_code)
                     translated = translator.translate(self.message_to_translate.content)
+                    if not translated or translated.strip() == "":
+                        raise Exception("Translation returned empty")
                 except Exception as e:
-                    await modal_interaction.response.send_message(
-                        f"❌ Translation failed: {str(e)}\nPlease try again or contact support.",
-                        ephemeral=True
+                    embed = discord.Embed(
+                        title=get_translation(self.ui_lang, "CONTEXT.error_translation_failed_title"),
+                        description=get_translation(self.ui_lang, "CONTEXT.error_translation_failed_desc", error=str(e)),
+                        color=0xFF6B6B
                     )
+                    await modal_interaction.followup.send(embed=embed, ephemeral=True)
                     return
                 
-                # Award points based on tier (SYNC - no await)
                 points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
-                points_awarded = points_map[self.user_tier]
+                points_awarded = points_map.get(self.user_tier, 1)
                 reward_db.add_points(self.user_id, points_awarded, f"Context translation: {source_lang}→{target_code}")
                 
-                # Track usage and save translation (ASYNC)
                 await db.track_usage(self.user_id, text_chars=len(self.message_to_translate.content))
                 await db.save_translation(
                     user_id=self.user_id,
@@ -5837,1016 +6883,540 @@ async def translate_message_context(interaction: discord.Interaction, message: d
                     translation_type="context"
                 )
                 
-                # Track for achievements (SYNC - no await)
                 achievement_db.track_translation(self.user_id, source_lang, target_code, self.is_premium)
-                new_achievements = achievement_db.check_achievements(user_id)
+                new_achievements = achievement_db.check_achievements(self.user_id)
                 if new_achievements:
-                    await send_achievement_notification(client, user_id, new_achievements)
-
-                await safe_track_translation_achievement(
-                    user_id=message.author.id,
-                    username=message.author.display_name,
-                    target_lang=target_code
-                )
+                    await send_achievement_notification(client, self.user_id, new_achievements)
                 
-                # Get proper language names and flags
                 source_name = languages.get(source_lang, source_lang)
                 target_name = languages.get(target_code, target_code)
                 source_flag = flag_mapping.get(source_lang, '🌐')
                 target_flag = flag_mapping.get(target_code, '🌐')
                 
-                # Create embed with tier-based colors
                 tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
                 embed = discord.Embed(
-                    title="Context Menu Translation",
-                    color=tier_colors[self.user_tier]
+                    title=get_translation(self.ui_lang, "CONTEXT.translation_title"),
+                    color=tier_colors.get(self.user_tier, 0x3498db),
+                    timestamp=datetime.utcnow()
                 )
                 
+                source_field_name = get_translation(self.ui_lang, "CONTEXT.original_field", flag=source_flag, language=source_name)
+                if not detection_successful:
+                    source_field_name += get_translation(self.ui_lang, "CONTEXT.detection_failed_suffix")
                 embed.add_field(
-                    name=f"{source_flag} Original ({source_name})",
-                    value=self.message_to_translate.content,
+                    name=source_field_name,
+                    value=self.message_to_translate.content[:1024],
                     inline=False
                 )
                 
                 embed.add_field(
-                    name=f"{target_flag} Translation ({target_name})",
-                    value=translated,
+                    name=get_translation(self.ui_lang, "CONTEXT.translation_field", flag=target_flag, language=target_name),
+                    value=translated[:1024],
                     inline=False
                 )
                 
-                # Add points earned indicator
                 embed.add_field(
-                    name="💎 Points",
-                    value=f"+{points_awarded}",
+                    name=get_translation(self.ui_lang, "CONTEXT.message_author_field"),
+                    value=self.message_to_translate.author.display_name,
+                    inline=True
+                )
+                embed.add_field(
+                    name=get_translation(self.ui_lang, "CONTEXT.message_time_field"),
+                    value=f"<t:{int(self.message_to_translate.created_at.timestamp())}:R>",
                     inline=True
                 )
                 
-                # Add tier-specific footer
+                embed.add_field(
+                    name=get_translation(self.ui_lang, "CONTEXT.points_field"),
+                    value=get_translation(self.ui_lang, "CONTEXT.points_value", points=points_awarded),
+                    inline=True
+                )
+                
+                if self.user_tier in ['free', 'basic']:
+                    limits = tier_handler.get_limits(self.user_id)
+                    embed.add_field(
+                        name=get_translation(self.ui_lang, "CONTEXT.usage_field"),
+                        value=get_translation(self.ui_lang, "CONTEXT.usage_value", current=len(self.message_to_translate.content), limit=limits['text_limit']),
+                        inline=True
+                    )
+                
                 tier_footers = {
-                    'free': f"🆓 Free: Context translation",
-                    'basic': f"🥉 Basic: Context translation",
-                    'premium': f"🥈 Premium: Context translation",
-                    'pro': f"🥇 Pro: Context translation"
+                    'free': get_translation(self.ui_lang, "CONTEXT.footer_free"),
+                    'basic': get_translation(self.ui_lang, "CONTEXT.footer_basic"),
+                    'premium': get_translation(self.ui_lang, "CONTEXT.footer_premium"),
+                    'pro': get_translation(self.ui_lang, "CONTEXT.footer_pro")
                 }
                 
-                # Add context-appropriate footer
                 if modal_interaction.guild:
-                    embed.set_footer(text=f"{tier_footers[self.user_tier]} • From: {self.message_to_translate.author.display_name}")
+                    footer_text = get_translation(self.ui_lang, "CONTEXT.footer_guild", tier_footer=tier_footers.get(self.user_tier, ""), author=self.message_to_translate.author.display_name)
                 else:
-                    embed.set_footer(text=f"📱 DM Translation • {tier_footers[self.user_tier]} • From: {self.message_to_translate.author.display_name}")
+                    footer_text = get_translation(self.ui_lang, "CONTEXT.footer_dm", tier_footer=tier_footers.get(self.user_tier, ""), author=self.message_to_translate.author.display_name)
                 
-                await modal_interaction.response.send_message(embed=embed, ephemeral=True)
-
+                embed.set_footer(text=footer_text)
+                
+                await modal_interaction.followup.send(embed=embed, ephemeral=True)
+            
             async def on_error(self, modal_interaction: discord.Interaction, error: Exception):
-                logger.error(f"Context menu modal error: {error}")
-                await modal_interaction.response.send_message(
-                    "❌ An error occurred while processing your request. Please try again.",
-                    ephemeral=True
+                error_embed = discord.Embed(
+                    title=get_translation(self.ui_lang, "CONTEXT.error_modal_title"),
+                    description=get_translation(self.ui_lang, "CONTEXT.error_modal_desc"),
+                    color=0xFF0000
                 )
-
-        # Show the language selection modal
-        await interaction.response.send_modal(LanguageModal(message, tier, user_id, is_premium))
+                error_embed.add_field(
+                    name=get_translation(self.ui_lang, "CONTEXT.error_help_field"),
+                    value=get_translation(self.ui_lang, "CONTEXT.error_help_value"),
+                    inline=False
+                )
+                try:
+                    if not modal_interaction.response.is_done():
+                        await modal_interaction.response.send_message(embed=error_embed, ephemeral=True)
+                    else:
+                        await modal_interaction.followup.send(embed=error_embed, ephemeral=True)
+                except:
+                    pass
         
+        modal = EnhancedLanguageModal(message, current_tier, user_id, is_premium, ui_lang)
+        await interaction.response.send_modal(modal)
+    
     except discord.Forbidden:
-        await interaction.response.send_message(
-            "❌ I don't have permission to read messages in this channel.",
-            ephemeral=True
+        try:
+            ui_lang = await get_user_ui_language(interaction.user.id)
+        except:
+            ui_lang = 'en'
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "CONTEXT.error_forbidden_title"),
+            description=get_translation(ui_lang, "CONTEXT.error_forbidden_desc"),
+            color=0xFF0000
         )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
     except Exception as e:
         logger.error(f"Context menu error: {e}")
+        try:
+            ui_lang = await get_user_ui_language(interaction.user.id)
+        except:
+            ui_lang = 'en'
+        error_embed = discord.Embed(
+            title=get_translation(ui_lang, "CONTEXT.error_unexpected_title"),
+            description=get_translation(ui_lang, "CONTEXT.error_unexpected_desc", error=str(e)),
+            color=0xFF0000
+        )
         if not interaction.response.is_done():
-            await interaction.response.send_message(
-                f"❌ An unexpected error occurred: {str(e)}",
-                ephemeral=True
-            )
+            await interaction.response.send_message(embed=error_embed, ephemeral=True)
 
-# Add autocomplete to the read command
-translate_by_id.autocomplete('target_lang')(language_autocomplete)
+
+class AchievementView(discord.ui.View):
+    def __init__(self, user_id: int, ui_lang: str):
+        super().__init__(timeout=120)
+        self.user_id = user_id
+        self.ui_lang = ui_lang
+
+        # Set button labels properly here
+        self.add_item(discord.ui.Button(
+            label=get_translation(ui_lang, "ACHIEVEMENTS.button_collection"),
+            style=discord.ButtonStyle.success,
+            custom_id="ach_collection"
+        ))
+        self.add_item(discord.ui.Button(
+            label=get_translation(ui_lang, "ACHIEVEMENTS.button_browse"),
+            style=discord.ButtonStyle.primary,
+            custom_id="ach_browse"
+        ))
+        self.add_item(discord.ui.Button(
+            label=get_translation(ui_lang, "ACHIEVEMENTS.button_quick_goals"),
+            style=discord.ButtonStyle.secondary,
+            custom_id="ach_goals"
+        ))
+        self.add_item(discord.ui.Button(
+            label=get_translation(ui_lang, "ACHIEVEMENTS.button_cashout"),
+            style=discord.ButtonStyle.success,
+            custom_id="ach_cashout"
+        ))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.user_id
+
 @tree.command(name="achievements", description="View your achievements and progress")
 async def achievements_command(interaction: discord.Interaction):
+    ui_lang = "en"
     try:
         user_id = interaction.user.id
         username = interaction.user.display_name
 
-        # Get user data (current points, total earned, etc.)
-        user_data = reward_db.get_or_create_user(user_id, username)
-        activity_points = user_data.get('points', 0)
-        total_points = user_data.get('total_earned', 0)  # All activity points ever earned
+        try:
+            ui_lang = await get_user_ui_language(user_id)
+        except:
+            ui_lang = "en"
 
-        # Get uncashed achievement points and list of uncashed achievements
-        uncashed_points, uncashed_achievements = reward_db.get_uncashed_achievement_points(user_id)
-
-        # Get user's earned achievements (list of dicts)
-        user_achievements = achievement_db.get_user_achievements(user_id)
-        earned_achievement_ids = [
-            str(ach.get('id', '')) if isinstance(ach, dict) else str(ach)
-            for ach in user_achievements
+        # Define your allowed rank ladder matching your JSON keys exactly
+        rank_ladder = [
+            {"name": "Newcomer", "min_points": 0, "emoji": "", "color": 0x95a5a6},
+            {"name": "Explorer", "min_points": 100, "emoji": "", "color": 0x3498db},
+            {"name": "Translator", "min_points": 500, "emoji": "", "color": 0x2ecc71},
+            {"name": "Linguist", "min_points": 1500, "emoji": "", "color": 0xf39c12},
+            {"name": "Polyglot", "min_points": 5000, "emoji": "", "color": 0x9b59b6},
+            {"name": "Expert", "min_points": 10000, "emoji": "", "color": 0xf1c40f},
+            {"name": "Master", "min_points": 15000, "emoji": "", "color": 0xe74c3c},
+            {"name": "Legend", "min_points": 50000, "emoji": "", "color": 0xff6b35},
+            {"name": "Max_Level", "min_points": 100000, "emoji": "", "color": 0x1abc9c},
         ]
 
-        # Calculate total achievement points (all-time, cashed + uncashed)
-        total_achievement_points = sum(
-            ACHIEVEMENTS[ach_id].get('points', 0)
-            for ach_id in earned_achievement_ids if ach_id in ACHIEVEMENTS
-        )
+        ALLOWED_RANK_NAMES = {r["name"] for r in rank_ladder}
 
-        # Cashed achievement points = total earned - uncashed
-        cashed_achievement_points = total_achievement_points - uncashed_points
+        # Function to get current rank from points safely
+        def get_rank_from_points(points: int) -> dict:
+            rank = None
+            for r in sorted(rank_ladder, key=lambda x: x["min_points"], reverse=True):
+                if points >= r["min_points"]:
+                    rank = r
+                    break
+            if not rank or rank["name"] not in ALLOWED_RANK_NAMES:
+                rank = rank_ladder[0]  # fallback to Newcomer
+            return rank
 
-        # For display: total_points_earned should include all activity points ever + all achievement points ever
-        total_points_display = total_points + total_achievement_points
+        # Get user data from your DB
+        try:
+            user_data = reward_db.get_or_create_user(user_id, username)
+            activity_points = user_data.get("points", 0)
+            total_points = user_data.get("total_earned", 0)
+        except:
+            activity_points = 0
+            total_points = 0
 
-        # Get rank info based on total points
-        rank_info = get_rank_from_points(total_points)
-        rank_name = rank_info.get('name', 'Newcomer')
-        rank_emoji = rank_info.get('emoji', '🆕')
-        rank_color = rank_info.get('color', 0x95a5a6)
-        
-        class EnhancedAchievementView(discord.ui.View):
-            def __init__(self):
-                super().__init__(timeout=600)  # 10 minutes timeout
-                self.current_page = "dashboard"
-                self.category_page = 0
-                self.achievements_per_page = 5
-                
-            def create_progress_bar(self, current, target, length=12):
-                """Create animated progress bar"""
-                if target == 0:
-                    return "🌟▓▓▓▓▓▓▓▓▓▓▓▓🌟 MAX!"
-                
-                progress = min(current / target, 1.0)
-                filled = int(progress * length)
-                empty = length - filled
-                
-                percentage = int(progress * 100)
-                
-                # Different bar styles based on progress
-                if percentage == 100:
-                    bar = "🌟" + "▓" * length + "🌟"
-                    return f"{bar} COMPLETE!"
-                elif percentage >= 75:
-                    bar = "🔥" + "▓" * filled + "░" * empty + "🔥"
-                elif percentage >= 50:
-                    bar = "⚡" + "▓" * filled + "░" * empty + "⚡"
-                elif percentage >= 25:
-                    bar = "💫" + "▓" * filled + "░" * empty + "💫"
-                else:
-                    bar = "✨" + "▓" * filled + "░" * empty + "✨"
-                
-                return f"{bar} {percentage}%"
-            def track_stat(self, user_id: int, stat_name: str, amount: int = 1):
-                """Track a specific stat for achievements"""
-                try:
-                    with sqlite3.connect(self.db_path) as conn:
-                        cursor = conn.cursor()
-            
-                        # Get current stats
-                        stats = self.get_user_stats(user_id)
-            
-                        # Update the specific stat
-                        if stat_name == 'servers_invited':
-                            cursor.execute('''
-                            UPDATE user_stats 
-                            SET servers_invited = COALESCE(servers_invited, 0) + ?,
-                            updated_at = CURRENT_TIMESTAMP
-                            WHERE user_id = ?
-                        ''', (amount, user_id))
-            
-                    conn.commit()
-            
-                    # Check for new achievements
-                    self.check_achievements(user_id)
-            
-                except Exception as e:
-                    logger.error(f"Error tracking stat {stat_name}: {e}")
-        
-            def get_rarity_style(self, rarity):
-                """Get enhanced rarity styling"""
-                styles = {
-                    "Common": {"emoji": "⚪", "color": "🤍", "sparkle": "✨"},
-                    "Uncommon": {"emoji": "🟢", "color": "💚", "sparkle": "🌟"},
-                    "Rare": {"emoji": "🔵", "color": "💙", "sparkle": "💎"},
-                    "Epic": {"emoji": "🟣", "color": "💜", "sparkle": "🔮"},
-                    "Legendary": {"emoji": "🟡", "color": "💛", "sparkle": "👑"}
-                }
-                return styles.get(rarity, styles["Common"])
-                
-            @discord.ui.button(label="Dashboard", style=discord.ButtonStyle.primary, emoji="🏠", row=0)
-            async def dashboard_view(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if interaction.user.id != user_id:
-                    await interaction.response.send_message("❌ This is not your achievement menu!", ephemeral=True)
-                    return
-                
-                self.current_page = "dashboard"
-                
-                # Calculate stats
-                total_achievements = len(ACHIEVEMENTS)
-                earned_count = len(earned_achievement_ids)
-                completion_rate = (earned_count / total_achievements * 100) if total_achievements > 0 else 0
-                
-                # Calculate total achievement points (both cashed and uncashed)
-                total_achievement_points = sum(ACHIEVEMENTS[ach_id].get('points', 0) for ach_id in earned_achievement_ids if ach_id in ACHIEVEMENTS)
-                cashed_achievement_points = total_achievement_points - uncashed_points
-                
-                embed = discord.Embed(
-                    title=f"🏠 {username}'s Achievement Dashboard",
-                    description=f"**{rank_emoji} {rank_name}** • **{total_points:,}** total points",
-                    color=rank_color
-                )
-                
-                # Achievement completion with fancy progress bar
-                completion_bar = self.create_progress_bar(earned_count, total_achievements)
-                embed.add_field(
-                    name="🏆 Achievement Completion",
-                    value=f"{completion_bar}\n**{earned_count}/{total_achievements}** unlocked ({completion_rate:.1f}%)",
-                    inline=False
-                )
-                
-                # Enhanced points breakdown with cashout info
-                embed.add_field(
-                    name="💎 Points Breakdown",
-                    value=(
-                        f"📝 **Activity Points:** {activity_points:,}\n"
-                        f"🏆 **Cashed Achievement Points:** {cashed_achievement_points:,}\n"
-                        f"💰 **Uncashed Achievement Points:** {uncashed_points:,}\n"
-                        f"🌟 **All Points Earned:** {total_points:,}"
-                    ),
-                    inline=True
-                )
-                
-                # Cashout status
-                if uncashed_points > 0:
-                    embed.add_field(
-                        name="💰 Cashout Available",
-                        value=f"You can convert **{uncashed_points:,}** achievement points!\nUse `/cashout` to convert them.",
-                        inline=True
-                    )
-                else:
-                    embed.add_field(
-                        name="✅ All Cashed Out",
-                        value="All your achievements have been converted to activity points!",
-                        inline=True
-                    )
-                
-                # Recent achievements (last 3)
-                recent_achievements = earned_achievement_ids[-3:] if earned_achievement_ids else []
-                if recent_achievements:
-                    recent_text = ""
-                    for ach_id in reversed(recent_achievements):  # Show newest first
-                        if ach_id in ACHIEVEMENTS:
-                            ach_data = ACHIEVEMENTS[ach_id]
-                            style = self.get_rarity_style(ach_data.get('rarity', 'Common'))
-                            recent_text += f"{style['sparkle']} **{ach_data.get('name', 'Unknown')}**\n"
-                            
-                    embed.add_field(
-                        name="🎉 Recent Achievements",
-                        value=recent_text,
-                        inline=False
-                    )
-                else:
-                    embed.add_field(
-                        name="🎯 Get Started",
-                        value="Start translating to earn your first achievement!",
-                        inline=False
-                    )
-                
-                # Next rank progress
-                next_rank_info = get_next_rank_info(total_points)
-                if next_rank_info:
-                    current_rank_min = get_current_rank_min_points(total_points)
-                    points_in_rank = total_points - current_rank_min
-                    rank_progress = self.create_progress_bar(points_in_rank, next_rank_info['points_needed'])
-                    
-                    embed.add_field(
-                        name="🎯 Next Rank Progress",
-                        value=f"**{next_rank_info['name']}**\n{rank_progress}\n{next_rank_info['points_needed']:,} points to go!",
-                        inline=False
-                    )
-                
-                embed.set_footer(text="🎮 Use the buttons below to explore your achievements!")
-                await interaction.response.edit_message(embed=embed, view=self)
-                
-            @discord.ui.button(label="My Collection", style=discord.ButtonStyle.success, emoji="🏆", row=0)
-            async def my_achievements(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if interaction.user.id != user_id:
-                    await interaction.response.send_message("❌ This is not your achievement menu!", ephemeral=True)
-                    return
-                
-                self.current_page = "collection"
-                
-                embed = discord.Embed(
-                    title=f"🏆 {username}'s Achievement Collection",
-                    description=f"**{len(earned_achievement_ids)}** achievements unlocked",
-                    color=0xf1c40f
-                )
-                
-                if earned_achievement_ids:
-                    # Group by rarity
-                    rarity_groups = {"Legendary": [], "Epic": [], "Rare": [], "Uncommon": [], "Common": []}
-                    
-                    for ach_id in earned_achievement_ids:
-                        if ach_id in ACHIEVEMENTS:
-                            ach_data = ACHIEVEMENTS[ach_id]
-                            rarity = ach_data.get('rarity', 'Common')
-                            rarity_groups[rarity].append((ach_id, ach_data))
-                    
-                    # Display by rarity (highest first)
-                    for rarity, achievements in rarity_groups.items():
-                        if achievements:
-                            style = self.get_rarity_style(rarity)
-                            rarity_text = ""
-                            
-                            for ach_id, ach_data in achievements:
-                                ach_name = ach_data.get('name', 'Unknown')
-                                ach_points = ach_data.get('points', 0)
-                                
-                                # Check if this achievement has been cashed out
-                                cashout_status = "💰" if ach_id in uncashed_achievements else "✅"
-                                rarity_text += f"{cashout_status} {style['sparkle']} **{ach_name}** • {ach_points} pts\n"
-                            
-                            embed.add_field(
-                                name=f"{style['color']} {rarity} Achievements ({len(achievements)})",
-                                value=rarity_text,
-                                inline=False
-                            )
-                    
-                    # Enhanced collection value with cashout info
-                    total_ach_points = sum(ach_data.get('points', 0) for _, ach_data in
-                                         [item for sublist in rarity_groups.values() for item in sublist])
-                    
-                    embed.add_field(
-                        name="💎 Collection Value",
-                        value=(
-                            f"**{total_ach_points:,}** total points from achievements\n"
-                            f"💰 **{uncashed_points:,}** points available to cash out\n"
-                            f"✅ **{total_ach_points - uncashed_points:,}** points already cashed"
-                        ),
-                        inline=False
-                    )
-                else:
-                    embed.add_field(
-                        name="🎯 Empty Collection",
-                        value="Your achievement collection is waiting to be filled!\n\n"
-                              "🌟 **Start your journey:**\n"
-                              "• Use `/texttr` to translate text\n"
-                              "• Try `/voicechat` for voice translation\n"
-                              "• Give feedback with `/feedback`\n"
-                              "• Explore different languages!",
-                        inline=False
-                    )
-                
-                embed.set_footer(text="🎨 💰 = Can cash out • ✅ = Already cashed out")
-                await interaction.response.edit_message(embed=embed, view=self)
-                
-            @discord.ui.button(label="🔍 Browse All", style=discord.ButtonStyle.primary, row=0)
-            async def browse_all(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if interaction.user.id != user_id:
-                    await interaction.response.send_message("❌ This is not your achievement menu!", ephemeral=True)
-                    return
-                
-                self.current_page = "browse"
-                
-                embed = discord.Embed(
-                    title="🔍 All Available Achievements",
-                    description=f"Complete list of all {len(ACHIEVEMENTS)} achievements in Muse",
-                    color=0x9b59b6
-                )
-                
-                # Group achievements by category
-                categories = {}
-                for ach_id, ach_data in ACHIEVEMENTS.items():
-                    category = ach_data.get('category', 'Other')
-                    if category not in categories:
-                        categories[category] = []
-                    categories[category].append((ach_id, ach_data))
-                
-                # Sort categories alphabetically
-                for category in sorted(categories.keys()):
-                    achievements = categories[category]
-                    category_text = ""
-                    
-                    # Sort achievements within category by points (ascending)
-                    achievements.sort(key=lambda x: x[1].get('points', 0))
-                    
-                    for ach_id, ach_data in achievements:
-                        name = ach_data.get('name', 'Unknown Achievement')
-                        points = ach_data.get('points', 0)
-                        rarity = ach_data.get('rarity', 'Common')
-                        
-                        # Get rarity styling
-                        style = self.get_rarity_style(rarity)
-                        
-                        # Check if user has this achievement
-                        if str(ach_id) in earned_achievement_ids:
-                            if str(ach_id) in uncashed_achievements:
-                                status = "💰"  # Can cash out
-                            else:
-                                status = "✅"  # Already cashed
-                        else:
-                            status = "🔒"  # Locked
-                        
-                        category_text += f"{status} {style['sparkle']} **{name}** ({points} pts)\n"
-                    
-                    # Handle long categories by splitting into multiple fields
-                    if len(category_text) > 1024:
-                        # Split into chunks
-                        chunks = []
-                        lines = category_text.strip().split('\n')
-                        current_chunk = ""
-                        
-                        for line in lines:
-                            if len(current_chunk + line + '\n') > 1024:
-                                if current_chunk:
-                                    chunks.append(current_chunk.strip())
-                                current_chunk = line + '\n'
-                            else:
-                                current_chunk += line + '\n'
-                        
-                        if current_chunk:
-                            chunks.append(current_chunk.strip())
-                        
-                        for i, chunk in enumerate(chunks):
-                            field_name = f"🏅 {category}" if i == 0 else f"🏅 {category} (cont. {i+1})"
-                            embed.add_field(name=field_name, value=chunk, inline=False)
-                    else:
-                        embed.add_field(
-                            name=f"🏅 {category} ({len(achievements)} achievements)",
-                            value=category_text,
-                            inline=False
-                        )
-                
-                embed.set_footer(text="💰 = Can cash out • ✅ = Cashed • 🔒 = Locked")
-                await interaction.response.edit_message(embed=embed, view=self)
-                
-            @discord.ui.button(label="🎯 Quick Goals", style=discord.ButtonStyle.secondary, row=1)
-            async def quick_goals(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if interaction.user.id != user_id:
-                    await interaction.response.send_message("❌ This is not your achievement menu!", ephemeral=True)
-                    return
-                
-                embed = discord.Embed(
-                    title="🎯 Your Quick Goals",
-                    description="Here are some achievements you can unlock soon!",
-                    color=0xe74c3c
-                )
-                
-                # Find closest achievements
-                user_data = reward_db.get_or_create_user(user_id, username)
-                translations = user_data.get('total_sessions', 0)
-                
-                suggestions = []
-                
-                # Translation milestones
-                milestones = [1, 5, 10, 25, 50, 100, 250, 500, 1000]
-                for milestone in milestones:
-                    if translations < milestone:
-                        remaining = milestone - translations
-                        suggestions.append({
-                            'name': f'Translation Milestone ({milestone})',
-                            'description': f'Complete {remaining} more translations',
-                            'difficulty': '🟢 Easy' if remaining <= 5 else '🟡 Medium' if remaining <= 25 else '🔴 Hard',
-                            'points': milestone * 10  # Estimated points
-                        })
-                        break
-                
-                # Feature-based achievements
-                if 'first_voice' not in earned_achievement_ids:
-                    suggestions.append({
-                        'name': 'Voice Translation Debut',
-                        'description': 'Try the /voicechat command',
-                        'difficulty': '🟢 Easy',
-                        'points': 50
-                    })
-                
-                if 'feedback_hero' not in earned_achievement_ids:
-                    suggestions.append({
-                        'name': 'Feedback Hero',
-                        'description': 'Give feedback with /feedback',
-                        'difficulty': '🟢 Easy',
-                        'points': 25
-                    })
-                
-                if 'auto_pilot' not in earned_achievement_ids:
-                    suggestions.append({
-                        'name': 'Auto Pilot',
-                        'description': 'Use /autotranslate feature',
-                        'difficulty': '🟡 Medium',
-                        'points': 75
-                    })
-                
-                # Display suggestions
-                for i, suggestion in enumerate(suggestions[:5], 1):
-                    embed.add_field(
-                        name=f"{i}. {suggestion['name']} ({suggestion['points']} pts)",
-                        value=f"📝 {suggestion['description']}\n{suggestion['difficulty']}",
-                        inline=False
-                    )
-                
-                if not suggestions:
-                    embed.add_field(
-                        name="🏆 Amazing Progress!",
-                        value="You're doing great! Keep exploring Muse's features to unlock more achievements.",
-                        inline=False
-                    )
-                
-                # Add potential cashout value
-                potential_points = sum(s.get('points', 0) for s in suggestions)
-                if potential_points > 0:
-                    embed.add_field(
-                        name="💰 Potential Earnings",
-                        value=f"Complete these goals to earn up to **{potential_points:,}** more points!",
-                        inline=False
-                    )
-                
-                embed.set_footer(text="💡 Focus on these goals to quickly boost your achievement count!")
-                await interaction.response.edit_message(embed=embed, view=self)
-                
-            @discord.ui.button(label="💰 Cashout", style=discord.ButtonStyle.success, row=1)
-            async def quick_cashout(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if interaction.user.id != user_id:
-                    await interaction.response.send_message("❌ This is not your achievement menu!", ephemeral=True)
-                    return
-                
-                if uncashed_points > 0:
-                    # Perform cashout
-                    converted_points = reward_db.cash_out_achievements(user_id)
-                    
-                    embed = discord.Embed(
-                        title="🎉 Quick Cashout Successful!",
-                        description=f"Converted **{converted_points:,}** achievement points to activity points!",
-                        color=0x2ecc71
-                    )
-                    
-                    embed.add_field(
-                        name="💰 Conversion Complete",
-                        value=f"**{len(uncashed_achievements)}** achievements cashed out\nReopen the menu to see updated totals",
-                        inline=False
-                    )
-                    
-                    await interaction.response.send_message(embed=embed, ephemeral=True)
-                else:
-                    embed = discord.Embed(
-                        title="❌ No Points to Cash Out",
-                        description="You don't have any uncashed achievement points!",
-                        color=0xe74c3c
-                    )
-                    
-                    embed.add_field(
-                        name="💡 Tip",
-                        value="Earn more achievements to get points to cash out!",
-                        inline=False
-                    )
-                    
-                    await interaction.response.send_message(embed=embed, ephemeral=True)
-                    
-            @discord.ui.button(label="🏆 Leaderboard", style=discord.ButtonStyle.secondary, row=1)
-            async def leaderboard_view(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if interaction.user.id != user_id:
-                    await interaction.response.send_message("❌ This is not your achievement menu!", ephemeral=True)
-                    return
-                
-                # Get top users
-                try:
-                    top_users = reward_db.get_leaderboard(limit=10) if hasattr(reward_db, 'get_leaderboard') else []
-                except:
-                    top_users = []
-                
-                embed = discord.Embed(
-                    title="🏆 Achievement Leaderboard",
-                    description="Top achievers in the Muse community",
-                    color=0xf1c40f
-                )
-                
-                if top_users:
-                    leaderboard_text = ""
-                    for i, user_data in enumerate(top_users, 1):
-                        username_lb = user_data.get('username', 'Unknown')
-                        points = user_data.get('points', 0)
-                        
-                        # Get rank info
-                        rank_info = get_rank_from_points(points)
-                        rank_emoji = rank_info.get('emoji', '🆕')
-                        
-                        # Position emojis
-                        if i == 1:
-                            position = "🥇"
-                        elif i == 2:
-                            position = "🥈"
-                        elif i == 3:
-                            position = "🥉"
-                        else:
-                            position = f"**{i}.**"
-                        
-                        leaderboard_text += f"{position} {rank_emoji} **{username_lb}**\n"
-                        leaderboard_text += f"    💎 {points:,} points\n\n"
-                    
-                    embed.add_field(
-                        name="🌟 Top Achievers",
-                        value=leaderboard_text,
-                        inline=False
-                    )
-                    
-                    # Show user's position
-                    try:
-                        user_position = reward_db.get_user_position(user_id) if hasattr(reward_db, 'get_user_position') else None
-                        if user_position:
-                            embed.add_field(
-                                name="📍 Your Position",
-                                value=f"**#{user_position}** with {total_points:,} points",
-                                inline=False
-                            )
-                    except:
-                        pass
-                else:
-                    embed.add_field(
-                        name="🎯 Be the First!",
-                        value="Start earning achievements to appear on the leaderboard!",
-                        inline=False
-                    )
-                
-                embed.set_footer(text="🚀 Compete with other users and climb the ranks!")
-                await interaction.response.edit_message(embed=embed, view=self)
-                
-            @discord.ui.button(label="❌ Close", style=discord.ButtonStyle.danger, row=2)
-            async def close_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if interaction.user.id != user_id:
-                    await interaction.response.send_message("❌ This is not your achievement menu!", ephemeral=True)
-                    return
-                
-                embed = discord.Embed(
-                    title="👋 Achievement Menu Closed",
-                    description=f"Thanks for checking your progress, {username}!\n\nKeep using Muse to unlock more achievements! 🚀",
-                    color=0x95a5a6
-                )
-                
-                embed.add_field(
-                    name="🎯 Quick Reminder",
-                    value="• Use `/texttr` for text translation\n• Try `/voicechat` for voice features\n• Give `/feedback` to help improve Muse\n• Use `/cashout` to convert achievement points",
-                    inline=False
-                )
-                
-                if uncashed_points > 0:
-                    embed.add_field(
-                        name="💰 Don't Forget!",
-                        value=f"You have **{uncashed_points:,}** uncashed achievement points!\nUse `/cashout` to convert them to activity points.",
-                        inline=False
-                    )
-                
-                self.clear_items()  # Remove all buttons
-                await interaction.response.edit_message(embed=embed, view=self)
+        try:
+            uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
+            user_achievements = achievement_db.get_user_achievements(user_id) or []
+            earned_achievement_ids = [str(ach.get("id", "")) if isinstance(ach, dict) else str(ach) for ach in user_achievements]
+        except:
+            uncashed_points = 0
+            earned_achievement_ids = []
 
-                
-            @discord.ui.button(label="Statistics", style=discord.ButtonStyle.secondary, emoji="📊", row=0)
-            async def statistics_view(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if interaction.user.id != user_id:
-                    await interaction.response.send_message("❌ This is not your achievement menu!", ephemeral=True)
-                    return
-                
-                self.current_page = "stats"
-                
-                # Get detailed stats
-                try:
-                    stats = achievement_db.get_user_stats(user_id) if 'achievement_db' in globals() else {}
-                except:
-                    stats = {}
-                
-                if not stats:
-                    user_data = reward_db.get_or_create_user(user_id, username)
-                    stats = {
-                        'total_translations': user_data.get('total_sessions', 0),
-                        'voice_sessions': 0,
-                        'unique_languages': 0,
-                        'is_premium': user_id in (tier_handler.premium_users or []),
-                        'is_early_user': False
-                    }
-                
-                embed = discord.Embed(
-                    title=f"📊 {username}'s Detailed Statistics",
-                    description=f"**{rank_emoji} {rank_name}** • Member since startup",
-                    color=rank_color
-                )
-                
-                # Translation stats with progress bars
-                translations = stats.get('total_translations', 0)
-                next_translation_milestone = get_next_translation_milestone(translations)
-                translation_progress = self.create_progress_bar(translations, next_translation_milestone)
-                
-                embed.add_field(
-                    name="📝 Translation Activity",
-                    value=f"**Total Translations:** {translations:,}\n"
-                          f"{translation_progress}\n"
-                          f"🎯 Next milestone: {next_translation_milestone:,}",
-                    inline=False
-                )
-                
-                # Voice stats
-                voice_sessions = stats.get('voice_sessions', 0)
-                next_voice_milestone = get_next_voice_milestone(voice_sessions)
-                voice_progress = self.create_progress_bar(voice_sessions, next_voice_milestone)
-                
-                embed.add_field(
-                    name="🎤 Voice Translation",
-                    value=f"**Voice Sessions:** {voice_sessions:,}\n"
-                          f"{voice_progress}\n"
-                          f"🎯 Next milestone: {next_voice_milestone:,}",
-                    inline=True
-                )
-                
-                # Language diversity
-                languages_used = stats.get('unique_languages', 0)
-                next_lang_milestone = get_next_language_milestone(languages_used)
-                lang_progress = self.create_progress_bar(languages_used, next_lang_milestone)
-                
-                embed.add_field(
-                    name="🌍 Language Explorer",
-                    value=f"**Languages Used:** {languages_used:,}\n"
-                          f"{lang_progress}\n"
-                          f"🎯 Next milestone: {next_lang_milestone:,}",
-                    inline=True
-                )
-                
-                # Enhanced achievement breakdown by rarity with cashout info
-                rarity_counts = {"Legendary": 0, "Epic": 0, "Rare": 0, "Uncommon": 0, "Common": 0}
-                uncashed_by_rarity = {"Legendary": 0, "Epic": 0, "Rare": 0, "Uncommon": 0, "Common": 0}
-                
-                for ach_id in earned_achievement_ids:
-                    if ach_id in ACHIEVEMENTS:
-                        rarity = ACHIEVEMENTS[ach_id].get('rarity', 'Common')
-                        rarity_counts[rarity] += 1
-                        if ach_id in uncashed_achievements:
-                            uncashed_by_rarity[rarity] += 1
-                
-                rarity_text = ""
-                for rarity, count in rarity_counts.items():
-                    if count > 0:
-                        style = self.get_rarity_style(rarity)
-                        uncashed_count = uncashed_by_rarity[rarity]
-                        if uncashed_count > 0:
-                            rarity_text += f"{style['sparkle']} **{rarity}:** {count} ({uncashed_count} uncashed)\n"
-                        else:
-                            rarity_text += f"{style['sparkle']} **{rarity}:** {count}\n"
-                
-                if rarity_text:
-                    embed.add_field(
-                        name="🏆 Achievement Rarity Breakdown",
-                        value=rarity_text,
-                        inline=False
-                    )
-                
-                # Enhanced points statistics
-                total_ach_points = sum(ACHIEVEMENTS[ach_id].get('points', 0) for ach_id in earned_achievement_ids if ach_id in ACHIEVEMENTS)
-                embed.add_field(
-                    name="💎 Points Statistics",
-                    value=(
-                        f"📝 **Activity Points:** {activity_points:,}\n"
-                        f"🏆 **Total Achievement Points:** {total_ach_points:,}\n"
-                        f"💰 **Uncashed Points:** {uncashed_points:,}\n"
-                        f"🌟 **Total Available:** {total_points:,}"
-                    ),
-                    inline=True
-                )
-                
-                # Special status indicators
-                status_text = ""
-                if stats.get('is_premium', False):
-                    status_text += "⭐ **Premium Member**\n"
-                if stats.get('is_early_user', False):
-                    status_text += "🌟 **Early Adopter**\n"
-                if user_id in tier_handler.premium_users:
-                    status_text += "💎 **VIP Access**\n"
-                if uncashed_points > 0:
-                    status_text += f"💰 **{uncashed_points:,} Points to Cash**\n"
-                
-                if status_text:
-                    embed.add_field(
-                        name="🎖️ Special Status",
-                        value=status_text,
-                        inline=True
-                    )
-                
-                embed.set_footer(text="📈 Keep using Muse to improve your stats!")
-                await interaction.response.edit_message(embed=embed, view=self)
-                
-            @discord.ui.button(label="🏆 Leaderboard", style=discord.ButtonStyle.secondary, row=2)
-            async def leaderboard_view(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if interaction.user.id != user_id:
-                    await interaction.response.send_message("❌ This is not your achievement menu!", ephemeral=True)
-                    return
-                
-                # Get top users
-                try:
-                    top_users = reward_db.get_leaderboard(limit=10) if hasattr(reward_db, 'get_leaderboard') else []
-                except:
-                    top_users = []
-                
-                embed = discord.Embed(
-                    title="🏆 Achievement Leaderboard",
-                    description="Top achievers in the Muse community",
-                    color=0xf1c40f
-                )
-                
-                if top_users:
-                    leaderboard_text = ""
-                    for i, user_data in enumerate(top_users, 1):
-                        username_lb = user_data.get('username', 'Unknown')
-                        points = user_data.get('points', 0)
-                        
-                        # Get rank info
-                        rank_info = get_rank_from_points(points)
-                        rank_emoji = rank_info.get('emoji', '🆕')
-                        
-                        # Position emojis
-                        if i == 1:
-                            position = "🥇"
-                        elif i == 2:
-                            position = "🥈"
-                        elif i == 3:
-                            position = "🥉"
-                        else:
-                            position = f"**{i}.**"
-                        
-                        leaderboard_text += f"{position} {rank_emoji} **{username_lb}**\n"
-                        leaderboard_text += f"    💎 {points:,} points\n\n"
-                    
-                    embed.add_field(
-                        name="🌟 Top Achievers",
-                        value=leaderboard_text,
-                        inline=False
-                    )
-                    
-                    # Show user's position
-                    try:
-                        user_position = reward_db.get_user_position(user_id) if hasattr(reward_db, 'get_user_position') else None
-                        if user_position:
-                            embed.add_field(
-                                name="📍 Your Position",
-                                value=f"**#{user_position}** with {total_points:,} points",
-                                inline=False
-                            )
-                    except:
-                        pass
-                else:
-                    embed.add_field(
-                        name="🎯 Be the First!",
-                        value="Start earning achievements to appear on the leaderboard!",
-                        inline=False
-                    )
-                
-                embed.set_footer(text="🚀 Compete with other users and climb the ranks!")
-                await interaction.response.edit_message(embed=embed, view=self)
-                
-            @discord.ui.button(label="❌ Close", style=discord.ButtonStyle.danger, row=2)
-            async def close_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if interaction.user.id != user_id:
-                    await interaction.response.send_message("❌ This is not your achievement menu!", ephemeral=True)
-                    return
-                
-                embed = discord.Embed(
-                    title="👋 Achievement Menu Closed",
-                    description=f"Thanks for checking your progress, {username}!\n\nKeep using Muse to unlock more achievements! 🚀",
-                    color=0x95a5a6
-                )
-                
-                embed.add_field(
-                    name="🎯 Quick Reminder",
-                    value="• Use `/texttr` for text translation\n• Try `/voicechat` for voice features\n• Give `/feedback` to help improve Muse\n• Use `/cashout` to convert achievement points",
-                    inline=False
-                )
-                
-                if uncashed_points > 0:
-                    embed.add_field(
-                        name="💰 Don't Forget!",
-                        value=f"You have **{uncashed_points:,}** uncashed achievement points!\nUse `/cashout` to convert them to activity points.",
-                        inline=False
-                    )
-                
-                self.clear_items()  # Remove all buttons
-                await interaction.response.edit_message(embed=embed, view=self)
-        
-        # Create initial dashboard embed
-        total_achievements = len(ACHIEVEMENTS)
-        earned_count = len(earned_achievement_ids)
-        completion_rate = (earned_count / total_achievements * 100) if total_achievements > 0 else 0
-        
+        try:
+            total_achievement_points = sum(ACHIEVEMENTS[ach_id].get("points", 0) for ach_id in earned_achievement_ids if ach_id in ACHIEVEMENTS)
+            cashed_achievement_points = total_achievement_points - uncashed_points
+            total_points_display = total_points + total_achievement_points
+        except:
+            total_achievement_points = 0
+            cashed_achievement_points = 0
+            total_points_display = total_points
+
+        rank_info = get_rank_from_points(total_points_display)
+        rank_name_raw = rank_info["name"]
+        rank_color = rank_info["color"]
+        rank_emoji = rank_info["emoji"]
+
+        # Translate rank name using your JSON keys, fallback if missing
+        rank_name = get_translation(ui_lang, f"RANKS.{rank_name_raw}", default=f"{rank_emoji} {rank_name_raw}")
+
+        # Calculate next rank info
+        next_rank = None
+        for r in sorted(rank_ladder, key=lambda x: x["min_points"]):
+            if r["min_points"] > rank_info["min_points"]:
+                next_rank = r
+                break
+
+        def create_progress_bar(current, target, length=12):
+            if target == 0:
+                return f"🌟{'▓'*length}🌟 " + get_translation(ui_lang, "ACHIEVEMENTS.progress_bar_max", default="MAX")
+            progress = min(current / target, 1.0)
+            filled = int(progress * length)
+            empty = length - filled
+            percentage = int(progress * 100)
+            if percentage == 100:
+                return f"🌟{'▓'*length}🌟 " + get_translation(ui_lang, "ACHIEVEMENTS.progress_bar_complete", default="Complete")
+            elif percentage >= 75:
+                style = "🔥"
+            elif percentage >= 50:
+                style = "⚡"
+            elif percentage >= 25:
+                style = "💫"
+            else:
+                style = "✨"
+            return f"{style}{'▓'*filled}{'░'*empty}{style} {percentage}%"
+
+        # Prepare rank progress display
+        if next_rank:
+            points_needed = next_rank["min_points"] - total_points_display
+            rank_progress = create_progress_bar(total_points_display - rank_info["min_points"], points_needed)
+            next_rank_name = get_translation(ui_lang, f"RANKS.{next_rank['name']}", default=next_rank["name"])
+        else:
+            points_needed = 0
+            rank_progress = create_progress_bar(1, 1)  # full bar
+            next_rank_name = get_translation(ui_lang, "RANKS.Max_Level", default="Max Level")
+
+        completion_rate = (len(earned_achievement_ids) / len(ACHIEVEMENTS)) * 100 if ACHIEVEMENTS else 0
+
+        format_params = {
+            "username": username,
+            "rank_emoji": rank_emoji,
+            "rank_name": rank_name,
+            "total_points": total_points_display,
+            "completion_bar": create_progress_bar(len(earned_achievement_ids), len(ACHIEVEMENTS)),
+            "earned_count": len(earned_achievement_ids),
+            "total_achievements": len(ACHIEVEMENTS),
+            "completion_rate": completion_rate,
+            "activity_points": activity_points,
+            "cashed_achievement_points": cashed_achievement_points,
+            "uncashed_points": uncashed_points,
+            "next_rank_name": next_rank_name,
+            "points_needed": points_needed,
+            "rank_progress": rank_progress
+        }
+
         embed = discord.Embed(
-            title=f"🏠 {username}'s Achievement Dashboard",
-            description=f"**{rank_emoji} {rank_name}** • **{total_points:,}** total points",
+            title=get_translation(ui_lang, "ACHIEVEMENTS.dashboard_title").format(**format_params),
+            description=get_translation(ui_lang, "ACHIEVEMENTS.dashboard_description").format(**format_params),
             color=rank_color
         )
-        
-        # Achievement completion with fancy progress bar
-        view = EnhancedAchievementView()
-        completion_bar = view.create_progress_bar(earned_count, total_achievements)
+
         embed.add_field(
-            name="🏆 Achievement Completion",
-            value=f"{completion_bar}\n**{earned_count}/{total_achievements}** unlocked ({completion_rate:.1f}%)",
+            name=get_translation(ui_lang, "ACHIEVEMENTS.completion_title"),
+            value=get_translation(ui_lang, "ACHIEVEMENTS.completion_value").format(**format_params),
             inline=False
         )
-        
-        # Enhanced points breakdown with cashout info
-        total_achievement_points = sum(ACHIEVEMENTS[ach_id].get('points', 0) for ach_id in earned_achievement_ids if ach_id in ACHIEVEMENTS)
-        cashed_achievement_points = total_achievement_points - uncashed_points
-        
+
         embed.add_field(
-            name="💎 Points Breakdown",
-            value=(
-                f"📝 **Activity Points:** {activity_points:,}\n"
-                f"🏆 **Cashed Achievement Points:** {cashed_achievement_points:,}\n"
-                f"💰 **Uncashed Achievement Points:** {uncashed_points:,}\n"
-                f"🌟 **All Points Earned:** {total_points:,}"
-            ),
+            name=get_translation(ui_lang, "ACHIEVEMENTS.points_breakdown_title"),
+            value=get_translation(ui_lang, "ACHIEVEMENTS.points_breakdown_value").format(**format_params),
             inline=True
         )
-        
-        # Cashout status
+
         if uncashed_points > 0:
             embed.add_field(
-                name="💰 Cashout Available",
-                value=f"You can convert **{uncashed_points:,}** achievement points!\nUse the 💰 Cashout button below.",
+                name=get_translation(ui_lang, "ACHIEVEMENTS.cashout_available_title"),
+                value=get_translation(ui_lang, "ACHIEVEMENTS.cashout_available_value").format(**format_params),
                 inline=True
             )
         else:
             embed.add_field(
-                name="✅ All Cashed Out",
-                value="All your achievements have been converted to activity points!",
+                name=get_translation(ui_lang, "ACHIEVEMENTS.all_cashed_title"),
+                value=get_translation(ui_lang, "ACHIEVEMENTS.all_cashed_value"),
                 inline=True
             )
-        
-        # Recent achievements (last 3)
+
         recent_achievements = earned_achievement_ids[-3:] if earned_achievement_ids else []
         if recent_achievements:
             recent_text = ""
-            for ach_id in reversed(recent_achievements):  # Show newest first
-                if ach_id in ACHIEVEMENTS:
-                    ach_data = ACHIEVEMENTS[ach_id]
-                    style = view.get_rarity_style(ach_data.get('rarity', 'Common'))
-                    cashout_status = "💰" if ach_id in uncashed_achievements else "✅"
-                    recent_text += f"{cashout_status} {style['sparkle']} **{ach_data.get('name', 'Unknown')}**\n"
-            
+            for ach_id in reversed(recent_achievements):
+                ach_data = ACHIEVEMENTS.get(ach_id, {})
+                rarity_key = ach_data.get("rarity", "Common")
+                rarity_display = get_translation(ui_lang, f"RARITIES.{rarity_key}", default=rarity_key)
+                name = get_translation(ui_lang, f"ACHIEVEMENTS.names.{ach_id}", default=ach_id)
+                style = {"Common": "✨", "Uncommon": "🌟", "Rare": "💎", "Epic": "🔮", "Legendary": "👑"}.get(rarity_key, "✨")
+                recent_text += f"{style} **{name}**\n"
             embed.add_field(
-                name="🎉 Recent Achievements",
+                name=get_translation(ui_lang, "ACHIEVEMENTS.recent_achievements_title"),
                 value=recent_text,
                 inline=False
             )
         else:
             embed.add_field(
-                name="🎯 Get Started",
-                value="Start translating to earn your first achievement!",
+                name=get_translation(ui_lang, "ACHIEVEMENTS.get_started_title"),
+                value=get_translation(ui_lang, "ACHIEVEMENTS.get_started_value"),
                 inline=False
             )
-        
-        # Next rank progress
-        next_rank_info = get_next_rank_info(total_points)
-        if next_rank_info:
-            current_rank_min = get_current_rank_min_points(total_points)
-            points_in_rank = total_points - current_rank_min
-            rank_progress = view.create_progress_bar(points_in_rank, next_rank_info['points_needed'])
-            
+
+        if next_rank:
             embed.add_field(
-                name="🎯 Next Rank Progress",
-                value=f"**{next_rank_info['name']}**\n{rank_progress}\n{next_rank_info['points_needed']:,} points to go!",
+                name=get_translation(ui_lang, "ACHIEVEMENTS.next_rank_title"),
+                value=get_translation(ui_lang, "RANKS.next_rank").format(next_rank=next_rank_name, points_needed=points_needed),
                 inline=False
             )
-        
-        # Add motivational footer with tips
-        tips = [
-            "🎮 Use the buttons below to explore your achievements!",
-            "💡 Try different translation features to unlock achievements!",
-            "🌟 Check your Quick Goals for easy achievements to unlock!",
-            "🏆 Compete on the leaderboard with other users!",
-            "📊 View your detailed statistics to track progress!",
-            "💰 Don't forget to cash out your achievement points!"
-        ]
-        
-        import random
-        embed.set_footer(text=random.choice(tips))
-        
+
+    
+        view = AchievementView(user_id=user_id, ui_lang=ui_lang)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-        
+
     except Exception as e:
-        logger.error(f"Error in enhanced achievements command: {e}")
-        
-        # Create error embed with helpful information
-        error_embed = discord.Embed(
-            title="❌ Achievement System Error",
-            description="Something went wrong loading your achievements.",
+        logger.error(f"/achievements error: {e}")
+        try:
+            ui_lang = await get_user_ui_language(interaction.user.id)
+        except:
+            ui_lang = "en"
+
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "ACHIEVEMENTS.error_title"),
+            description=get_translation(ui_lang, "ACHIEVEMENTS.error_description"),
             color=0xe74c3c
         )
-        
-        error_embed.add_field(
-            name="🔧 What you can try:",
-            value="• Wait a moment and try again\n• Use `/start` to initialize your profile\n• Contact support if the issue persists",
+        embed.add_field(
+            name=get_translation(ui_lang, "ACHIEVEMENTS.error_what_to_try"),
+            value=get_translation(ui_lang, "ACHIEVEMENTS.error_try_steps"),
             inline=False
         )
-        
-        error_embed.add_field(
-            name="📞 Need Help?",
-            value="Join our support server: https://discord.gg/VMpBsbhrff",
+        embed.add_field(
+            name=get_translation(ui_lang, "ACHIEVEMENTS.error_need_help"),
+            value=get_translation(ui_lang, "ACHIEVEMENTS.error_support_server"),
             inline=False
         )
-        
-        error_embed.set_footer(text="We're working to fix any issues!")
-        
-        await interaction.response.send_message(embed=error_embed, ephemeral=True)
+        embed.set_footer(text=get_translation(ui_lang, "ACHIEVEMENTS.error_footer"))
+
+        # Only respond if not responded yet (to avoid InteractionResponded error)
+        if not interaction.response.is_done():
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            await interaction.followup.send(embed=embed, ephemeral=True)
+class AchievementsPaginator(View):
+    def __init__(self, embeds: list[discord.Embed], user_id: int, current_page: int = 0):
+        super().__init__(timeout=60)
+        self.embeds = embeds
+        self.index = current_page
+        self.user_id = user_id
+        self.update_buttons()
+
+    def update_buttons(self):
+        self.clear_items()
+        if self.index > 0:
+            self.add_item(Button(label='⬅️', custom_id=f'ach_browse:{self.index - 1}', style=discord.ButtonStyle.secondary))
+        if self.index < len(self.embeds) - 1:
+            self.add_item(Button(label='➡️', custom_id=f'ach_browse:{self.index + 1}', style=discord.ButtonStyle.secondary))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.user_id
+
+@client.event
+async def on_interaction(interaction: discord.Interaction):
+    if interaction.type != discord.InteractionType.component:
+        return
+
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+    username = interaction.user.display_name
+    custom_id = interaction.data.get("custom_id")
+
+    user_achievements = achievement_db.get_user_achievements(user_id) or []
+    earned_achievement_ids = [
+        str(ach.get("id", "") if isinstance(ach, dict) else ach)
+        for ach in user_achievements
+    ]
+    uncashed_points, uncashed_achievements = reward_db.get_uncashed_achievement_points(user_id)
+
+    if custom_id == "ach_cashout":
+        if uncashed_points > 0:
+            converted = reward_db.cash_out_achievements(user_id)
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "ACHIEVEMENTS.quick_cashout_success_title"),
+                description=get_translation(ui_lang, "ACHIEVEMENTS.quick_cashout_success_desc").format(converted_points=converted),
+                color=0x2ecc71
+            )
+            embed.set_footer(text=get_translation(ui_lang, "ACHIEVEMENTS.conversion_complete_title"))
+        else:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "ACHIEVEMENTS.no_cashout_title"),
+                description=get_translation(ui_lang, "ACHIEVEMENTS.no_cashout_desc"),
+                color=0xe74c3c
+            )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    elif custom_id == "ach_goals":
+        user_data = reward_db.get_or_create_user(user_id, username)
+        translations = user_data.get('total_sessions', 0)
+
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "ACHIEVEMENTS.quick_goals_title"),
+            description=get_translation(ui_lang, "ACHIEVEMENTS.quick_goals_description"),
+            color=0xe67e22
+        )
+
+        suggestions = []
+        milestones = [1, 5, 10, 25, 50, 100, 250, 500]
+        for milestone in milestones:
+            if translations < milestone:
+                remaining = milestone - translations
+                difficulty = "🟢" if remaining <= 5 else "🟡" if remaining <= 25 else "🔴"
+                suggestions.append((
+                    get_translation(ui_lang, 'ACHIEVEMENTS.milestone_translation').format(milestone=milestone),
+                    get_translation(ui_lang, 'ACHIEVEMENTS.milestone_complete_more').format(remaining=remaining) + "\n" + difficulty
+                ))
+                break
+
+        for ach_id in ["first_voice", "feedback_giver", "auto_translate_user"]:
+            if ach_id not in earned_achievement_ids:
+                name = get_translation(ui_lang, f"ACHIEVEMENTS.names.{ach_id}")
+                desc_key = f"ACHIEVEMENTS.descriptions.{ach_id}"
+                desc = get_translation(ui_lang, desc_key, default=ACHIEVEMENTS[ach_id]["description"])
+                suggestions.append((
+                    name,
+                    desc + "\n🟢"
+                ))
+
+        for i, (name, desc) in enumerate(suggestions[:5], 1):
+            embed.add_field(name=f"{i}. {name}", value=desc, inline=False)
+
+        if suggestions:
+            total_potential = 50 * len(suggestions)
+            embed.add_field(
+                name=get_translation(ui_lang, "ACHIEVEMENTS.potential_earnings_title"),
+                value=get_translation(ui_lang, "ACHIEVEMENTS.potential_earnings_value").format(potential_points=total_potential),
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name=get_translation(ui_lang, "ACHIEVEMENTS.quick_goals_none"),
+                value=get_translation(ui_lang, "ACHIEVEMENTS.quick_goals_footer"),
+                inline=False
+            )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    elif custom_id == "ach_collection":
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "ACHIEVEMENTS.collection_title").format(username=username),
+            description=get_translation(ui_lang, "ACHIEVEMENTS.collection_description").format(earned_count=len(earned_achievement_ids)),
+            color=0xf1c40f
+        )
+
+        grouped = {"Legendary": [], "Epic": [], "Rare": [], "Uncommon": [], "Common": []}
+        for ach_id in earned_achievement_ids:
+            if ach_id in ACHIEVEMENTS:
+                ach_data = ACHIEVEMENTS[ach_id]
+                rarity = ach_data.get("rarity", "Common")
+                grouped[rarity].append(ach_id)
+
+        rarity_order = ["Legendary", "Epic", "Rare", "Uncommon", "Common"]
+        rarity_emojis = {
+            "Legendary": "👑",
+            "Epic": "🔮",
+            "Rare": "💎",
+            "Uncommon": "🌟",
+            "Common": "✨"
+        }
+
+        for rarity in rarity_order:
+            ids = grouped[rarity]
+            if ids:
+                emoji = rarity_emojis[rarity]
+                value = ""
+                for ach_id in ids:
+                    name = get_translation(ui_lang, f"ACHIEVEMENTS.names.{ach_id}")
+                    status = "💰" if ach_id in uncashed_achievements else "✅"
+                    value += f"{status} {emoji} **{name}**\n"
+                embed.add_field(name=f"{emoji} {rarity}", value=value, inline=False)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    elif custom_id.startswith("ach_browse"):
+        page = int(custom_id.split(":")[-1]) if ":" in custom_id else 0
+        achievements_list = list(ACHIEVEMENTS.items())
+        chunks = [achievements_list[i:i + 25] for i in range(0, len(achievements_list), 25)]
+
+        embed_pages = []
+        for chunk in chunks:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "ACHIEVEMENTS.browse_title"),
+                description=get_translation(ui_lang, "ACHIEVEMENTS.browse_description"),
+                color=0x3498db
+            )
+            for ach_id, data in chunk:
+                name = get_translation(ui_lang, f"ACHIEVEMENTS.names.{ach_id}", default=data['name'])
+                description = get_translation(ui_lang, f"ACHIEVEMENTS.descriptions.{ach_id}", default=data['description'])
+                status = "✅" if ach_id in earned_achievement_ids else "❌"
+                embed.add_field(name=f"{status} {name}", value=description, inline=False)
+            embed_pages.append(embed)
+
+        view = AchievementsPaginator(embed_pages, user_id, current_page=page)
+        await interaction.response.send_message(embed=embed_pages[page], ephemeral=True, view=view)
+
 
 # Helper functions for the achievement system
 def get_next_translation_milestone(current):
@@ -7121,229 +7691,78 @@ async def cashout_command(interaction: discord.Interaction):
     try:
         user_id = interaction.user.id
         username = interaction.user.display_name
-        
+        ui_lang = await get_user_ui_language(user_id)
+
         # Get uncashed achievement points
         uncashed_points, uncashed_achievements = reward_db.get_uncashed_achievement_points(user_id)
-        
+
         if uncashed_points == 0:
             embed = discord.Embed(
-                title="❌ No Achievement Points to Convert",
-                description="You don't have any uncashed achievement points!",
+                title=get_translation(ui_lang, "CASHOUT.title_empty"),
+                description=get_translation(ui_lang, "CASHOUT.desc_empty"),
                 color=0xe74c3c
             )
-            
+
             embed.add_field(
-                name="💡 Note",
-                value="You may have already cashed out your current achievements, or you need to unlock more achievements first.",
+                name=get_translation(ui_lang, "CASHOUT.field_note"),
+                value=get_translation(ui_lang, "CASHOUT.field_note_value"),
                 inline=False
             )
-            
+
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-        
+
         # Cash out the achievements
         converted_points = reward_db.cash_out_achievements(user_id)
-        
+
         # Get updated user data
         user_data = reward_db.get_or_create_user(user_id, username)
         new_total_points = user_data.get('points', 0)
-        
+
         embed = discord.Embed(
-            title="🎉 Achievement Points Converted!",
-            description=f"Successfully converted your achievement points to activity points!",
+            title=get_translation(ui_lang, "CASHOUT.title_success"),
+            description=get_translation(ui_lang, "CASHOUT.desc_success"),
             color=0x2ecc71
         )
-        
+
         embed.add_field(
-            name="💰 Points Added",
+            name=get_translation(ui_lang, "CASHOUT.field_points_added"),
             value=f"**+{converted_points:,}** activity points",
             inline=True
         )
-        
+
         embed.add_field(
-            name="🏆 Achievements Cashed",
+            name=get_translation(ui_lang, "CASHOUT.field_achievements"),
             value=f"**{len(uncashed_achievements)}** achievements",
             inline=True
         )
-        
+
         embed.add_field(
-            name="🌟 New Total",
+            name=get_translation(ui_lang, "CASHOUT.field_total"),
             value=f"**{new_total_points:,}** activity points",
             inline=True
         )
-        
+
         embed.add_field(
-            name="✅ Status",
-            value="These achievements are now marked as cashed out and won't be converted again.",
+            name=get_translation(ui_lang, "CASHOUT.field_status"),
+            value=get_translation(ui_lang, "CASHOUT.field_status_note"),
             inline=False
         )
-        
-        embed.set_footer(text="🎮 Your achievements remain unlocked! Earn new ones for more points.")
-        
+
+        embed.set_footer(text=get_translation(ui_lang, "CASHOUT.footer"))
+
         await interaction.response.send_message(embed=embed, ephemeral=True)
-        
+
         logger.info(f"💰 User {username} ({user_id}) converted {converted_points} points from {len(uncashed_achievements)} achievements")
-        
+
     except Exception as e:
         logger.error(f"Cashout error: {e}")
-        await interaction.response.send_message("❌ Error converting points.", ephemeral=True)
-# Helper functions for progress tracking
-def get_next_translation_milestone(current: int) -> int:
-    milestones = [1, 5, 25, 100, 250]
-    for milestone in milestones:
-        if current < milestone:
-            return milestone
-    return current + 100  # After 250, show next 100
+        ui_lang = await get_user_ui_language(interaction.user.id)
+        await interaction.response.send_message(
+            get_translation(ui_lang, "CASHOUT.error_generic"),
+            ephemeral=True
+        )
 
-def get_next_voice_milestone(current: int) -> int:
-    milestones = [1, 5, 15, 50]
-    for milestone in milestones:
-        if current < milestone:
-            return milestone
-    return current + 25  # After 50, show next 25
-
-def get_next_language_milestone(current: int) -> int:
-    milestones = [3, 10, 20]
-    for milestone in milestones:
-        if current < milestone:
-            return milestone
-    return current + 10  # After 20, show next 10
-
-def get_next_rank_info(current_points: int) -> dict:
-    from achievement_system import RANK_BADGES
-    for min_points in sorted(RANK_BADGES.keys()):
-        if current_points < min_points:
-            rank_info = RANK_BADGES[min_points]
-            return {
-                'name': rank_info['name'],
-                'points_needed': min_points - current_points
-            }
-    return None  # Max rank reached
-
-# FIXED notification functions
-async def notify_achievement_earned(user_id: int, achievement_data: dict):
-    """Send DM notification when achievement is earned"""
-    try:
-        user = await client.fetch_user(user_id)
-        if not user:
-            logger.info(f"Could not fetch user {user_id} for achievement notification")
-            return
-        
-        # Extract achievement info safely
-        ach_name = achievement_data.get('name', 'Unknown Achievement')
-        ach_desc = achievement_data.get('description', 'Achievement unlocked!')
-        ach_points = achievement_data.get('points', 25)
-        ach_rarity = achievement_data.get('rarity', 'Common')
-        
-        # Create embed
-        embed = discord.Embed(
-            title="🎉 Achievement Unlocked!",
-            description=f"🏆 **{ach_name}**\n\n*{ach_desc}*",
-            color=0xf1c40f
-        )
-        
-        embed.add_field(
-            name="💎 Reward",
-            value=f"+{ach_points} points",
-            inline=True
-        )
-        
-        embed.add_field(
-            name="🏅 Rarity",
-            value=f"{ach_rarity}",
-            inline=True
-        )
-        
-        embed.set_footer(text="Use /achievements to see your progress!")
-        embed.timestamp = discord.utils.utcnow()
-        
-        # Try to send DM
-        try:
-            await user.send(embed=embed)
-            logger.info(f"✅ Achievement notification sent to {user.display_name}: {ach_name}")
-        except discord.Forbidden:
-            logger.info(f"❌ User {user.display_name} has DMs disabled")
-        except Exception as e:
-            logger.error(f"Error sending achievement DM: {e}")
-            
-    except Exception as e:
-        logger.error(f"Error in notify_achievement_earned: {e}")
-
-async def notify_rank_up(user_id: int, old_rank: str, new_rank: str, total_points: int):
-    """Send DM notification when user ranks up"""
-    logger.info(f"🔔 notify_rank_up called for user {user_id}: {old_rank} → {new_rank}")
-    
-    try:
-        user = await client.fetch_user(user_id)
-        if not user:
-            logger.error(f"Could not fetch user {user_id} for rank up notification")
-            return False
-        
-        logger.info(f"✅ User fetched for rank up: {user.display_name}")
-        
-        # Get rank info for styling
-        rank_info = get_rank_from_points(total_points)
-        rank_emoji = rank_info.get('emoji', '🎖️')
-        rank_color = rank_info.get('color', 0xf1c40f)
-        next_rank_name = rank_info.get('next_rank', 'Max Level!')
-        points_needed = rank_info.get('points_needed', 0)
-        
-        # Create embed (FIXED - moved outside try block)
-        embed = discord.Embed(
-            title="🎊 Rank Up!",
-            description=f"**Congratulations {user.display_name}!**\n\nYou've been promoted from **{old_rank}** to **{new_rank}**!",
-            color=rank_color
-        )
-        
-        embed.add_field(
-            name="🏅 New Rank",
-            value=f"{rank_emoji} {new_rank}",
-            inline=True
-        )
-        
-        embed.add_field(
-            name="💎 Total Points",
-            value=f"{total_points:,} points",
-            inline=True
-        )
-        
-        # Show progress to next rank
-        if next_rank_name != 'Max Level!' and points_needed > 0:
-            embed.add_field(
-                name="🎯 Next Goal",
-                value=f"{next_rank_name} ({points_needed:,} points to go)",
-                inline=False
-            )
-        elif next_rank_name == 'Max Level!':
-            embed.add_field(
-                name="🏆 Achievement",
-                value="You've reached the maximum rank!",
-                inline=False
-            )
-        
-        embed.set_footer(text="Keep translating to reach the next rank!")
-        embed.timestamp = discord.utils.utcnow()
-        
-        logger.info(f"📨 Attempting to send rank up DM to {user.display_name}")
-        
-        # Try to send DM
-        try:
-            await user.send(embed=embed)
-            logger.info(f"✅ Rank up notification sent to {user.display_name}: {old_rank} → {new_rank}")
-            return True
-        except discord.Forbidden:
-            logger.warning(f"❌ User {user.display_name} has DMs disabled for rank up")
-            return False
-        except discord.HTTPException as e:
-            logger.error(f"❌ HTTP error sending rank up DM: {e}")
-            return False
-        except Exception as e:
-            logger.error(f"❌ Unexpected error sending rank up DM: {e}")
-            return False
-            
-    except Exception as e:
-        logger.error(f"❌ Error in notify_rank_up: {e}")
-        return False
 
 # Simplified and safe achievement view
 class SafeAchievementView(discord.ui.View):
@@ -7780,45 +8199,75 @@ async def safe_send_achievement_notifications(user_id: int, achievements: list):
         logger.error(f"Error sending achievement notifications: {e}")
 
 # FIND and REPLACE this problematic function:
-def get_rank_from_points(points: int) -> dict:
-    """COMPLETELY FIXED rank calculation - no external dependencies"""
-    # All ranks defined inside function (no RANK_BADGES dependency)
+def get_rank_from_points(points: int, ui_lang: str) -> dict:
+    """Get the translated rank info based on achievement points."""
     ranks = [
-        (5000, {'name': 'Grandmaster', 'emoji': '💎', 'color': 0x1abc9c, 'next_rank': 'Max Level!', 'next_points': 0}),
+        (5000, {'name': 'Grandmaster', 'emoji': '💎', 'color': 0x1abc9c, 'next_rank': 'Max_Level', 'next_points': 0}),
         (2000, {'name': 'Legend', 'emoji': '🏆', 'color': 0xe74c3c, 'next_rank': 'Grandmaster', 'next_points': 5000}),
         (1000, {'name': 'Master', 'emoji': '👑', 'color': 0xe67e22, 'next_rank': 'Legend', 'next_points': 2000}),
-        (500, {'name': 'Expert', 'emoji': '⭐', 'color': 0xf1c40f, 'next_rank': 'Master', 'next_points': 1000}),
-        (300, {'name': 'Dedicated', 'emoji': '🎯', 'color': 0x9b59b6, 'next_rank': 'Expert', 'next_points': 500}),
-        (150, {'name': 'Learner', 'emoji': '📈', 'color': 0x3498db, 'next_rank': 'Dedicated', 'next_points': 300}),
-        (50, {'name': 'Beginner', 'emoji': '🌱', 'color': 0x2ecc71, 'next_rank': 'Learner', 'next_points': 150}),
-        (0, {'name': 'Newcomer', 'emoji': '🆕', 'color': 0x95a5a6, 'next_rank': 'Beginner', 'next_points': 50})
+        (500,  {'name': 'Expert', 'emoji': '⭐', 'color': 0xf1c40f, 'next_rank': 'Master', 'next_points': 1000}),
+        (300,  {'name': 'Dedicated', 'emoji': '🎯', 'color': 0x9b59b6, 'next_rank': 'Expert', 'next_points': 500}),
+        (150,  {'name': 'Learner', 'emoji': '📈', 'color': 0x3498db, 'next_rank': 'Dedicated', 'next_points': 300}),
+        (50,   {'name': 'Beginner', 'emoji': '🌱', 'color': 0x2ecc71, 'next_rank': 'Learner', 'next_points': 150}),
+        (0,    {'name': 'Newcomer', 'emoji': '🆕', 'color': 0x95a5a6, 'next_rank': 'Beginner', 'next_points': 50})
     ]
-    
+
     try:
-        # Find the right rank (highest threshold user qualifies for)
         for threshold, rank_info in ranks:
             if points >= threshold:
                 result = rank_info.copy()
-                # Calculate points needed for next rank
+
+                # Translate rank name
+                rank_key = f"RANKS.{result['name']}"
+                result['translated_name'] = get_translation(ui_lang, rank_key, default=f"{result['emoji']} {result['name']}")
+
+                # Next rank info
+                next_key = f"RANKS.{result['next_rank']}"
+                next_rank_translated = get_translation(ui_lang, next_key, default=f"{result['emoji']} {result['next_rank']}")
+
                 if result['next_points'] > 0:
-                    result['points_needed'] = result['next_points'] - points
+                    points_needed = result['next_points'] - points
                 else:
-                    result['points_needed'] = 0
+                    points_needed = 0
+
+                result['points_needed'] = points_needed
+                result['next_rank_translated'] = get_translation(
+                    ui_lang,
+                    "RANKS.next_rank",
+                    default=f"Next Rank: {result['next_rank']} (need {points_needed} pts)"
+                ).format(next_rank=next_rank_translated, points_needed=points_needed)
+
                 return result
-        
+
         # Fallback to lowest rank
         result = ranks[-1][1].copy()
         result['points_needed'] = max(50 - points, 0)
+        result['translated_name'] = get_translation(ui_lang, "RANKS.Newcomer", default="🆕 Newcomer")
+        result['next_rank_translated'] = get_translation(
+            ui_lang,
+            "RANKS.next_rank",
+            default="Next Rank: {next_rank} (need {points_needed} pts)"
+        ).format(
+            next_rank=get_translation(ui_lang, "RANKS.Beginner", default="🌱 Beginner"),
+            points_needed=result['points_needed']
+        )
         return result
-        
+
     except Exception as e:
-        # Ultra-safe fallback
         return {
             'name': 'Newcomer',
             'emoji': '🆕',
             'color': 0x95a5a6,
-            'next_rank': 'Beginner',
-            'points_needed': max(50 - points, 0)
+            'points_needed': max(50 - points, 0),
+            'translated_name': get_translation(ui_lang, "RANKS.Newcomer", default="🆕 Newcomer"),
+            'next_rank_translated': get_translation(
+                ui_lang,
+                "RANKS.next_rank",
+                default="Next Rank: {next_rank} (need {points_needed} pts)"
+            ).format(
+                next_rank=get_translation(ui_lang, "RANKS.Beginner", default="🌱 Beginner"),
+                points_needed=max(50 - points, 0)
+            )
         }
 
 async def notify_achievement_earned(user_id: int, achievement_data: dict):
@@ -7879,18 +8328,22 @@ async def notify_uncashed_achievements(user_id: int, username: str, uncashed_poi
         if not user:
             return
 
+        ui_lang = await get_user_ui_language(user_id)
+
         embed = discord.Embed(
-            title="💰 Achievement Points Ready to Cash Out!",
-            description=(
-                f"You've unlocked achievements worth **{uncashed_points:,}** points!\n\n"
-                "Use `/cashout` to convert them to activity points and spend them in the shop."
-            ),
+            title=get_translation(ui_lang, "ACHIEVEMENTS.uncashed_notify_title"),
+            description=get_translation(
+                ui_lang,
+                "ACHIEVEMENTS.uncashed_notify_desc"
+            ).format(uncashed_points=f"{uncashed_points:,}"),
             color=0xf1c40f
         )
-        embed.set_footer(text="Keep unlocking achievements for more rewards!")
+        embed.set_footer(text=get_translation(ui_lang, "ACHIEVEMENTS.uncashed_notify_footer"))
         await user.send(embed=embed)
+
     except Exception as e:
         logger.error(f"Error sending uncashed achievement notification: {e}")
+
 
 async def notify_rank_up(user_id: int, old_rank: str, new_rank: str, total_points: int):
     """Send DM notification when user ranks up"""
@@ -8363,142 +8816,102 @@ async def send_points_only_notification(user_id: int, points: int, amount: float
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def premium(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+
     embed = discord.Embed(
-        title="💎 Upgrade Your Translation Experience",
-        description="Choose the perfect plan for your needs:",
+        title=get_translation(ui_lang, "UPGRADE.title"),
+        description=get_translation(ui_lang, "UPGRADE.description"),
         color=0x29abe0
     )
-    
-    # Free Tier (current)
+
+    # Add all tier fields
     embed.add_field(
-        name="🆓 Free Tier",
-        value=(
-            "• 50 character limit per translation\n"
-            "• 30 minutes total voice time\n"
-            "• Basic features only\n"
-        ),
+        name=get_translation(ui_lang, "UPGRADE.free_title"),
+        value=get_translation(ui_lang, "UPGRADE.free_value"),
         inline=True
     )
-    
-    # Basic Tier - $1/month
+
     embed.add_field(
-        name="🥉 Basic - $1/month",
-        value=(
-            "• 500 character limit per translation\n"
-            "• 1 hour total voice time\n"
-            "• Translation history\n"
-            "• Auto-translate feature\n"
-        ),
+        name=get_translation(ui_lang, "UPGRADE.basic_title"),
+        value=get_translation(ui_lang, "UPGRADE.basic_value"),
         inline=True
     )
-    
-    # Premium Tier - $3/month
+
     embed.add_field(
-        name="🥈 Premium - $3/month",
-        value=(
-            "• 2000 character limit per translation\n"
-            "• 2 hours total voice time\n"
-            "• Priority processing\n"
-            "• Enhanced voice features\n"
-            "• All Basic features\n"
-        ),
+        name=get_translation(ui_lang, "UPGRADE.premium_title"),
+        value=get_translation(ui_lang, "UPGRADE.premium_value"),
         inline=True
     )
-    
-    # Pro Tier - $5/month
+
     embed.add_field(
-        name="🥇 Pro - $5/month",
-        value=(
-            "• ♾️ Unlimited character limit\n"
-            "• ♾️ Unlimited voice time\n"
-            "• Priority support\n"
-            "• Beta feature access\n"
-            "• Custom integrations\n"
-        ),
+        name=get_translation(ui_lang, "UPGRADE.pro_title"),
+        value=get_translation(ui_lang, "UPGRADE.pro_value"),
         inline=True
     )
-    
+
     embed.add_field(
-        name="📝 How to Subscribe",
-        value=(
-            f"1. Click the Ko-fi link below\n"
-            f"2. Include your Discord ID: `{interaction.user.id}`\n"
-            f"3. Choose your monthly tier\n"
-            f"4. Get instant access!"
-        ),
+        name=get_translation(ui_lang, "UPGRADE.subscribe_title"),
+        value=get_translation(ui_lang, "UPGRADE.subscribe_value", user_id=user_id),
         inline=False
     )
-    
+
     embed.add_field(
-        name="🎁 Try Before You Buy",
-        value=(
-            "Use `/shop` to try premium features with points!\n"
-            "• Basic (1 day): 75 points\n"
-            "• Premium (1 day): 150 points\n"
-            "• Pro (1 day): 250 points"
-        ),
+        name=get_translation(ui_lang, "UPGRADE.try_title"),
+        value=get_translation(ui_lang, "UPGRADE.try_value"),
         inline=False
     )
-    
+
+    # Add button
     view = discord.ui.View()
     view.add_item(discord.ui.Button(
-        label="Subscribe on Ko-fi",
+        label=get_translation(ui_lang, "UPGRADE.button"),
         url="https://ko-fi.com/muse/tiers",
         style=discord.ButtonStyle.link,
         emoji="☕"
     ))
-    
+
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
+
 @tree.command(name="buypoints", description="Purchase points with one-time Ko-fi donation")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def buy_points(interaction: discord.Interaction):
     user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+
     embed = discord.Embed(
-        title="💎 Buy Points (One-Time Purchase)",
-        description="Purchase points for special features and rewards!",
+        title=get_translation(ui_lang, "BUYPOINTS.title"),
+        description=get_translation(ui_lang, "BUYPOINTS.description"),
         color=0x3498db
     )
-    
+
     embed.add_field(
-        name="💰 Point Packages",
-        value=(
-            "💵 **$1** = 50 points\n"
-            "💵 **$2** = 110 points *(10% bonus)*\n"
-            "💵 **$3** = 180 points *(20% bonus)*\n"
-            "💵 **$5** = 325 points *(30% bonus)*\n"
-            "💵 **$10** = 700 points *(40% bonus)*\n"
-            "💵 **$20** = 1,500 points *(50% bonus)*"
-        ),
-    inline=False
-)
-    
-    embed.add_field(
-        name="⚠️ Points vs Premium",
-        value=(
-            "**Points:** One-time purchases, buy specific features\n"
-            "**Premium:** $1/month subscription, unlimited everything"
-        ),
+        name=get_translation(ui_lang, "BUYPOINTS.packages_title"),
+        value=get_translation(ui_lang, "BUYPOINTS.packages_value"),
         inline=False
     )
-    
+
     embed.add_field(
-        name="📝 How to Purchase Points",
-        value=(
-            f"1. Click the Ko-fi button below\n"
-            f"2. Make a **one-time donation** (not subscription)\n"
-            f"3. Include your Discord ID: `{user_id}`\n"
-            f"4. Points added instantly!"
-        ),
+        name=get_translation(ui_lang, "BUYPOINTS.vs_title"),
+        value=get_translation(ui_lang, "BUYPOINTS.vs_value"),
         inline=False
     )
-    
+
+    embed.add_field(
+        name=get_translation(ui_lang, "BUYPOINTS.how_title"),
+        value=get_translation(ui_lang, "BUYPOINTS.how_value", user_id=user_id),
+        inline=False
+    )
+
     view = discord.ui.View()
     view.add_item(discord.ui.Button(
-        label="💎 Buy Points on Ko-fi",
+        label=get_translation(ui_lang, "BUYPOINTS.button"),
         url="https://ko-fi.com/yourusername",
         style=discord.ButtonStyle.link
     ))
-    
+
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
@@ -8506,52 +8919,90 @@ async def buy_points(interaction: discord.Interaction):
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def list_languages(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+    
     embed = discord.Embed(
-        title="Available Languages for Translation",
-        description="Here are all the languages you can use with the translator:",
+        title=get_translation(ui_lang, "LIST.title"),
+        description=get_translation(ui_lang, "LIST.description"),
         color=discord.Color.blue()
     )
     
-    # Sort languages alphabetically by their full names
-    sorted_languages = sorted(languages.items(), key=lambda x: x[1])
+    def get_display_language_name(lang_code: str) -> str:
+        fallback = languages.get(lang_code, lang_code)
+        return get_translation(ui_lang, f"LANGUAGES.{lang_code}", default=fallback)
     
-    # Group languages by first letter
+    # Sort based on the translated name
+    sorted_languages = sorted(languages.keys(), key=lambda code: get_display_language_name(code).lower())
+    
     current_letter = None
     current_field = ""
+    field_count = 0
+    additional_embeds = []
+    current_embed = embed
     
-    for code, name in sorted_languages:
-        first_letter = name[0].upper()
+    def add_field_to_embed(embed_obj, field_name, field_value, field_counter):
+        """Helper function to add field and handle embed limits"""
+        nonlocal current_embed, additional_embeds, field_count
         
-        # If we encounter a new letter, create a new field
-        if first_letter != current_letter:
-            if current_field:  # Add the previous field if it exists
-                embed.add_field(
-                    name=f"{current_letter}",
-                    value=current_field,
-                    inline=False
-                )
-            current_letter = first_letter
-            current_field = ""
-            
-        # Get flag emoji, default to 🌐 if not found
-        flag = flag_mapping.get(code, '🌐')
-        # Add language entry
-        current_field += f"{flag} `{code}` - {name}\n"
-    
-    # Add the last field
-    if current_field:
-        embed.add_field(
-            name=f"{current_letter}",
-            value=current_field,
+        # Check if current embed can hold another field
+        if field_counter >= 25:
+            # Create new embed
+            additional_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'LIST.title')} (continued)",
+                color=discord.Color.blue()
+            )
+            additional_embeds.append(additional_embed)
+            current_embed = additional_embed
+            field_counter = 0
+        
+        # Add the field to current embed
+        current_embed.add_field(
+            name=field_name,
+            value=field_value,
             inline=False
         )
+        return field_counter + 1
     
-    embed.set_footer(text="Usage example: /texttr text:Hello source_lang:en target_lang:es")
+    for code in sorted_languages:
+        translated_name = get_display_language_name(code)
+        first_letter = translated_name[0].upper()
+        
+        # Add flag and language entry
+        flag = flag_mapping.get(code, '🌐')
+        new_entry = f"{flag} `{code}` - {translated_name}\n"
+        
+        # If we encounter a new letter, finalize the current field
+        if first_letter != current_letter:
+            if current_field:
+                field_count = add_field_to_embed(current_embed, current_letter, current_field.rstrip(), field_count)
+            
+            current_letter = first_letter
+            current_field = new_entry
+        else:
+            # Check if adding this entry would exceed the 1024 character limit
+            if len(current_field + new_entry) > 1024:
+                # Finalize current field and start a new one with same letter
+                field_count = add_field_to_embed(current_embed, current_letter, current_field.rstrip(), field_count)
+                current_field = new_entry
+            else:
+                current_field += new_entry
     
+    # Add the final field
+    if current_field:
+        field_count = add_field_to_embed(current_embed, current_letter, current_field.rstrip(), field_count)
+    
+    embed.set_footer(text=get_translation(ui_lang, "LIST.footer"))
+    
+    # Send the main embed
     await interaction.response.send_message(embed=embed, ephemeral=True)
+    
+    # Send additional embeds as followups if needed
+    for additional_embed in additional_embeds:
+        await interaction.followup.send(embed=additional_embed, ephemeral=True)
+
 
 # Fixed invite command
-
 
 @tree.command(name="history", description="View your recent translation history")
 @app_commands.allowed_installs(guilds=True, users=True)
@@ -8559,69 +9010,67 @@ async def list_languages(interaction: discord.Interaction):
 @app_commands.describe(limit="Number of translations to show (max 20)")
 async def translation_history(interaction: discord.Interaction, limit: int = 10):
     user_id = interaction.user.id
-    
-    # Check user tier using your TierHandler
+    ui_lang = await get_user_ui_language(user_id)
+
+    def get_display_language_name(lang_code: str) -> str:
+        fallback = languages.get(lang_code, lang_code)
+        return get_translation(ui_lang, f"LANGUAGES.{lang_code}", default=fallback)
+
     if user_id in tier_handler.pro_users:
         tier = 'pro'
-        limit = min(limit, 20)  # Pro users get max 20
+        limit = min(limit, 20)
     elif user_id in tier_handler.premium_users:
         tier = 'premium'
-        limit = min(limit, 15)  # Premium users get max 15
+        limit = min(limit, 15)
     elif user_id in tier_handler.basic_users:
         tier = 'basic'
-        limit = min(limit, 10)  # Basic users get max 10
+        limit = min(limit, 10)
     else:
         tier = 'free'
-        limit = min(limit, 5)   # Free users get max 5
-    
-    # Get translation history using your database method
+        limit = min(limit, 5)
+
     history = await db.get_translation_history(user_id, limit)
-    
+
     if not history:
         embed = discord.Embed(
-            title="📚 Translation History",
-            description="No translations found. Start translating to build your history!",
+            title=get_translation(ui_lang, "HISTORY.no_results_title"),
+            description=get_translation(ui_lang, "HISTORY.no_results_desc"),
             color=0x95a5a6
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
-    
-    # Set color based on tier
+
     tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
-    
+
     embed = discord.Embed(
-        title="📚 Your Translation History",
-        description=f"Showing your {len(history)} most recent translations",
+        title=get_translation(ui_lang, "HISTORY.title"),
+        description=get_translation(ui_lang, "HISTORY.showing_n", count=len(history)),
         color=tier_colors[tier]
     )
-    
+
     for i, translation in enumerate(history, 1):
-        # Get language names and flags
-        source_name = languages.get(translation['source_lang'], translation['source_lang'])
-        target_name = languages.get(translation['target_lang'], translation['target_lang'])
+        source_name = get_display_language_name(translation['source_lang'])
+        target_name = get_display_language_name(translation['target_lang'])
         source_flag = flag_mapping.get(translation['source_lang'], '🌐')
         target_flag = flag_mapping.get(translation['target_lang'], '🌐')
-        
-        # Format the translation entry
+
         original_text = translation['original'][:100] + "..." if len(translation['original']) > 100 else translation['original']
         translated_text = translation['translated'][:100] + "..." if len(translation['translated']) > 100 else translation['translated']
-        
+
         embed.add_field(
             name=f"{i}. {source_flag} {source_name} → {target_flag} {target_name} ({translation['type']})",
-            value=f"**Original:** {original_text}\n**Translation:** {translated_text}",
+            value=f"**{get_translation(ui_lang, 'HISTORY.original')}** {original_text}\n**{get_translation(ui_lang, 'HISTORY.translated')}** {translated_text}",
             inline=False
         )
-    
-    # Add tier-specific footer
+
     tier_footers = {
-        'free': "🆓 Free: Limited history • /premium for more access",
-        'basic': "🥉 Basic: Recent history access",
-        'premium': "🥈 Premium: Extended history access", 
-        'pro': "🥇 Pro: Full history access"
+        'free': get_translation(ui_lang, "HISTORY.footer_free"),
+        'basic': get_translation(ui_lang, "HISTORY.footer_basic"),
+        'premium': get_translation(ui_lang, "HISTORY.footer_premium"),
+        'pro': get_translation(ui_lang, "HISTORY.footer_pro")
     }
-    
+
     embed.set_footer(text=tier_footers[tier])
-    
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -8631,232 +9080,193 @@ async def translation_history(interaction: discord.Interaction, limit: int = 10)
 @app_commands.describe(
     default_source="Your default source language (or 'auto' for detection)",
     default_target="Your default target language",
-    ui_language="Language used for bot messages (e.g. en, es, fr)"
-)
+    ui_language="Language used for bot messages (e.g. en, es)")
 async def set_preferences(
     interaction: discord.Interaction,
     default_source: str = None,
     default_target: str = None,
-    ui_language: str = None
-):
+    ui_language: str = None):
     user_id = interaction.user.id
+    current_ui_lang = await get_user_ui_language(user_id)
     updates = []
 
-    # --- Handle source_lang ---
-    if default_source:
-        source_code = "auto" if default_source.lower() == "auto" else get_language_code(default_source)
-        if default_source.lower() != "auto" and not source_code:
+    def get_display_language_name(lang_code: str, ui_lang: str) -> str:
+        fallback = languages.get(lang_code, lang_code)
+        return get_translation(ui_lang, f"LANGUAGES.{lang_code}", default=fallback)
+
+    try:
+        # --- Handle default source language ---
+        if default_source:
+            source_code = "auto" if default_source.lower() == "auto" else get_language_code(default_source)
+            if default_source.lower() != "auto" and not source_code:
+                await interaction.response.send_message(
+                    get_translation(current_ui_lang, "ERRORS.invalid_source", language=default_source),
+                    ephemeral=True
+                )
+                return
+            await db.update_user_preferences(user_id, source_lang=source_code)
+            updates.append(("source", source_code))
+
+        # --- Handle default target language ---
+        if default_target:
+            target_code = get_language_code(default_target)
+            if not target_code:
+                await interaction.response.send_message(
+                    get_translation(current_ui_lang, "ERRORS.invalid_target", language=default_target),
+                    ephemeral=True
+                )
+                return
+            await db.update_user_preferences(user_id, target_lang=target_code)
+            updates.append(("target", target_code))
+
+        # --- Handle UI language ---
+        if ui_language:
+            ui_code = get_language_code(ui_language)
+            if not ui_code or ui_code not in SUPPORTED_UI_LANGUAGES:
+                supported_langs = ", ".join(SUPPORTED_UI_LANGUAGES)
+                await interaction.response.send_message(
+                    get_translation(current_ui_lang, "ERRORS.invalid_ui",
+                                    language=ui_language, supported=supported_langs),
+                    ephemeral=True
+                )
+                return
+            await db.update_user_ui_language(user_id, ui_code)
+            updates.append(("ui", ui_code))
+
+        if not updates:
             await interaction.response.send_message(
-                f"❌ Invalid source language: '{default_source}'\nUse /list to see available languages or use 'auto' for automatic detection.",
+                get_translation(current_ui_lang, "PREFERENCES.nothing_set"),
                 ephemeral=True
             )
             return
-        await db.update_user_preferences(user_id, source_lang=source_code)
-        updates.append(("source", source_code))
 
-    # --- Handle target_lang ---
-    if default_target:
-        target_code = get_language_code(default_target)
-        if not target_code:
-            await interaction.response.send_message(
-                f"❌ Invalid target language: '{default_target}'\nUse /list to see available languages.",
-                ephemeral=True
-            )
-            return
-        await db.update_user_preferences(user_id, target_lang=target_code)
-        updates.append(("target", target_code))
+        # --- Determine language for response ---
+        response_lang = next((val for key, val in updates if key == "ui"), current_ui_lang)
 
-    # --- Handle UI language ---
-    if ui_language:
-        ui_code = get_language_code(ui_language)
-        if not ui_code:
-            await interaction.response.send_message(
-                f"❌ Invalid UI language: '{ui_language}'\nUse /list to see available languages.",
-                ephemeral=True
-            )
-            return
-        await db.update_user_ui_language(user_id, ui_code)
-        updates.append(("ui", ui_code))
+        # --- Build translated success message ---
+        desc_lines = []
+        for update_type, code in updates:
+            if update_type == "source":
+                display = "Auto-detect" if code == "auto" else get_display_language_name(code, response_lang)
+                flag = '🔍' if code == "auto" else flag_mapping.get(code, '🌐')
+                label = get_translation(response_lang, 'PREFERENCES.source_label')
+                desc_lines.append(f"**{label}:** {flag} {display}")
+            elif update_type == "target":
+                display = get_display_language_name(code, response_lang)
+                flag = flag_mapping.get(code, '🌐')
+                label = get_translation(response_lang, 'PREFERENCES.target_label')
+                desc_lines.append(f"**{label}:** {flag} {display}")
+            elif update_type == "ui":
+                display = get_display_language_name(code, response_lang)  # Changed from current_ui_lang to response_lang
+                flag = flag_mapping.get(code, '🌐')
+                label = get_translation(response_lang, 'PREFERENCES.ui_label')
+                desc_lines.append(f"**{label}:** {flag} {display}")
 
-    if not updates:
-        await interaction.response.send_message("⚠️ You didn't provide any preferences to update.", ephemeral=True)
-        return
+        embed = discord.Embed(
+            title=get_translation(response_lang, "PREFERENCES.updated_title"),
+            description="\n".join(desc_lines) + "\n\n" + get_translation(response_lang, "PREFERENCES.footer"),
+            color=0x2ecc71
+        )
 
-    # --- Display success message ---
-    source_code = next((val for key, val in updates if key == "source"), None)
-    target_code = next((val for key, val in updates if key == "target"), None)
-    ui_code = next((val for key, val in updates if key == "ui"), None)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    source_display = "Auto-detect" if source_code == "auto" else languages.get(source_code, source_code)
-    target_display = languages.get(target_code, target_code) if target_code else None
-    ui_display = languages.get(ui_code, ui_code) if ui_code else None
+    except Exception as e:
+        logger.error(f"Error updating preferences for user {user_id}: {e}")
+        await interaction.response.send_message(
+            get_translation(current_ui_lang, "ERRORS.database_error"),
+            ephemeral=True
+        )
 
-    source_flag = '🔍' if source_code == "auto" else flag_mapping.get(source_code, '🌐') if source_code else ""
-    target_flag = flag_mapping.get(target_code, '🌐') if target_code else ""
-    ui_flag = flag_mapping.get(ui_code, '🌐') if ui_code else ""
+# Keep your existing autocomplete
+set_preferences.autocomplete('default_source')(translated_language_autocomplete)
+set_preferences.autocomplete('default_target')(translated_language_autocomplete)
+set_preferences.autocomplete('ui_language')(translated_language_autocomplete)
 
-    desc_lines = []
-    if source_code:
-        desc_lines.append(f"**Default Source:** {source_flag} {source_display}")
-    if target_code:
-        desc_lines.append(f"**Default Target:** {target_flag} {target_display}")
-    if ui_code:
-        desc_lines.append(f"**Bot UI Language:** {ui_flag} {ui_display}")
-
-    embed = discord.Embed(
-        title="✅ Preferences Updated!",
-        description="\n".join(desc_lines) + "\n\nThese will apply to future commands and responses.",
-        color=0x2ecc71
-    )
-
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-# Add autocomplete if supported
-set_preferences.autocomplete('default_source')(source_language_autocomplete)
-set_preferences.autocomplete('default_target')(language_autocomplete)
-set_preferences.autocomplete('ui_language')(language_autocomplete)
 
 @tree.command(name="help", description="Show all available commands")
 async def help_command(interaction: discord.Interaction):
     await track_command_usage(interaction)
+
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
     
     embed = discord.Embed(
-        title="🤖 Muse Translator - Command List",
-        description="Here are all available commands:",
+        title=get_translation(ui_lang, "HELP.title"),
+        description=get_translation(ui_lang, "HELP.description"),
         color=0x3498db
     )
-    
-    # Check if we're in server or user context
+
     is_server = interaction.guild is not None
-    
-    # Text Translation Commands
+    server_tag = get_translation(ui_lang, "HELP.server_only") if not is_server else ""
+
     embed.add_field(
-        name="📝 Text Translation",
-        value=(
-            "`/texttr [text] [source_lang] [target_lang]` - Translate text\n"
-            "`/read [target_lang] [message_id]` - Translate message by ID\n"
-            "`/dmtr [user] [text] [source_lang] [target_lang]` - Send translated DM" + 
-            (" (server only)" if not is_server else "")
-        ),
+        name=get_translation(ui_lang, "HELP.text_title"),
+        value=get_translation(ui_lang, "HELP.text_value", server_only=server_tag),
         inline=False
     )
-    
-    # Voice Commands
-    voice_commands = (
-        "`/voice [text] [source_lang] [target_lang]` - Text to speech\n"
-        "`/speak [text] [source_lang] [target_lang]` - Play speech in voice channel" +
-        (" (server only)" if not is_server else "") + "\n"
-        "`/voicechat [source_lang] [target_lang]` - Real-time voice translation" +
-        (" (server only)" if not is_server else "") + "\n"
-        "`/voicechat2 [lang1] [lang2]` - Enhanced bidirectional voice translation" +
-        (" (server only)" if not is_server else "")
-    )
-    
+
     embed.add_field(
-        name="🎤 Voice Commands",
-        value=voice_commands,
+        name=get_translation(ui_lang, "HELP.voice_title"),
+        value=get_translation(ui_lang, "HELP.voice_value", server_only=server_tag),
         inline=False
     )
-    
-    # Auto Translation (server only)
+
     if is_server:
         embed.add_field(
-            name="🔄 Auto Translation (Server Only)",
-            value="`/autotranslate [source_lang] [target_lang]` - Auto-translate your messages",
+            name=get_translation(ui_lang, "HELP.auto_title"),
+            value=get_translation(ui_lang, "HELP.auto_value"),
             inline=False
         )
-    
-    # Reward System Commands (NEW)
+
     embed.add_field(
-        name="💎 Reward System",
-        value=(
-            "`/daily` - Claim daily point rewards\n"
-            "`/shop` - Browse reward shop\n"
-            "`/buy [reward]` - Purchase rewards with points\n"
-            "`/profile [user]` - View profile and stats\n"
-            "`/rewards` - View active rewards\n"
-            "`/gift [user] [amount]` - Gift points to others"
-        ),
+        name=get_translation(ui_lang, "HELP.reward_title"),
+        value=get_translation(ui_lang, "HELP.reward_value"),
         inline=False
     )
-    
-    # Leaderboard & Social Commands (NEW)
+
     embed.add_field(
-        name="🏆 Social & Competition",
-        value=(
-            "`/leaderboard` - View top users by points\n"
-            "`/achievements` - View your badges and achievements\n"
-            "`/cashout` - Cash out achievement points to spend in `/shop`\n"
-            "`/transactions` - View point transaction history"
-        ),
+        name=get_translation(ui_lang, "HELP.social_title"),
+        value=get_translation(ui_lang, "HELP.social_value"),
         inline=False
     )
-    
-    # Setup & Control Commands
-    setup_commands = "`/start` - Initialize translator\n"
+
+    setup_key = "HELP.setup_value_admin" if (is_server and interaction.channel.permissions_for(interaction.user).administrator or interaction.channel.permissions_for(interaction.user).manage_guild) else "HELP.setup_value_user"
+
+    embed.add_field(
+        name=get_translation(ui_lang, "HELP.setup_title"),
+        value=get_translation(ui_lang, setup_key),
+        inline=False
+    )
+
+    embed.add_field(
+        name=get_translation(ui_lang, "HELP.settings_title"),
+        value=get_translation(ui_lang, "HELP.settings_value"),
+        inline=False
+    )
+
+    embed.add_field(
+        name=get_translation(ui_lang, "HELP.info_title"),
+        value=get_translation(ui_lang, "HELP.info_value"),
+        inline=False
+    )
+
+    embed.add_field(
+        name=get_translation(ui_lang, "HELP.context_title"),
+        value=get_translation(ui_lang, "HELP.context_value"),
+        inline=False
+    )
+
+    embed.add_field(
+        name=get_translation(ui_lang, "HELP.tips_title"),
+        value=get_translation(ui_lang, "HELP.tips_value"),
+        inline=False
+    )
+
     if is_server:
-        # Check if the user is a server admin or has manage_guild permission
-        perms = interaction.channel.permissions_for(interaction.user)
-        if perms.administrator or perms.manage_guild:
-            setup_commands += "`/setchannel [channel_id]` - Set translation and language channel permissions\n"
-    setup_commands += "`/stop` - Stop active translation sessions"
-    
-    embed.add_field(
-        name="⚙️ Setup & Control",
-        value=setup_commands,
-        inline=False
-    )
-    
-    # Settings Commands
-    embed.add_field(
-        name="🎛️ Settings",
-        value=(
-            "`/hide` - Hide original text in translations\n"
-            "`/show` - Show original text in translations\n"
-            "`/preferences` - Adjust language preferences\n"
-            "`/history` - View translation history"
-        ),
-        inline=False
-    )
-    
-    # Information Commands
-    embed.add_field(
-        name="ℹ️ Information",
-        value=(
-            "`/list` - Show all supported languages\n"
-            "`/upgrade` - Get premium access info\n"
-            "`/invite` - Get bot invite links\n"
-            "`/vote` - Get bot listing links\n"
-            "`/help` - Show this command list"
-        ),
-        inline=False
-    )
-    
-    # Context Menu Commands
-    embed.add_field(
-        name="📱 Context Menu",
-        value="`Right-click message` → `Apps` → `Read Message` - Translate any message",
-        inline=False
-    )
-    
-    # Add usage tips
-    embed.add_field(
-        name="💡 Usage Tips",
-        value=(
-            "• Use `auto` as source language for automatic detection\n"
-            "• Language codes: `en`, `es`, `fr` or names: `English`, `Spanish`, `French`\n"
-            "• Earn points daily and purchase temporary premium features!\n"
-            "• Example: `/texttr text:'Hello' source_lang:en target_lang:es`"
-        ),
-        inline=False
-    )
-    
-    # Add context-specific footer
-    if is_server:
-        embed.set_footer(text=f"Server Mode: {interaction.guild.name} | All features available | Use /daily for points!")
+        embed.set_footer(text=get_translation(ui_lang, "HELP.footer_server", server=interaction.guild.name))
     else:
-        embed.set_footer(text="User Mode: Perfect for DMs | Some features are server-only | Use /daily for points!")
-    
+        embed.set_footer(text=get_translation(ui_lang, "HELP.footer_dm"))
+
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @tree.command(name="feedback", description="Leave feedback for the bot (1-5 stars)")
@@ -8872,276 +9282,219 @@ async def submit_feedback(
     message: str = None
 ):
     user_id = interaction.user.id
-    
-    # Validate rating
+    ui_lang = await get_user_ui_language(user_id)
+
     if rating < 1 or rating > 5:
         await interaction.response.send_message(
-            "❌ Rating must be between 1 and 5 stars!",
-            ephemeral=True
+            get_translation(ui_lang, "FEEDBACK.rating_error"), ephemeral=True
         )
         return
-    
+
     try:
-        # Get user data to check sessions and last feedback
         user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
-        
-        # Check if user has enough sessions (minimum 3 sessions to leave feedback)
+
         if user_data['total_sessions'] < 3:
             sessions_needed = 3 - user_data['total_sessions']
             await interaction.response.send_message(
-                f"📊 You need **{sessions_needed} more translation sessions** before you can leave feedback!\n"
-                f"💡 Try using `/texttr`, `/voice`, or `/voicechat` to build up your sessions.\n"
-                f"Current sessions: **{user_data['total_sessions']}/3**",
+                get_translation(ui_lang, "FEEDBACK.sessions_needed",
+                    sessions_needed=sessions_needed,
+                    current_sessions=user_data['total_sessions']),
                 ephemeral=True
             )
             return
-        
-        # Check daily feedback limit
+
         from datetime import datetime, timedelta
         now = datetime.now()
-        today = now.date().isoformat()
-        
-        # Get user's last feedback date
+
         last_feedback = await feedback_db.get_last_feedback_date(user_id)
-        
         if last_feedback:
             last_feedback_date = datetime.fromisoformat(last_feedback).date()
             if last_feedback_date >= now.date():
-                # Calculate time until next feedback allowed
                 tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
                 time_left = tomorrow - now
                 hours_left = int(time_left.total_seconds() // 3600)
                 minutes_left = int((time_left.total_seconds() % 3600) // 60)
-                
+
                 await interaction.response.send_message(
-                    f"⏰ You can only leave feedback **once per day**!\n"
-                    f"⏳ Next feedback available in: **{hours_left}h {minutes_left}m**\n"
-                    f"📅 Come back tomorrow to share more feedback!",
+                    get_translation(ui_lang, "FEEDBACK.daily_limit",
+                        hours_left=hours_left, minutes_left=minutes_left),
                     ephemeral=True
                 )
                 return
-        
-        # Check session-based feedback (every 3 sessions since last feedback)
+
         last_feedback_session = await feedback_db.get_last_feedback_session(user_id)
         if last_feedback_session:
             sessions_since_feedback = user_data['total_sessions'] - last_feedback_session
             if sessions_since_feedback < 3:
                 sessions_needed = 3 - sessions_since_feedback
                 await interaction.response.send_message(
-                    f"📈 You need **{sessions_needed} more sessions** since your last feedback!\n"
-                    f"💡 Use the bot more and come back to share your updated experience.\n"
-                    f"Sessions since last feedback: **{sessions_since_feedback}/3**",
+                    get_translation(ui_lang, "FEEDBACK.session_limit",
+                        sessions_needed=sessions_needed,
+                        sessions_since_feedback=sessions_since_feedback),
                     ephemeral=True
                 )
                 return
-        
-        # Add feedback to database
+
         await feedback_db.add_feedback(
             user_id=user_id,
             username=interaction.user.display_name,
             rating=rating,
             message=message,
-            session_count=user_data['total_sessions']  # Store session count when feedback was given
+            session_count=user_data['total_sessions']
         )
-        
-        # Award points for feedback (tier-based rewards)
+
         current_tier = await tier_handler.get_user_tier_async(user_id)
         feedback_points = {
-            'free': 15,
-            'basic': 20,
-            'premium': 25,
-            'pro': 30
+            'free': 15, 'basic': 20, 'premium': 25, 'pro': 30
         }.get(current_tier, 15)
-        
-        # Bonus points for detailed feedback
-        if message and len(message.strip()) >= 20:
+
+        detailed_bonus = message and len(message.strip()) >= 20
+        if detailed_bonus:
             feedback_points += 10
-            detailed_bonus = True
-        else:
-            detailed_bonus = False
-        
-        # Award points
+
         reward_db.add_points(
-            user_id, 
-            feedback_points, 
+            user_id,
+            feedback_points,
             f"Feedback submission ({rating}⭐)" + (" + detailed message bonus" if detailed_bonus else "")
         )
-        
-        # Create response
+
+        await reward_db.award_achievement(user_id, 'feedback_provider')
+
+        # Track achievement-related points and notify
+        uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
+        await notify_uncashed_achievements(user_id, interaction.user.display_name, uncashed_points)
+
         stars = "⭐" * rating
-        response_embed = discord.Embed(
-            title="✅ Thank you for your feedback!",
+        color = 0x00ff00 if rating >= 4 else 0xff9900 if rating == 3 else 0xff6b6b
+
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "FEEDBACK.thank_you_title"),
             description=f"{stars} **{rating}/5 stars**",
-            color=0x00ff00 if rating >= 4 else 0xff9900 if rating == 3 else 0xff6b6b
+            color=color
         )
-        
+
         if message:
-            response_embed.add_field(
-                name="💬 Your Message",
-                value=f"\"{message}\"",
+            embed.add_field(
+                name=get_translation(ui_lang, "FEEDBACK.your_message_field"),
+                value=f'"{message}"',
                 inline=False
             )
-        
-        # Points reward info
+
         points_text = f"💎 **+{feedback_points} points** earned!"
         if detailed_bonus:
-            points_text += "\n🎁 **+10 bonus** for detailed feedback!"
-        
-        response_embed.add_field(
-            name="🎁 Reward",
+            points_text += "\n🏱 **+10 bonus** for detailed feedback!"
+
+        embed.add_field(
+            name=get_translation(ui_lang, "FEEDBACK.reward_field"),
             value=points_text,
             inline=False
         )
-        
-        # Next feedback info
-        response_embed.add_field(
-            name="⏰ Next Feedback",
-            value="Available tomorrow or after 3 more sessions",
+
+        embed.add_field(
+            name=get_translation(ui_lang, "FEEDBACK.next_feedback_field"),
+            value=get_translation(ui_lang, "FEEDBACK.next_feedback_value"),
             inline=False
         )
-        
-        response_embed.set_footer(text="Your feedback helps improve Muse for everyone! 💖")
-        
-        await interaction.response.send_message(embed=response_embed, ephemeral=True)
-        
-        # Send notification to feedback channel (optional)
-        FEEDBACK_CHANNEL_ID = 1234567890123456789  # Replace with your channel ID
-        feedback_channel = client.get_channel(FEEDBACK_CHANNEL_ID)
-        
+
+        embed.set_footer(text=get_translation(ui_lang, "FEEDBACK.footer"))
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        feedback_channel = client.get_channel(1234567890123456789)
         if feedback_channel:
-            notification_embed = discord.Embed(
-                title="📝 New Feedback Received!",
-                color=0x00ff00 if rating >= 4 else 0xff9900 if rating == 3 else 0xff6b6b
+            fields = get_translation(ui_lang, "FEEDBACK.notification_fields")
+            notif = discord.Embed(
+                title=get_translation(ui_lang, "FEEDBACK.notification_title"),
+                color=color
             )
-            
-            notification_embed.add_field(
-                name="👤 User", 
-                value=f"{interaction.user.display_name}\n`{user_id}`", 
-                inline=True
-            )
-            notification_embed.add_field(
-                name="⭐ Rating", 
-                value=f"{stars} {rating}/5", 
-                inline=True
-            )
-            notification_embed.add_field(
-                name="📊 Sessions", 
-                value=f"{user_data['total_sessions']} total", 
-                inline=True
-            )
-            notification_embed.add_field(
-                name="🌍 Context", 
-                value=interaction.guild.name if interaction.guild else "DM", 
-                inline=True
-            )
-            notification_embed.add_field(
-                name="⭐ Tier", 
-                value=current_tier.title(), 
-                inline=True
-            )
-            notification_embed.add_field(
-                name="💎 Points Awarded", 
-                value=f"{feedback_points} points", 
-                inline=True
-            )
-            
+            notif.add_field(name=fields["user"], value=f"{interaction.user.display_name}\n`{user_id}`", inline=True)
+            notif.add_field(name=fields["rating"], value=f"{stars} {rating}/5", inline=True)
+            notif.add_field(name=fields["sessions"], value=f"{user_data['total_sessions']} total", inline=True)
+            notif.add_field(name=fields["context"], value=interaction.guild.name if interaction.guild else "DM", inline=True)
+            notif.add_field(name=fields["tier"], value=current_tier.title(), inline=True)
+            notif.add_field(name=fields["points_awarded"], value=f"{feedback_points} points", inline=True)
+
             if message:
-                notification_embed.add_field(
-                    name="💬 Message", 
-                    value=message[:1000] + ("..." if len(message) > 1000 else ""), 
-                    inline=False
-                )
-            
-            notification_embed.timestamp = datetime.now()
-            
-            await feedback_channel.send(embed=notification_embed)
-        
-        # Track achievement for feedback
-        await reward_db.award_achievement(user_id, 'feedback_provider')
-        
+                notif.add_field(name=fields["message"], value=message[:1000] + ("..." if len(message) > 1000 else ""), inline=False)
+            notif.timestamp = datetime.now()
+
+            await feedback_channel.send(embed=notif)
+
     except Exception as e:
         logger.error(f"Error in feedback command: {e}")
         await interaction.response.send_message(
-            f"❌ Error saving feedback: {str(e)}\n"
-            "Please try again later or contact support.",
+            get_translation(ui_lang, "FEEDBACK.error_saving", error=str(e)),
             ephemeral=True
         )
-
 
 @tree.command(name="reviews", description="View recent feedback and ratings")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def view_reviews(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+
     try:
-        # Get statistics
         stats = await feedback_db.get_stats()
-        
-        # Get recent feedback
         recent_feedback = await feedback_db.get_all_feedback(limit=10)
-        
-        # Create embed
+
         embed = discord.Embed(
-            title="📊 Bot Reviews & Feedback",
+            title=get_translation(ui_lang, "REVIEWS.title"),
             color=0x3498db
         )
-        
-        # Add statistics
+
         if stats["total"] > 0:
             embed.add_field(
-                name="⭐ Overall Rating",
-                value=f"**{stats['avg_rating']}/5.0** stars\nFrom {stats['total']} reviews",
+                name=get_translation(ui_lang, "REVIEWS.overall_rating_title"),
+                value=get_translation(ui_lang, "REVIEWS.overall_rating_value",
+                    avg=stats["avg_rating"], total=stats["total"]),
                 inline=True
             )
-            
-            # Rating breakdown
-            rating_breakdown = (
-                f"5⭐: {stats['five_star']}\n"
-                f"4⭐: {stats['four_star']}\n"
-                f"3⭐: {stats['three_star']}\n"
-                f"2⭐: {stats['two_star']}\n"
-                f"1⭐: {stats['one_star']}"
-            )
-            
+
             embed.add_field(
-                name="📈 Rating Breakdown",
-                value=rating_breakdown,
+                name=get_translation(ui_lang, "REVIEWS.breakdown_title"),
+                value=get_translation(ui_lang, "REVIEWS.breakdown_value",
+                    five=stats["five_star"],
+                    four=stats["four_star"],
+                    three=stats["three_star"],
+                    two=stats["two_star"],
+                    one=stats["one_star"]
+                ),
                 inline=True
             )
         else:
             embed.add_field(
-                name="📝 No Reviews Yet",
-                value="Be the first to leave feedback with `/feedback`!",
+                name=get_translation(ui_lang, "REVIEWS.no_reviews_title"),
+                value=get_translation(ui_lang, "REVIEWS.no_reviews_value"),
                 inline=False
             )
-        
-        # Add recent reviews
+
         if recent_feedback:
             recent_text = ""
-            for feedback in recent_feedback[:5]:  # Show top 5
+            for feedback in recent_feedback[:5]:
                 stars = "⭐" * feedback["rating"]
-                date = feedback["created_at"][:10]  # Just the date
-                
+                date = feedback["created_at"][:10]
                 if feedback["message"]:
-                    message_preview = feedback["message"][:50] + "..." if len(feedback["message"]) > 50 else feedback["message"]
-                    recent_text += f"{stars} **{feedback['username']}** ({date})\n*\"{message_preview}\"*\n\n"
+                    preview = feedback["message"][:50] + "..." if len(feedback["message"]) > 50 else feedback["message"]
+                    recent_text += f"{stars} **{feedback['username']}** ({date})\n*\"{preview}\"*\n\n"
                 else:
                     recent_text += f"{stars} **{feedback['username']}** ({date})\n\n"
-            
+
             embed.add_field(
-                name="💬 Recent Reviews",
-                value=recent_text[:1024],  # Discord field limit
+                name=get_translation(ui_lang, "REVIEWS.recent_reviews_title"),
+                value=recent_text[:1024],
                 inline=False
             )
-        
-        embed.set_footer(text="Leave your own review with /feedback [rating] [message]")
-        
+
+        embed.set_footer(text=get_translation(ui_lang, "REVIEWS.footer"))
+
         await interaction.response.send_message(embed=embed, ephemeral=True)
-        
+
     except Exception as e:
         await interaction.response.send_message(
-            f"❌ Error loading reviews: {str(e)}",
+            get_translation(ui_lang, "REVIEWS.error", error=str(e)),
             ephemeral=True
         )
+
 @tree.command(name="daily", description="Claim your daily point reward")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -9236,35 +9589,40 @@ async def daily_reward(interaction: discord.Interaction):
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        
 @tree.command(name="shop", description="Browse and purchase rewards with points")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def shop(interaction: discord.Interaction):
     await track_command_usage(interaction)
     
-    user_data = reward_db.get_or_create_user(interaction.user.id, interaction.user.display_name)
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+    
+    user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
     
     embed = discord.Embed(
-        title="🛍️ Reward Shop",
-        description=f"Your Points: **{user_data['points']:,}** 💎",
+        title=get_translation(ui_lang, "SHOP.title"),
+        description=get_translation(ui_lang, "SHOP.description", points=f"{user_data['points']:,}"),
         color=0x3498db
     )
     
     for reward_id, reward in REWARDS.items():
         status = ""
-        if reward_db.has_active_reward(interaction.user.id, reward['type']):
-            status = " ✅ *Active*"
+        if reward_db.has_active_reward(user_id, reward['type']):
+            status = get_translation(ui_lang, "SHOP.status_active")
         elif user_data['points'] < reward['cost']:
-            status = " ❌ *Not enough points*"
+            status = get_translation(ui_lang, "SHOP.status_not_enough")
+        
+        field_name = f"{reward['name']} - {reward['cost']} 💎{status}"
+        field_value = get_translation(ui_lang, "SHOP.field_duration", hours=reward['duration_hours'])
         
         embed.add_field(
-            name=f"{reward['name']} - {reward['cost']} 💎{status}",
-            value=f"{reward['description']}\nDuration: {reward['duration_hours']}h",
+            name=field_name,
+            value=field_value,
             inline=False
         )
     
-    embed.set_footer(text="Use /buy [reward_name] to purchase • Points refresh daily with /daily")
+    embed.set_footer(text=get_translation(ui_lang, "SHOP.footer"))
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -9275,64 +9633,67 @@ async def shop(interaction: discord.Interaction):
 async def buy_reward(interaction: discord.Interaction, reward: str):
     await track_command_usage(interaction)
     
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+    
     # Find reward by name or ID
     reward_id = None
     for r_id, r_data in REWARDS.items():
-        if (reward.lower() in r_data['name'].lower() or 
-            reward.lower() == r_id.lower()):
+        if reward.lower() in r_data['name'].lower() or reward.lower() == r_id.lower():
             reward_id = r_id
             break
-    
+
     if not reward_id:
         embed = discord.Embed(
-            title="❌ Invalid Reward",
-            description=f"Reward '{reward}' not found. Use `/shop` to see available rewards.",
+            title=get_translation(ui_lang, "BUY.error_invalid_title"),
+            description=get_translation(ui_lang, "BUY.error_invalid_description", reward=reward),
             color=0xe74c3c
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
-    
-    result = reward_db.purchase_reward(interaction.user.id, reward_id)
-    
+
+    result = reward_db.purchase_reward(user_id, reward_id)
+
     if result['success']:
         reward_data = result['reward']
         expires_at = result['expires_at']
         
         embed = discord.Embed(
-            title="✅ Purchase Successful!",
-            description=f"You purchased **{reward_data['name']}**!",
+            title=get_translation(ui_lang, "BUY.success_title"),
+            description=get_translation(ui_lang, "BUY.success_description", reward_name=reward_data['name']),
             color=0x2ecc71
         )
-        
+
         embed.add_field(
-            name="💎 Points Spent",
+            name=get_translation(ui_lang, "BUY.field_points_spent"),
             value=f"{reward_data['cost']:,}",
             inline=True
         )
-        
+
         embed.add_field(
-            name="💰 Points Remaining",
+            name=get_translation(ui_lang, "BUY.field_points_remaining"),
             value=f"{result['points_remaining']:,}",
             inline=True
         )
-        
+
         embed.add_field(
-            name="⏰ Expires",
+            name=get_translation(ui_lang, "BUY.field_expires"),
             value=f"<t:{int(expires_at.timestamp())}:R>",
             inline=True
         )
-        
+
         embed.add_field(
-            name="📝 Description",
+            name=get_translation(ui_lang, "BUY.field_description"),
             value=reward_data['description'],
             inline=False
         )
-        
+
         await interaction.response.send_message(embed=embed, ephemeral=True)
+    
     else:
         embed = discord.Embed(
-            title="❌ Purchase Failed",
-            description=result['error'],
+            title=get_translation(ui_lang, "BUY.error_failed_title"),
+            description=get_translation(ui_lang, "BUY.error_failed_description", error=result['error']),
             color=0xe74c3c
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -9355,62 +9716,63 @@ buy_reward.autocomplete('reward')(reward_autocomplete)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def leaderboard(interaction: discord.Interaction):
     await track_command_usage(interaction)
-    
+
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+
     top_users = reward_db.get_leaderboard(10)
-    user_rank = reward_db.get_user_rank(interaction.user.id)
-    
+    user_rank = reward_db.get_user_rank(user_id)
+
     embed = discord.Embed(
-        title="🏆 Leaderboard - Top Users",
-        description="Top 10 users by total points",
+        title=get_translation(ui_lang, "LEADERBOARD.title"),
+        description=get_translation(ui_lang, "LEADERBOARD.description"),
         color=0xf1c40f
     )
-    
+
     if not top_users:
-        embed.description = "No users found!"
+        embed.description = get_translation(ui_lang, "LEADERBOARD.no_users")
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
-    
+
     leaderboard_text = ""
     for i, user_data in enumerate(top_users, 1):
-        # Get rank emoji
-        if i == 1:
-            rank_emoji = "🥇"
-        elif i == 2:
-            rank_emoji = "🥈"
-        elif i == 3:
-            rank_emoji = "🥉"
-        else:
-            rank_emoji = f"{i}."
-        
-        # Highlight current user
-        highlight = "**" if user_data['user_id'] == interaction.user.id else ""
-        
-        leaderboard_text += f"{rank_emoji} {highlight}{user_data['username']}{highlight} - {user_data['points']:,} 💎\n"
-    
+        rank_emoji = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, f"{i}.")
+
+        # Try to refresh the username from Discord
+        try:
+            member = await client.fetch_user(user_data["user_id"])
+            username = member.display_name or member.name
+        except:
+            username = user_data.get("username", f"User {user_data['user_id']}")
+
+        highlight = "**" if user_data['user_id'] == user_id else ""
+        leaderboard_text += f"{rank_emoji} {highlight}{username}{highlight} - {user_data['points']:,} 💎\n"
+
     embed.add_field(
-        name="Top Users",
+        name=get_translation(ui_lang, "LEADERBOARD.field_top_users"),
         value=leaderboard_text,
         inline=False
     )
-    
-    # Show user's rank if not in top 10
+
     if user_rank and user_rank > 10:
         embed.add_field(
-            name="Your Rank",
+            name=get_translation(ui_lang, "LEADERBOARD.field_your_rank"),
             value=f"#{user_rank}",
             inline=True
         )
-    
-    # Add statistics
+
     total_users = reward_db.get_total_users()
     total_points = reward_db.get_total_points_distributed()
-    
+
     embed.add_field(
-        name="📊 Statistics",
-        value=f"Total Users: {total_users:,}\nAll Points Earned: {total_points:,}",
+        name=get_translation(ui_lang, "LEADERBOARD.field_statistics"),
+        value=(
+            get_translation(ui_lang, "LEADERBOARD.stat_total_users", total_users=f"{total_users:,}") + "\n" +
+            get_translation(ui_lang, "LEADERBOARD.stat_total_points", total_points=f"{total_points:,}")
+        ),
         inline=False
     )
-    
+
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @tree.command(name="profile", description="View your complete translation profile and statistics")
@@ -9418,363 +9780,243 @@ async def leaderboard(interaction: discord.Interaction):
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def profile(interaction: discord.Interaction):
     await track_command_usage(interaction)
-    
+
     try:
         user_id = interaction.user.id
         username = interaction.user.display_name
-        guild_id = interaction.guild_id
-        
-        # Get user data from all databases
+        ui_lang = await get_user_ui_language(user_id)
+
         reward_user_data = reward_db.get_or_create_user(user_id, username)
         achievement_stats = achievement_db.get_user_stats(user_id)
         user_achievements = achievement_db.get_user_achievements(user_id)
-        
-        # Get database stats safely
+
         try:
             db_stats = await db.get_user_stats(user_id)
-        except Exception as e:
-            logger.error(f"Error getting database stats: {e}")
-            db_stats = {
-                'total_translations': 0,
-                'monthly_translations': 0,
-                'monthly_chars': 0,
-                'monthly_voice': 0,
-                'is_premium': False
-            }
-        
-        # Get user limits and tier info
+        except:
+            db_stats = {}
+
         try:
-            if hasattr(tier_handler, 'get_limits') and asyncio.iscoroutinefunction(tier_handler.get_limits):
-                limits = await tier_handler.get_limits(user_id)
-            else:
-                limits = tier_handler.get_limits(user_id) if hasattr(tier_handler, 'get_limits') else {'text_limit': 50, 'voice_limit': 5}
-        except Exception as e:
-            logger.error(f"Error getting limits: {e}")
+            limits = await tier_handler.get_limits(user_id) if asyncio.iscoroutinefunction(tier_handler.get_limits) else tier_handler.get_limits(user_id)
+        except:
             limits = {'text_limit': 50, 'voice_limit': 5}
-        
-        # Check premium status
-        is_premium = user_id in tier_handler.premium_users if hasattr(tier_handler, 'premium_users') else False
-        
-        # Get total points including achievements
+
+        is_free = user_id in getattr(tier_handler, 'free_users', [])
+        is_basic = user_id in getattr(tier_handler, 'basic_users', [])
+        is_premium = user_id in getattr(tier_handler, 'premium_users', [])
+        is_pro = user_id in getattr(tier_handler, 'pro_users', [])
+
+        MEDIA_LIMITS_MB = {
+            "free": 4,
+            "basic": 8,
+            "premium": 20,
+            "pro": 50
+        }
+
+        if is_pro:
+            tier_key = "pro"
+        elif is_premium:
+            tier_key = "premium"
+        elif is_basic:
+            tier_key = "basic"
+        else:
+            tier_key = "free"
+
+        media_limit = MEDIA_LIMITS_MB[tier_key]
+
         total_points = reward_db.get_total_points_including_achievements(user_id)
-        uncashed_points, uncashed_achievements = reward_db.get_uncashed_achievement_points(user_id)
-        
-        # Get rank information safely
-        try:
-            from achievement_system import get_rank_from_points
-            rank_info = get_rank_from_points(total_points)
-        except Exception as e:
-            logger.error(f"Error getting rank: {e}")
-            rank_info = {'name': 'Newcomer', 'emoji': '🆕', 'color': 0x95a5a6}
-        
-        # Calculate comprehensive statistics
+        uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
+
+        from achievement_system import get_rank_from_points, get_rarest_achievement, get_next_milestone, RARITY_INFO
+        rank_info = get_rank_from_points(total_points)
+
+        # Re-apply translation for rank after calling the non-internationalized get_rank_from_points
+        rank_display_name = get_translation(ui_lang, f"RANKS.{rank_info['name']}", default=f"{rank_info['emoji']} {rank_info['name']}")
+
+        if not rank_info or rank_info.get("emoji") == "⚪":
+            rank_info = {
+                "name": get_translation(ui_lang, "PROFILE.unranked", default="Unranked"),
+                "emoji": "🔘",
+                "color": 0x95a5a6
+            }
+
         total_translations = max(
             db_stats.get('total_translations', 0),
             achievement_stats.get('total_translations', 0),
             reward_user_data.get('total_translations', 0)
         )
-        
         voice_sessions = max(
             achievement_stats.get('voice_sessions', 0),
             reward_user_data.get('total_sessions', 0)
         )
-        
         total_usage_hours = reward_user_data.get('total_usage_hours', 0.0)
         languages_used = achievement_stats.get('languages_used', [])
-        unique_languages = len(languages_used)
-        
-        # Get active voice session info
-        voice_session_info = None
-        if guild_id and guild_id in voice_translation_sessions:
-            session = voice_translation_sessions[guild_id]
-            if 'session_start' in session:
-                session_duration_seconds = (datetime.now() - session['session_start']).total_seconds()
-                voice_limit_seconds = limits.get('voice_limit', 5) * 60
-                
-                if voice_limit_seconds == float('inf'):
-                    voice_remaining_seconds = float('inf')
-                else:
-                    voice_remaining_seconds = max(0, voice_limit_seconds - session_duration_seconds)
-                
-                session_duration_minutes = session_duration_seconds / 60
-                if voice_remaining_seconds == float('inf'):
-                    voice_session_info = f"Active session: {session_duration_minutes:.1f} min (Unlimited remaining)"
-                elif voice_remaining_seconds > 0:
-                    voice_remaining_minutes = voice_remaining_seconds / 60
-                    voice_session_info = f"Active session: {session_duration_minutes:.1f} min ({voice_remaining_minutes:.1f} min remaining)"
-                else:
-                    voice_session_info = f"Active session: {session_duration_minutes:.1f} min (Time expired)"
-        
-        # Create main profile embed
+
         embed = discord.Embed(
-            title=f"👤 {username}'s Translation Profile",
+            title=get_translation(ui_lang, "PROFILE.title", username=username),
             color=rank_info.get('color', 0x3498db)
         )
-        
-        # Add user avatar if available
+
         if interaction.user.avatar:
             embed.set_thumbnail(url=interaction.user.avatar.url)
-        
-        # Rank and Points Section
-        points_display = f"💎 **{reward_user_data.get('points', 0):,}** activity points"
+
+        points_display = get_translation(ui_lang, "PROFILE.points_activity", points=f"{reward_user_data.get('points', 0):,}")
         if uncashed_points > 0:
-            points_display += f"\n🏆 **{uncashed_points:,}** achievement points"
-            points_display += f"\n✨ **{total_points:,}** total points"
-        
+            points_display += "\n" + get_translation(ui_lang, "PROFILE.points_achievement", points=f"{uncashed_points:,}")
+            points_display += "\n" + get_translation(ui_lang, "PROFILE.points_total", points=f"{total_points:,}")
+
         embed.add_field(
-            name="🏆 Rank & Status",
-            value=(
-                f"{rank_info.get('emoji', '🆕')} **{rank_info.get('name', 'Newcomer')}**\n"
-                f"{points_display}\n"
-                f"{'⭐ Premium Member' if is_premium else '🆓 Free Tier'}"
+            name=get_translation(ui_lang, "PROFILE.rank_title"),
+            value=f"**{rank_display_name}**\n{points_display}",
+            inline=True
+            )
+
+        embed.add_field(
+            name=get_translation(ui_lang, "PROFILE.usage_title"),
+            value=get_translation(
+                ui_lang,
+                "PROFILE.usage_value",
+                translations=f"{total_translations:,}",
+                sessions=f"{voice_sessions:,}",
+                hours=f"{total_usage_hours:.1f}",
+                languages=len(languages_used)
             ),
             inline=True
         )
-        
-        # Usage Statistics
-        embed.add_field(
-            name="📊 Usage Statistics",
-            value=(
-                f"📝 **{total_translations:,}** translations\n"
-                f"🎤 **{voice_sessions:,}** voice sessions\n"
-                f"⏱️ **{total_usage_hours:.1f}** hours used\n"
-                f"🌍 **{unique_languages}** languages"
-            ),
-            inline=True
-        )
-        
-        # ...existing code...
-        try:
-            text_limit_display = "Unlimited" if limits.get('text_limit') == float('inf') else f"{limits.get('text_limit', 50):,} chars"
-            # Convert seconds to minutes for display
-            if limits.get('voice_limit') == float('inf'):
-                voice_limit_display = "Unlimited"
-            else:
-                voice_limit_minutes = int(limits.get('voice_limit', 5) // 60)
-                voice_limit_display = f"{voice_limit_minutes} min"
-        except Exception:
-            text_limit_display = "50 chars"
-            voice_limit_display = "5 min"
-        # ...existing code...
-        
-        # Get remaining time for today
-        try:
-            monthly_chars = db_stats.get('monthly_chars', 0)
-            monthly_voice = db_stats.get('monthly_voice', 0)
 
-            # Text translation: only per-translation limit matters
-            if limits.get('text_limit') == float('inf'):
-                remaining_chars = "Unlimited per translation"
-            else:
-                remaining_chars = f"{limits.get('text_limit', 50):,} chars per translation"
+        try:
+            text_limit_val = limits.get("text_limit", 50)
+            voice_limit_val = limits.get("voice_limit", 5)
 
-            # Voice translation: daily limit
-            if limits.get('voice_limit') == float('inf'):
-                remaining_voice = "Unlimited"
+            text_limit_display = get_translation(ui_lang, "PROFILE.limit_unlimited") if text_limit_val == float("inf") else f"{text_limit_val:,} chars"
+
+            daily_usage = await db.get_daily_usage(user_id)
+            used_voice = daily_usage.get("voice_seconds", 0)
+            remaining_voice_seconds = max(0, voice_limit_val - used_voice)
+
+            if voice_limit_val == float("inf"):
+                remaining_voice = get_translation(ui_lang, "PROFILE.limit_unlimited")
             else:
-                daily_usage = await db.get_daily_usage(user_id)
-                remaining_voice_seconds = max(0, (limits.get('voice_limit', 5)) - daily_usage.get('voice_seconds', 0))
-                  # ...existing code...
-                remaining_voice_seconds = max(0, (limits.get('voice_limit', 5)) - daily_usage.get('voice_seconds', 0))
                 minutes = int(remaining_voice_seconds // 60)
                 seconds = int(remaining_voice_seconds % 60)
-                if minutes > 0:
-                    remaining_voice = f"{minutes} min {seconds} sec left today"
-                else:
-                    remaining_voice = f"{seconds} sec left today"
-                # ...existing code...
-            remaining_display = f"📝 {remaining_chars}\n🎤 {remaining_voice}"
-        except Exception as e:
-            logger.error(f"Error calculating remaining usage: {e}")
+                remaining_voice = f"{minutes} min {seconds} sec"
+
+            remaining_display = get_translation(
+                ui_lang,
+                "PROFILE.limit_remaining",
+                chars=text_limit_display,
+                voice=remaining_voice
+            )
+        except:
             remaining_display = "N/A"
-# ...existing code...
-        except Exception as e:
-            logger.error(f"Error calculating remaining usage: {e}")
-            remaining_display = "N/A"
-        
+
         embed.add_field(
-            name="⚙️ Current Limits",
-            value=(
-                f"📝 Text: **{text_limit_display}**\n"
-                f"🎤 Voice: **{voice_limit_display}**\n"
-                f"📅 Today remaining:\n{remaining_display}"
-            ),
+            name=get_translation(ui_lang, "PROFILE.limit_title"),
+            value=remaining_display,
             inline=True
         )
-        
-        # Achievement Progress - Use correct total from ACHIEVEMENTS
-        from achievement_system import ACHIEVEMENTS
-        total_achievements = len(ACHIEVEMENTS)
-        achievement_count = len(user_achievements)
-        achievement_percentage = int((achievement_count / total_achievements) * 100) if total_achievements > 0 else 0
-        
-        # Get badges safely
-        try:
-            badges = reward_db.get_user_badges(user_id, [ach['id'] for ach in user_achievements], total_points)
-            badge_count = len(badges) if badges else 0
-        except Exception as e:
-            logger.error(f"Error getting badges: {e}")
-            badge_count = 0
-        
+
+        tier_emoji = {
+            "pro": "💎",
+            "premium": "💠",
+            "basic": "🥉",
+            "free": "🪙"
+        }.get(tier_key, "🪙")
+
         embed.add_field(
-            name="🎯 Achievement Progress",
-            value=(
-                f"🏅 **{achievement_count}/{total_achievements}** unlocked\n"
-                f"📈 **{achievement_percentage}%** complete\n"
-                f"🎖️ **{badge_count}** badges earned"
-            ),
+            name=get_translation(ui_lang, "PROFILE.current_tier_title"),
+            value=f"{tier_emoji} {tier_key.capitalize()}",
+            inline=False
+        )
+
+        text_limit_display = "Unlimited" if text_limit_val == float("inf") else f"{text_limit_val:,} chars"
+        voice_limit_display = "Unlimited" if voice_limit_val == float("inf") else f"{voice_limit_val:,} seconds"
+        image_limit_display = f"{media_limit} MB"
+        audio_limit_display = f"{media_limit} MB"
+
+        tier_limits_lines = [
+            f"📝 Text Limit: {text_limit_display}",
+            f"🎹 Voice Limit: {voice_limit_display}",
+            f"🖼 Image Limit: {image_limit_display}",
+            f"🎧 Audio Limit: {audio_limit_display}"
+        ]
+
+        embed.add_field(
+            name=get_translation(ui_lang, "PROFILE.tier_limits_title"),
+            value="\n".join(tier_limits_lines),
+            inline=False
+        )
+
+        if user_achievements:
+            achievement_text = get_translation(ui_lang, "PROFILE.achievements_value", count=len(user_achievements))
+            rarest = get_rarest_achievement(user_id)
+            if rarest:
+                rarity_display = RARITY_INFO.get(rarest["rarity"], rarest["rarity"])
+
+            milestone = get_next_milestone(total_points)
+            if milestone:
+                current = milestone.get('current', total_points)
+                required = milestone.get('required', milestone.get('next_rank_points', '?'))
+                bar_len = 10
+                ratio = min(current / required, 1.0) if required else 0
+                filled = int(bar_len * ratio)
+                bar = "█" * filled + "░" * (bar_len - filled)
+                achievement_text += f"\nProgress: {bar} {current}/{required} XP"
+        else:
+            achievement_text = get_translation(ui_lang, "PROFILE.achievements_value", count=0)
+
+        embed.add_field(
+            name=get_translation(ui_lang, "PROFILE.achievements_title"),
+            value=achievement_text,
             inline=True
         )
-        
-        # Most Used Languages (top 5)
+
         if languages_used:
-            language_display = []
-            for lang_code in languages_used[:5]:
-                try:
-                    lang_name = languages.get(lang_code, lang_code)
-                    flag = flag_mapping.get(lang_code, '🌐')
-                    language_display.append(f"{flag} {lang_name}")
-                except Exception as e:
-                    logger.error(f"Error formatting language {lang_code}: {e}")
-                    language_display.append(f"🌐 {lang_code}")
-            
+            top_lang = languages_used[0]
+            top_name = get_translation(ui_lang, f"LANGUAGES.{top_lang}", default=languages.get(top_lang, top_lang))
+            top_flag = flag_mapping.get(top_lang, "🌐")
             embed.add_field(
-                name="🌍 Languages Used",
-                value="\n".join(language_display),
+                name=get_translation(ui_lang, "PROFILE.most_used_title"),
+                value=get_translation(ui_lang, "PROFILE.most_used_value", flag=top_flag, language=top_name),
                 inline=True
             )
         else:
             embed.add_field(
-                name="🌍 Languages Used",
-                value="None yet - start translating!",
+                name=get_translation(ui_lang, "PROFILE.most_used_title"),
+                value=get_translation(ui_lang, "PROFILE.languages_empty"),
                 inline=True
             )
-        
-        # Recent Activity Summary
-        recent_activity = []
-        if total_translations > 0:
-            recent_activity.append(f"📝 Total translations: {total_translations:,}")
-        if voice_sessions > 0:
-            recent_activity.append(f"🎤 Voice sessions: {voice_sessions:,}")
-        
-        # Add voice session info if active
-        if voice_session_info:
-            recent_activity.append(f"🎤 {voice_session_info}")
-        
-        # Handle daily claim safely
-        try:
-            last_claim = reward_user_data.get('last_daily_claim')
-            if last_claim:
-                try:
-                    from datetime import datetime
-                    if isinstance(last_claim, str):
-                        last_claim_dt = datetime.fromisoformat(last_claim)
-                    else:
-                        last_claim_dt = datetime.strptime(str(last_claim), '%Y-%m-%d')
-                    
-                    time_since_claim = datetime.now() - last_claim_dt
-                    hours_since_claim = time_since_claim.total_seconds() / 3600
-                    
-                    if hours_since_claim < 24:
-                        hours_until_next = 24 - hours_since_claim
-                        if hours_until_next < 1:
-                            recent_activity.append("🎁 Daily reward: Available soon")
-                        else:
-                            recent_activity.append(f"🎁 Daily reward: {hours_until_next:.1f}h remaining")
-                    else:
-                        recent_activity.append("🎁 Daily reward: Available now!")
-                except Exception:
-                    recent_activity.append("🎁 Daily reward: Available")
-            else:
-                recent_activity.append("🎁 Daily reward: Available")
-        except Exception as e:
-            logger.error(f"Error handling daily claim: {e}")
-            recent_activity.append("🎁 Daily reward: Available")
-        
+
+        if languages_used:
+            lang_lines = []
+            for code in languages_used[:10]:
+                name = get_translation(ui_lang, f"LANGUAGES.{code}", default=languages.get(code, code))
+                flag = flag_mapping.get(code, "🌐")
+                lang_lines.append(f"{flag} {name}")
+            lang_value = "\n".join(lang_lines)
+        else:
+            lang_value = get_translation(ui_lang, "PROFILE.languages_empty")
+
         embed.add_field(
-            name="📅 Recent Activity",
-            value="\n".join(recent_activity) if recent_activity else "No recent activity",
-            inline=True
+            name=get_translation(ui_lang, "PROFILE.languages_title"),
+            value=lang_value,
+            inline=False
         )
-        
-        # Active Rewards/Boosts
-        active_rewards = []
-        try:
-            active_reward_list = reward_db.get_active_rewards(user_id)
-            for reward in active_reward_list:
-                reward_name = reward.get('name', 'Unknown Reward')
-                active_rewards.append(f"✨ {reward_name}")
-        except Exception as e:
-            logger.error(f"Error checking active rewards: {e}")
-        
-        if active_rewards:
-            embed.add_field(
-                name="🎁 Active Rewards",
-                value="\n".join(active_rewards),
-                inline=True
-            )
-        
-        # Add progress to next rank
-        try:
-            from achievement_system import RANK_BADGES
-            next_rank_info = None
-            points_needed = 0
-            current_points = total_points
-            
-            # Find the next rank
-            for min_points in sorted(RANK_BADGES.keys()):
-                if current_points < min_points:
-                    next_rank_info = RANK_BADGES[min_points]
-                    points_needed = min_points - current_points
-                    break
-            
-            if next_rank_info and points_needed > 0:
-                next_name = next_rank_info.get('name', 'Unknown Rank')
-                next_emoji = next_rank_info.get('emoji', '🎯')
-                
-                embed.add_field(
-                    name="📈 Next Rank Progress",
-                    value=(
-                        f"{next_emoji} **{next_name}**\n"
-                        f"Need **{points_needed:,}** more points"
-                    ),
-                    inline=True
-                )
-            else:
-                embed.add_field(
-                    name="📈 Rank Status",
-                    value="🏆 **Maximum rank achieved!**\nCongratulations!",
-                    inline=True
-                )
-        
-        except Exception as e:
-            logger.error(f"Error calculating next rank: {e}")
-            embed.add_field(
-                name="📈 Rank Progress",
-                value="Keep translating to unlock new ranks!",
-                inline=True
-            )
-        
-        # Add footer with context info
-        if interaction.guild:
-            embed.set_footer(
-                text=f"Server: {interaction.guild.name} • Use /achievements for detailed progress",
-                icon_url=interaction.guild.icon.url if interaction.guild.icon else None
-            )
-        else:
-            embed.set_footer(text="📱 User Profile • Use /achievements for detailed progress")
-        
-        # Create view with action buttons
-        view = ProfileView(user_id, is_premium)
-        
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-        
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
     except Exception as e:
-        logger.error(f"Profile command error: {e}")
-        await interaction.response.send_message(
-            "❌ An error occurred while loading your profile. Please try again later.",
-            ephemeral=True
+        logger.error(f"/profile error: {e}")
+        try:
+            ui_lang = await get_user_ui_language(interaction.user.id)
+        except:
+            ui_lang = "en"
+        error_embed = discord.Embed(
+            title=get_translation(ui_lang, "PROFILE.error_title"),
+            description=get_translation(ui_lang, "PROFILE.error_desc", error=str(e)),
+            color=0xFF0000
         )
+        await interaction.response.send_message(embed=error_embed, ephemeral=True)
+
 
 class ProfileView(discord.ui.View):
     def __init__(self, user_id: int, is_premium: bool):
@@ -10735,28 +10977,37 @@ async def gift_points(interaction: discord.Interaction, user: discord.User, amou
     
     sender_id = interaction.user.id
     receiver_id = user.id
-    
-    # Basic validation
+    ui_lang = await get_user_ui_language(sender_id)
+
+    # ❌ Cannot gift to yourself
     if sender_id == receiver_id:
-        await interaction.response.send_message("❌ You can't gift points to yourself!", ephemeral=True)
+        await interaction.response.send_message(
+            get_translation(ui_lang, "GIFT.error_self_gift"),
+            ephemeral=True
+        )
         return
     
+    # ❌ Invalid amount
     if amount < 1:
-        await interaction.response.send_message("❌ Gift amount must be at least 1 point!", ephemeral=True)
+        await interaction.response.send_message(
+            get_translation(ui_lang, "GIFT.error_invalid_amount"),
+            ephemeral=True
+        )
         return
     
-    # Check if sender has enough points
+    # Check balance
     sender_data = reward_db.get_or_create_user(sender_id, interaction.user.display_name)
     if sender_data['points'] < amount:
         embed = discord.Embed(
-            title="❌ Insufficient Points",
-            description=f"You need {amount:,} points but only have {sender_data['points']:,} points.",
+            title=get_translation(ui_lang, "GIFT.error_title"),
+            description=get_translation(ui_lang, "GIFT.error_insufficient_points", 
+                                         needed=f"{amount:,}", current=f"{sender_data['points']:,}"),
             color=0xe74c3c
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
     
-    # Perform the transfer
+    # Transfer points
     success = reward_db.transfer_points(
         sender_id,
         receiver_id,
@@ -10766,44 +11017,46 @@ async def gift_points(interaction: discord.Interaction, user: discord.User, amou
     
     if success:
         embed = discord.Embed(
-            title="🎁 Gift Sent Successfully!",
-            description=f"You gifted **{amount:,} points** to {user.display_name}!",
+            title=get_translation(ui_lang, "GIFT.success_title"),
+            description=get_translation(ui_lang, "GIFT.success_description", 
+                                         amount=f"{amount:,}", receiver=user.display_name),
             color=0x2ecc71
         )
         
         embed.add_field(
-            name="💎 Your Remaining Points",
+            name=get_translation(ui_lang, "GIFT.field_remaining"),
             value=f"{sender_data['points'] - amount:,}",
             inline=True
         )
         
         embed.add_field(
-            name="🎉 Generous Gift!",
-            value="Thank you for supporting the community!",
+            name=get_translation(ui_lang, "GIFT.field_thanks"),
+            value=get_translation(ui_lang, "GIFT.value_thanks"),
             inline=True
         )
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
         
-        # Try to notify the receiver
+        # Try DM-ing the receiver
         try:
             receiver_embed = discord.Embed(
-                title="🎁 You Received a Gift!",
-                description=f"{interaction.user.display_name} gifted you **{amount:,} points**!",
+                title=get_translation(ui_lang, "GIFT.notify_title"),
+                description=get_translation(ui_lang, "GIFT.notify_description", 
+                                             sender=interaction.user.display_name, amount=f"{amount:,}"),
                 color=0x2ecc71
             )
             receiver_embed.add_field(
-                name="💎 Use Your Points",
-                value="Visit `/shop` to spend your points on rewards and upgrades!",
+                name=get_translation(ui_lang, "GIFT.notify_shop_title"),
+                value=get_translation(ui_lang, "GIFT.notify_shop_description"),
                 inline=False
             )
             await user.send(embed=receiver_embed)
         except:
-            pass  # User has DMs disabled
+            pass  # user has DMs closed
     else:
         embed = discord.Embed(
-            title="❌ Gift Failed",
-            description="Failed to transfer points. Please try again.",
+            title=get_translation(ui_lang, "GIFT.failed_title"),
+            description=get_translation(ui_lang, "GIFT.failed_description"),
             color=0xe74c3c
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -10815,191 +11068,131 @@ async def active_rewards(interaction: discord.Interaction):
     await track_command_usage(interaction)
     
     user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
     active_rewards = reward_db.get_active_rewards(user_id)
     
     embed = discord.Embed(
-        title="🎁 Your Active Rewards",
+        title=get_translation(ui_lang, "REWARDS.title"),
         color=0x3498db
     )
     
     if not active_rewards:
-        embed.description = "You don't have any active rewards.\nUse `/shop` to browse available rewards!"
+        embed.description = get_translation(ui_lang, "REWARDS.no_active")
         embed.add_field(
-            name="💡 Tip",
-            value="Claim your daily points with `/daily` to earn rewards!",
+            name=get_translation(ui_lang, "REWARDS.tip_title"),
+            value=get_translation(ui_lang, "REWARDS.tip_value"),
             inline=False
         )
     else:
         for reward in active_rewards:
             expires_timestamp = int(datetime.fromisoformat(reward['expires_at']).timestamp())
-            
             embed.add_field(
-                name=f"✨ {reward['name']}",
-                value=f"Expires: <t:{expires_timestamp}:R>\n(<t:{expires_timestamp}:f>)",
+                name=get_translation(ui_lang, "REWARDS.reward_name", name=reward["name"]),
+                value=get_translation(ui_lang, "REWARDS.reward_expiry", 
+                                      relative=f"<t:{expires_timestamp}:R>", 
+                                      absolute=f"<t:{expires_timestamp}:f>"),
                 inline=False
             )
     
-    # Show permanent benefits for premium users
+    # Show permanent premium benefits
     if user_id in tier_handler.premium_users:
         embed.add_field(
-            name="⭐ Premium Benefits (Permanent)",
-            value="• 2.5x daily rewards\n• 10x usage point multiplier\n• Enhanced Voice Chat V2 access",
+            name=get_translation(ui_lang, "REWARDS.premium_title"),
+            value=get_translation(ui_lang, "REWARDS.premium_value"),
             inline=False
         )
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
 @tree.command(name="transactions", description="View your recent point transactions")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def transactions(interaction: discord.Interaction):
     await track_command_usage(interaction)
-    
+
     user_id = interaction.user.id
-    transactions = reward_db.get_point_transactions(user_id, 15)
-    
+    username = interaction.user.display_name
+    ui_lang = await get_user_ui_language(user_id)
+
+    all_transactions = reward_db.get_point_transactions(user_id, 50)  # Pull more to allow filtering
+    INCLUDED_TYPES = {"daily", "transfer_in", "transfer_out", "spent", "achievement", "grant"}
+
+    # Filter relevant transactions
+    transactions = [
+        txn for txn in all_transactions
+        if txn["type"] in INCLUDED_TYPES
+    ][:15]  # Limit to 15 after filtering
+
     embed = discord.Embed(
-        title="💳 Recent Transactions",
-        description="Your last 15 point transactions",
+        title=get_translation(ui_lang, "TRANSACTIONS.title"),
+        description=get_translation(ui_lang, "TRANSACTIONS.description"),
         color=0x3498db
     )
-    
+
     if not transactions:
-        embed.description = "No transactions found."
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return
-    
-    transaction_text = ""
-    for transaction in transactions:
-        # Format amount with + or - sign
-        amount_str = f"+{transaction['amount']}" if transaction['amount'] > 0 else str(transaction['amount'])
-        
-        # Get emoji based on transaction type
-        type_emoji = {
-            'earned': '💰',
-            'daily': '🎁',
-            'spent': '🛍️',
-            'transfer_in': '📥',
-            'transfer_out': '📤'
-        }.get(transaction['type'], '💎')
-        
-        # Format timestamp
-        try:
-            timestamp = datetime.fromisoformat(transaction['timestamp'])
-            time_str = timestamp.strftime("%m/%d %H:%M")
-        except:
-            time_str = "Unknown"
-        
-        transaction_text += f"{type_emoji} {amount_str} - {transaction['description']} ({time_str})\n"
-    
+        embed.description = get_translation(ui_lang, "TRANSACTIONS.no_transactions")
+    else:
+        lines = []
+        for txn in transactions:
+            amount = txn["amount"]
+            sign = "+" if amount > 0 else ""
+            amount_str = f"{sign}{amount:,}"
+
+            emoji = {
+                "daily": "🎁",
+                "transfer_in": "📥",
+                "transfer_out": "📤",
+                "spent": "🛍️",
+                "achievement": "🏅",
+                "grant": "💎"
+            }.get(txn["type"], "💠")
+
+            try:
+                timestamp = datetime.fromisoformat(txn["timestamp"])
+                time_str = f"<t:{int(timestamp.timestamp())}:R>"
+            except:
+                time_str = get_translation(ui_lang, "TRANSACTIONS.unknown_time")
+
+            lines.append(
+                get_translation(
+                    ui_lang, "TRANSACTIONS.entry_line",
+                    emoji=emoji,
+                    amount=amount_str,
+                    description=txn["description"],
+                    time=time_str
+                )
+            )
+
+        embed.add_field(
+            name=get_translation(ui_lang, "TRANSACTIONS.field_history"),
+            value="\n".join(lines)[:1024],
+            inline=False
+        )
+
+    user_data = reward_db.get_or_create_user(user_id, username)
     embed.add_field(
-        name="Transaction History",
-        value=transaction_text[:1024],  # Discord field limit
-        inline=False
-    )
-    
-    # Add current balance
-    user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
-    embed.add_field(
-        name="💎 Current Balance",
-        value=f"{user_data['points']:,} points",
+        name=get_translation(ui_lang, "TRANSACTIONS.field_balance"),
+        value=get_translation(
+            ui_lang, "TRANSACTIONS.balance_value",
+            points=f"{user_data['points']:,}"
+        ),
         inline=True
     )
-    
+
     await interaction.response.send_message(embed=embed, ephemeral=True)
-@client.event
-async def on_guild_join(guild):
-    """Track when bot joins a new server and award achievements - LINKED TO ACHIEVEMENT SYSTEM"""
-    try:
-        logger.info(f"🎉 Joined new guild: {guild.name} (ID: {guild.id}) with {guild.member_count} members")
-        
-        # Try to identify who invited the bot
-        inviter_id = await identify_bot_inviter(guild)
-        
-        if inviter_id:
-            logger.info(f"Identified inviter: {inviter_id}")
-            
-            # 🎯 PROCESS INVITE AND LINK TO ACHIEVEMENT SYSTEM
-            await process_successful_invite(inviter_id, guild)
-            await check_server_inviter_achievement(inviter_id)
-        
-        # Send welcome message to the server
-        await send_welcome_message(guild)
-        
-    except Exception as e:
-        logger.error(f"Error in on_guild_join: {e}")
 
-async def identify_bot_inviter(guild):
-    """Try to identify who invited the bot"""
-    try:
-        # Method 1: Check audit logs (most reliable)
-        if guild.me.guild_permissions.view_audit_log:
-            async for entry in guild.audit_logs(action=discord.AuditLogAction.bot_add, limit=10):
-                if entry.target and entry.target.id == client.user.id:
-                    logger.info(f"Found inviter via audit log: {entry.user.name} ({entry.user.id})")
-                    return entry.user.id
-        
-        # Method 2: Check recent invite requests (fallback)
-        recent_requester = get_recent_invite_requester(guild)
-        if recent_requester:
-            return recent_requester
-        
-        # Method 3: Use guild owner as last resort
-        if guild.owner:
-            logger.info(f"Using guild owner as fallback inviter: {guild.owner.name}")
-            return guild.owner.id
-        
-        return None
-        
-    except Exception as e:
-        logger.error(f"Error identifying bot inviter: {e}")
-        return None
-
-async def send_welcome_message(guild):
-    """Send welcome message to new guild"""
-    try:
-        # Find a suitable channel
-        channel = None
-        for ch in guild.text_channels:
-            if ch.permissions_for(guild.me).send_messages:
-                if ch.name.lower() in ['general', 'welcome', 'bot-commands']:
-                    channel = ch
-                    break
-        
-        if not channel:
-            # Use first available channel
-            for ch in guild.text_channels:
-                if ch.permissions_for(guild.me).send_messages:
-                    channel = ch
-                    break
-        
-        if channel:
-            embed = discord.Embed(
-                title="🌍 Welcome to Muse!",
-                description="Thanks for adding me! I'm here to help break language barriers.",
-                color=0x2ecc71
-            )
-            
-            embed.add_field(
-                name="🚀 Quick Start",
-                value="• `/translate` - Translate text\n• `/voicechat` - Voice translation\n• `/help` - See all commands",
-                inline=False
-            )
-            
-            await channel.send(embed=embed)
-            
-    except Exception as e:
-        logger.error(f"Error sending welcome message: {e}")
 
 @tree.command(name="invite", description="Get an invite link to add Muse to your server")
 async def invite_command(interaction: discord.Interaction):
     """Generate a trackable invite link"""
     try:
         user_id = interaction.user.id
-        
-        # Store that this user requested an invite (for tracking)
-        store_invite_request(user_id)  # No await needed for JSON version
-        
-        # Create invite URL
+        ui_lang = await get_user_ui_language(user_id)
+
+        # Track who requested the invite (for ambassador achievement)
+        store_invite_request(user_id)
+
+        # Create permission scope
         permissions = discord.Permissions(
             read_messages=True,
             send_messages=True,
@@ -11016,51 +11209,58 @@ async def invite_command(interaction: discord.Interaction):
             permissions=permissions,
             scopes=('bot', 'applications.commands')
         )
-        
+
         embed = discord.Embed(
-            title="📨 Invite Muse to Your Server",
-            description="Click the link below to add Muse to your server!",
+            title=get_translation(ui_lang, "INVITE.title"),
+            description=get_translation(ui_lang, "INVITE.description"),
             color=0x2ecc71
         )
-        
+
         embed.add_field(
-            name="🎁 Referral Bonus",
-            value="You'll earn the **Muse Ambassador** achievement and 120 points when Muse joins a new server!",
+            name=get_translation(ui_lang, "INVITE.bonus_title"),
+            value=get_translation(ui_lang, "INVITE.bonus_description"),
             inline=False
         )
-        
+
         view = discord.ui.View()
         view.add_item(discord.ui.Button(
-            label="Invite Muse",
+            label=get_translation(ui_lang, "INVITE.button_label"),
             url=invite_url,
             style=discord.ButtonStyle.link,
             emoji="🚀"
         ))
-        
+
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-        
+
     except Exception as e:
         logger.error(f"Invite command error: {e}")
-        await interaction.response.send_message("❌ Error generating invite link.", ephemeral=True)
+        await interaction.response.send_message(
+            get_translation(ui_lang, "INVITE.error"),
+            ephemeral=True
+        )
+
 
 @tree.command(name="vote", description="Support Muse by upvoting on bot lists!")
 async def vote_command(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+
     embed = discord.Embed(
-        title="🌟 Support Muse Translator!",
-        description="Upvotes help us grow and unlock new features for everyone.",
+        title=get_translation(ui_lang, "VOTE.title"),
+        description=get_translation(ui_lang, "VOTE.description"),
         color=0xf1c40f
     )
+
     embed.add_field(
-        name="Vote Links",
-        value=(
-            "[Upvote on Top.gg](https://top.gg/bot/1323041248835272724/vote)\n"
-            "[Upvote on Discord Bots](https://discord.bots.gg/bots/1323041248835272724)\n\n"
-            "🌟 **Upvote on Top.gg to earn the 'Muse Supporter' achievement and bonus points!**"
-        ),
+        name=get_translation(ui_lang, "VOTE.field_title"),
+        value=get_translation(ui_lang, "VOTE.field_value"),
         inline=False
     )
-    embed.set_footer(text="Thank you for supporting Muse!")
+
+    embed.set_footer(text=get_translation(ui_lang, "VOTE.footer"))
+
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 @tree.command(name="addbasic", description="[ADMIN] Grant Basic tier access to any Discord user", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
@@ -12308,6 +12508,13 @@ async def get_premium_users_from_db():
             premium_users = {user[0] for user in users}
     
     return premium_users
+# In your main bot startup function
+async def setup_hook():
+    # Your existing setup code...
+    
+    # Load translations
+    load_translations()
+    print(f"Loaded translations for: {', '.join(SUPPORTED_UI_LANGUAGES)}")
 
 def safe_db_operation(operation, *args, **kwargs):
     """Safely execute database operations with error handling"""
