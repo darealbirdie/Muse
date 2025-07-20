@@ -55,7 +55,7 @@ from PIL import Image
 import whisper
 from pydub import AudioSegment
 
-whisper_model = whisper.load_model("base")
+whisper_model = whisper.load_model("tiny")
 
 new_achievements = []
 YOUR_ADMIN_ID = 1192196672437096520
