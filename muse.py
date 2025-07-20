@@ -45,17 +45,7 @@ from reward_system import (
 from discord.ui import View, Button
 from add_streak_column import add_streak_column, check_column_exists
 from i18n.translate import t
-import pytesseract
-import io
-import cv2
-import moviepy as mp
-import asyncio
-from typing import Optional
-from PIL import Image
-import whisper
-from pydub import AudioSegment
 
-whisper_model = whisper.load_model("tiny")
 
 new_achievements = []
 YOUR_ADMIN_ID = 1192196672437096520
@@ -6459,224 +6449,6 @@ async def translate_by_id(
         else:
             await interaction.followup.send(embed=error_embed, ephemeral=True)
 
-# Add autocomplete
-translate_by_id.autocomplete('target_lang')(translated_language_autocomplete)
-@tree.command(name="readimage", description="Extract and translate text from an image file")
-@app_commands.describe(
-    image="Image attachment or URL to read text from",
-    target_lang="Translate extracted text to this language (type to search)"
-)
-@app_commands.autocomplete(target_lang=translated_language_autocomplete)
-async def readimage_command(
-    interaction: discord.Interaction,
-    image: discord.Attachment,
-    target_lang: str
-):
-    user_id = interaction.user.id
-    ui_lang = await get_user_ui_language(user_id)
-    await db.get_or_create_user(user_id, interaction.user.display_name)
-
-    if user_id in tier_handler.pro_users:
-        tier = "pro"
-    elif user_id in tier_handler.premium_users:
-        tier = "premium"
-    elif user_id in tier_handler.basic_users:
-        tier = "basic"
-    else:
-        tier = "free"
-
-    max_size = MEDIA_LIMITS_MB[tier] * 1024 * 1024
-    if image.size > max_size:
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "MEDIAREAD.error_title"),
-            description=get_translation(ui_lang, "MEDIAREAD.error_image_too_large", tier=tier, limit=MEDIA_LIMITS_MB[tier]),
-            color=0xe74c3c
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return
-
-    await interaction.response.defer()
-
-    try:
-        image_bytes = await image.read()
-        pil_image = Image.open(io.BytesIO(image_bytes))
-
-        # Map UI language code to Tesseract language code for OCR
-        tesseract_lang = tesseract_lang_map.get(ui_lang, "eng")
-
-        extracted_text = pytesseract.image_to_string(pil_image, lang=tesseract_lang)
-
-        if not extracted_text.strip():
-            embed = discord.Embed(
-                title=get_translation(ui_lang, "MEDIAREAD.error_title"),
-                description=get_translation(ui_lang, "MEDIAREAD.error_no_text_found"),
-                color=0xe74c3c
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        # Map target language UI code to translation code (Google Translate)
-        target_code = get_language_code(target_lang)
-        if not target_code:
-            embed = discord.Embed(
-                title=get_translation(ui_lang, "MEDIAREAD.error_title"),
-                description=get_translation(ui_lang, "MEDIAREAD.error_invalid_target", language=target_lang),
-                color=0xe74c3c
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        translator = GoogleTranslator(source="auto", target=target_code)
-        translated_text = translator.translate(extracted_text)
-
-        target_name = get_display_language_name(target_code, ui_lang)
-        flag = flag_mapping.get(target_code, "🌐")
-
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "MEDIAREAD.title_image"),
-            description=get_translation(ui_lang, "MEDIAREAD.description"),
-            color=0x2ecc71
-        )
-
-        embed.add_field(
-            name=get_translation(ui_lang, "MEDIAREAD.original_text"),
-            value=extracted_text[:1024],
-            inline=False
-        )
-
-        embed.add_field(
-            name=get_translation(ui_lang, "MEDIAREAD.translated_text", flag=flag, language=target_name),
-            value=translated_text[:1024],
-            inline=False
-        )
-
-        embed.set_footer(text=get_translation(ui_lang, f"MEDIAREAD.footer_{tier}"))
-
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
-    except Exception as e:
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "MEDIAREAD.error_title"),
-            description=get_translation(ui_lang, "MEDIAREAD.error_processing", error=str(e)),
-            color=0xe74c3c
-        )
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
-
-@tree.command(name="readaudio", description="Transcribe and translate speech from an audio file")
-@app_commands.describe(
-    audio="Audio attachment (must be under your tier's limit)",
-    target_lang="Translate transcript to this language (type to search)"
-)
-@app_commands.autocomplete(target_lang=translated_language_autocomplete)
-async def readaudio_command(
-    interaction: discord.Interaction,
-    audio: discord.Attachment,
-    target_lang: str
-):
-    user_id = interaction.user.id
-    ui_lang = await get_user_ui_language(user_id)
-    await db.get_or_create_user(user_id, interaction.user.display_name)
-
-    # Determine user tier for file size limit
-    if user_id in tier_handler.pro_users:
-        tier = "pro"
-    elif user_id in tier_handler.premium_users:
-        tier = "premium"
-    elif user_id in tier_handler.basic_users:
-        tier = "basic"
-    else:
-        tier = "free"
-
-    max_size = MEDIA_LIMITS_MB[tier] * 1024 * 1024
-    if audio.size > max_size:
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "AUDIOREAD.title"),
-            description=get_translation(ui_lang, "AUDIOREAD.error_too_large", tier=tier, limit=MEDIA_LIMITS_MB[tier]),
-            color=0xe74c3c
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return
-
-    await interaction.response.defer()
-
-    audio_path = None
-    wav_path = None
-
-    try:
-        # Save uploaded audio to a temp file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(audio.filename)[-1]) as temp_audio_file:
-            audio_bytes = await audio.read()
-            temp_audio_file.write(audio_bytes)
-            audio_path = temp_audio_file.name
-
-        # Convert to WAV for Whisper
-        wav_path = audio_path.rsplit(".", 1)[0] + ".wav"
-        sound = AudioSegment.from_file(audio_path)
-        sound.export(wav_path, format="wav")
-
-        # Transcribe with Whisper
-        result = whisper_model.transcribe(wav_path)
-        transcription = result.get("text", "").strip()
-
-        if not transcription:
-            embed = discord.Embed(
-                title=get_translation(ui_lang, "AUDIOREAD.title"),
-                description=get_translation(ui_lang, "AUDIOREAD.error_no_text"),
-                color=0xe74c3c
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        # Translate
-        target_code = get_language_code(target_lang)
-        if not target_code:
-            embed = discord.Embed(
-                title=get_translation(ui_lang, "AUDIOREAD.title"),
-                description=get_translation(ui_lang, "AUDIOREAD.error_invalid_language", language=target_lang),
-                color=0xe74c3c
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        translator = GoogleTranslator(source="auto", target=target_code)
-        translated_text = translator.translate(transcription)
-
-        target_name = get_display_language_name(target_code, ui_lang)
-        flag = flag_mapping.get(target_code, "🌐")
-
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "AUDIOREAD.title"),
-            description=get_translation(ui_lang, "AUDIOREAD.description"),
-            color=0x2ecc71
-        )
-        embed.add_field(
-            name=get_translation(ui_lang, "AUDIOREAD.original_text"),
-            value=transcription[:1024],
-            inline=False
-        )
-        embed.add_field(
-            name=get_translation(ui_lang, "AUDIOREAD.translated_text", flag=flag, language=target_name),
-            value=translated_text[:1024],
-            inline=False
-        )
-        embed.set_footer(text=get_translation(ui_lang, f"AUDIOREAD.footer_{tier}"))
-
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
-    except Exception as e:
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "AUDIOREAD.title"),
-            description=get_translation(ui_lang, "AUDIOREAD.error_generic", error=str(e)),
-            color=0xe74c3c
-        )
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
-    finally:
-        if audio_path and os.path.exists(audio_path):
-            os.remove(audio_path)
-        if wav_path and os.path.exists(wav_path):
-            os.remove(wav_path)
 
 @tree.context_menu(name="Read Message")
 @app_commands.allowed_installs(guilds=True, users=True)
@@ -9805,12 +9577,7 @@ async def profile(interaction: discord.Interaction):
         is_premium = user_id in getattr(tier_handler, 'premium_users', [])
         is_pro = user_id in getattr(tier_handler, 'pro_users', [])
 
-        MEDIA_LIMITS_MB = {
-            "free": 4,
-            "basic": 8,
-            "premium": 20,
-            "pro": 50
-        }
+        
 
         if is_pro:
             tier_key = "pro"
@@ -9820,8 +9587,6 @@ async def profile(interaction: discord.Interaction):
             tier_key = "basic"
         else:
             tier_key = "free"
-
-        media_limit = MEDIA_LIMITS_MB[tier_key]
 
         total_points = reward_db.get_total_points_including_achievements(user_id)
         uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
@@ -9930,14 +9695,10 @@ async def profile(interaction: discord.Interaction):
 
         text_limit_display = "Unlimited" if text_limit_val == float("inf") else f"{text_limit_val:,} chars"
         voice_limit_display = "Unlimited" if voice_limit_val == float("inf") else f"{voice_limit_val:,} seconds"
-        image_limit_display = f"{media_limit} MB"
-        audio_limit_display = f"{media_limit} MB"
 
         tier_limits_lines = [
             f"📝 Text Limit: {text_limit_display}",
             f"🎹 Voice Limit: {voice_limit_display}",
-            f"🖼 Image Limit: {image_limit_display}",
-            f"🎧 Audio Limit: {audio_limit_display}"
         ]
 
         embed.add_field(
