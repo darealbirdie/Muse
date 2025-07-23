@@ -414,45 +414,36 @@
     "footer": "Brûk foarbyld: /texttr text:Hello source_lang:en target_lang:es"
   },
   "HELP": {
-    "title": "🤖 Muse Translator - Kommando List",
-    "description": "Hjir binne alle beskikbere kommando's:",
+  "title": "🤖 Muse Translator - Kommando-list",
+  "description": "Hjir binne alle beskikbere kommando's:",
+  "text_title": "📝 Tekst-oersetting",
+  "text_value": "`/texttr [tekst] [boarnetaal] [doeltaal]` - Oerset tekst\n`/read [doeltaal] [berjocht_id]` - Oerset berjocht op basis fan ID\n`/dmtr [brûker] [tekst] [boarnetaal] [doeltaal]` - Stjoer oerset DM {server_only}",
+  "voice_title": "🎤 Lûdkommando's",
+  "voice_value": "`/voice [tekst] [boarnetaal] [doeltaal]` - Tekst nei spraak\n`/speak [tekst] [boarnetaal] [doeltaal]` - Spyl spraak ôf yn stimkanaal {server_only}\n`/voicechat [boarnetaal] [doeltaal]` - Echt-tiid stim-oersetting {server_only}\n`/voicechat2 [taal1] [taal2]` - Ferbettere twa-rjochting stim-oersetting {server_only}",
+  "auto_title": "🔄 Auto-útwikseling (allinnich server)",
+  "auto_value": "`/autotranslate [boarnetaal] [doeltaal]` - Auto-ûntfanger foar dyn berjochten",
+  "reward_title": "💎 Belonningssysteem",
+  "reward_value": "`/daily` - Eask deistige punten\n`/shop` - Blêdzje troch de winkel\n`/buy [beloning]` - Keap beloningen mei punten\n`/profile [brûker]` - Sjoch profiel en statistiken\n`/rewards` - Sjoch aktive beloningen\n`/gift [brûker] [bedrach]` - Jou punten oan oaren",
+  "social_title": "🏆 Sosjaal & Kompetysje",
+  "social_value": "`/leaderboard` - Sjoch top-brûkers neffens punten\n`/achievements` - Sjoch dyn badges en prestaasjes\n`/cashout` - Ruil prestaasjepunten foar winkeljild\n`/transactions` - Sjoch punttransaksje-arsyf",
+  "setup_title": "⚙️ Ynstellings & Kontrôle",
+  "setup_value_user": "`/stop` - Stop aktive oersettingssesjes",
+  "setup_value_admin": "`/setchannel [kanaal_id]` - Stel oersettings- en taaltoegang yn\n`/stop` - Stop aktive oersettingssesjes",
+  "settings_title": "🎛️ Ynstellings",
+  "settings_value": "`/hide` - Ferlies de orizjinele tekst yn oersettingen\n`/show` - Wize orizjinele tekst yn oersettingen\n`/preferences` - Pas taalfoarkarren oan\n`/history` - Sjoch oersettingsskiednis",
+  "info_title": "ℹ️ Ynformaasje",
+  "info_value": "`/list` - Wize alle stipe talen\n`/upgrade` - Krij premium tagong ynformaasje\n`/invite` - Krij bot útnûgingslinks\n`/vote` - Krij stemlinks foar bot\n`/help` - Wize dizze kommando-list",
+  "context_title": "📱 Kontekstmenu",
+  "readimage_title": "🖼️ Ofbylding-oersetting",
+  "readimage_value": "`/readimage [doeltaal]` - Uttreksje en oerset tekst út opladen ôfbyldings mei OCR",
+  "context_value": "`Rjochtsklik op berjocht → Apps → Lês Berjocht` - Oerset elk berjocht",
+  "tips_title": "💡 Brûktips",
+  "tips_value": "• Brûk `auto` as boarne-taal foar automatyske deteksje\n• Taal-koade: `en`, `es`, `fr` of nammen: English, Spanish, French\n• Fertsjinje deistige punten en keap tydlike premium-funksjes!\n• Foarbyld: `/texttr text:'Hello' source_lang:en target_lang:fy`",
+  "footer_server": "Server modus: {server} | Alle funksjes beskikber | Brûk `/daily` foar punten!",
+  "footer_dm": "Brûkermodus: Perfekt foar DM's | Guon funksjes allinnich foar servers | Brûk `/daily` foar punten!",
+  "server_only": " (allinnich server)"
+},
 
-    "text_title": "📝 Tekst Oersetting",
-    "text_value": "`/texttr [tekst] [boarne_taal] [doel_taal]` - Oerset tekst\n`/read [doel_taal] [berjochts_ID]` - Oerset berjocht mei ID\n`/dmtr [brûker] [tekst] [boarne_taal] [doel_taal]` - Stjoer oerset DM{server_only}",
-
-    "voice_title": "🎤 Stim Kommando's",
-    "voice_value": "`/voice [tekst] [boarne_taal] [doel_taal]` - Tekst nei stim\n`/speak [tekst] [boarne_taal] [doel_taal]` - Spyl stim yn stimkanaal{server_only}\n`/voicechat [boarne_taal] [doel_taal]` - Echt-tiid stim oersetting{server_only}\n`/voicechat2 [taal1] [taal2]` - Ferbettere twa-rjochtings stim oersetting{server_only}",
-
-    "auto_title": "🔄 Auto Oersetting (Server Allinich)",
-    "auto_value": "`/autotranslate [boarne_taal] [doel_taal]` - Auto-oersette jo berjochten",
-
-    "reward_title": "💎 Bonussysteem",
-    "reward_value": "`/daily` - Claim deistige punten\n`/shop` - Blêdzje yn bonussjop\n`/buy [beloning]` - Keapje bonussen mei punten\n`/profile [brûker]` - Sjoch profyl en stats\n`/rewards` - Sjoch aktive bonussen\n`/gift [brûker] [bedrach]` - Skink punten oan oaren",
-
-    "social_title": "🏆 Sosjaal & Kompetysje",
-    "social_value": "`/leaderboard` - Sjoch top brûkers op punten\n`/achievements` - Sjoch jo badges en prestaasjes\n`/cashout` - Cash út prestaasjepunten foar gebrûk yn `/shop`\n`/transactions` - Sjoch punten transaksje skiednis",
-
-    "setup_title": "⚙️ Ynstellings & Kontrôle",
-    "setup_value_user": "`/start` - Start oersetter\n`/stop` - Stop aktive oersettingssessjes",
-    "setup_value_admin": "`/start` - Start oersetter\n`/setchannel [kanaal_ID]` - Stel oersetting en taalkanaal tastimmingen yn\n`/stop` - Stop aktive oersettingssessjes",
-
-    "settings_title": "🎛️ Ynstellings",
-    "settings_value": "`/hide` - Ferbergje orizjinele tekst yn oersettingen\n`/show` - Wize orizjinele tekst yn oersettingen\n`/preferences` - Oanpasse taalfoarkarren\n`/history` - Sjoch oersettingsskiednis",
-
-    "info_title": "ℹ️ Ynformaasje",
-    "info_value": "`/list` - Sjoch alle stypjende talen\n`/upgrade` - Krij premium tagong ynfo\n`/invite` - Krij bot ynfiersk links\n`/vote` - Krij bot listingslinks\n`/help` - Wize dit kommando list",
-
-    "context_title": "📱 Kontekst Menu",
-    "context_value": "`Rjochts-klikke berjocht` → `Apps` → `Read Message` - Oerset elk berjocht",
-
-    "tips_title": "💡 Brûk Tips",
-    "tips_value": "• Brûk `auto` as boarne taal foar automatyske deteksje\n• Taal koades: `en`, `es`, `fr` of nammen: `English`, `Spanish`, `French`\n• Fertsjinje punten deistich en keapje tydlike premium funksjes!\n• Foarbyld: `/texttr text:'Hello' source_lang:en target_lang:es`",
-
-    "footer_server": "Server modus: {server} | Alle funksjes beskikber | Brûk /daily foar punten!",
-    "footer_dm": "Brûker modus: Perfect foar DMs | Guon funksjes binne allinich foar server | Brûk /daily foar punten!",
-
-    "server_only": " (allinich server)"
-  },
     "FEEDBACK": {
     "rating_error": "❌ Beoardieling moat tusken 1 en 5 stjerren wêze!",
     
