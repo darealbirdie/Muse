@@ -414,44 +414,36 @@
   "footer": "Příklad použití: /texttr text:Ahoj source_lang:cs target_lang:en"
 },
 "HELP": {
-  "title": "🤖 Muse Překladač - Seznam příkazů",
+  "title": "🤖 Muse Translator - Seznam Příkazů",
   "description": "Zde jsou všechny dostupné příkazy:",
-
-  "text_title": "📝 Textový překlad",
-  "text_value": "`/texttr [text] [source_lang] [target_lang]` - Přelož text\n`/read [target_lang] [message_id]` - Přelož zprávu podle ID\n`/dmtr [user] [text] [source_lang] [target_lang]` - Pošli překlad soukromě{server_only}",
-
+  "text_title": "📝 Překlad textu",
+  "text_value": "`/texttr [text] [zdrojový_jazyk] [cílový_jazyk]` - Přeloží text\n`/read [cílový_jazyk] [id_zprávy]` - Přeloží zprávu podle ID\n`/dmtr [uživatel] [text] [zdrojový_jazyk] [cílový_jazyk]` - Odešle přeloženou zprávu do DM{server_only}",
   "voice_title": "🎤 Hlasové příkazy",
-  "voice_value": "`/voice [text] [source_lang] [target_lang]` - Text na řeč\n`/speak [text] [source_lang] [target_lang]` - Přečti nahlas v hlasovém kanálu{server_only}\n`/voicechat [source_lang] [target_lang]` - Překlad hlasu v reálném čase{server_only}\n`/voicechat2 [lang1] [lang2]` - Vylepšený obousměrný hlasový překlad{server_only}",
-
-  "auto_title": "🔄 Automatický překlad (pouze server)",
-  "auto_value": "`/autotranslate [source_lang] [target_lang]` - Automatický překlad zpráv",
-
-  "reward_title": "💎 Odměnový systém",
-  "reward_value": "`/daily` - Získej denní odměnu bodů\n`/shop` - Procházej odměny\n`/buy [reward]` - Kup odměnu za body\n`/profile [user]` - Zobraz profil a statistiky\n`/rewards` - Aktivní odměny\n`/gift [user] [amount]` - Daruj body jinému uživateli",
-
-  "social_title": "🏆 Sociální & Soutěžní",
-  "social_value": "`/leaderboard` - Tabulka nejlepších\n`/achievements` - Zobraz své úspěchy\n`/cashout` - Převeď úspěchy na body\n`/transactions` - Historie transakcí bodů",
-
-  "setup_title": "⚙️ Nastavení & Ovládání",
-  "setup_value_user": "`/start` - Spusť překladač\n`/stop` - Zastav překladové relace",
-  "setup_value_admin": "`/start` - Spusť překladač\n`/setchannel [channel_id]` - Nastav oprávnění pro kanály\n`/stop` - Zastav překladové relace",
-
+  "voice_value": "`/voice [text] [zdrojový_jazyk] [cílový_jazyk]` - Text na řeč\n`/speak [text] [zdrojový_jazyk] [cílový_jazyk]` - Přehrát řeč ve voice kanálu{server_only}\n`/voicechat [zdrojový_jazyk] [cílový_jazyk]` - Překlad hlasu v reálném čase{server_only}\n`/voicechat2 [jazyk1] [jazyk2]` - Pokročilý obousměrný hlasový překlad{server_only}",
+  "auto_title": "🔄 Automatický překlad (pouze pro servery)",
+  "auto_value": "`/autotranslate [zdrojový_jazyk] [cílový_jazyk]` - Automaticky překládá vaše zprávy",
+  "reward_title": "💎 Systém odměn",
+  "reward_value": "`/daily` - Získej denní body\n`/shop` - Procházet obchod s odměnami\n`/buy [odměna]` - Koupit odměnu za body\n`/profile [uživatel]` - Zobrazit profil a statistiky\n`/rewards` - Zobrazit aktivní odměny\n`/gift [uživatel] [částka]` - Darovat body jiným",
+  "social_title": "🏆 Sociální a soutěžní",
+  "social_value": "`/leaderboard` - Zobrazit top uživatele podle bodů\n`/achievements` - Zobrazit své odznaky a úspěchy\n`/cashout` - Směnit úspěchové body za odměny\n`/transactions` - Zobrazit historii transakcí bodů",
+  "setup_title": "⚙️ Nastavení a správa",
+  "setup_value_user": "`/stop` - Zastaví aktivní překladové relace",
+  "setup_value_admin": "`/setchannel [id_kanálu]` - Nastaví překladová oprávnění a jazyk kanálu\n`/stop` - Zastaví aktivní překladové relace",
   "settings_title": "🎛️ Nastavení",
-  "settings_value": "`/hide` - Skrýt původní text\n`/show` - Zobrazit původní text\n`/preferences` - Nastavení jazykových preferencí\n`/history` - Historie překladů",
-
+  "settings_value": "`/hide` - Skrýt původní text v překladech\n`/show` - Zobrazit původní text v překladech\n`/preferences` - Upravit jazykové preference\n`/history` - Zobrazit historii překladů",
   "info_title": "ℹ️ Informace",
-  "info_value": "`/list` - Seznam podporovaných jazyků\n`/upgrade` - Info o premium přístupu\n`/invite` - Odkaz k pozvání bota\n`/vote` - Hlasování pro bota\n`/help` - Tento seznam příkazů",
-
+  "info_value": "`/list` - Zobrazí všechny podporované jazyky\n`/upgrade` - Informace o prémiovém přístupu\n`/invite` - Pozvánkový odkaz na bota\n`/vote` - Odkaz pro hlasování pro bota\n`/help` - Zobrazí tento seznam příkazů",
   "context_title": "📱 Kontextové menu",
-  "context_value": "`Klikni pravým` → `Aplikace` → `Read Message` - Přelož libovolnou zprávu",
-
+  "readimage_title": "🖼️ Překlad obrázků",
+  "readimage_value": "`/readimage [cílový_jazyk]` - Extrahuje a překládá text z nahraných obrázků pomocí OCR",
+  "context_value": "`Klikni pravým → Aplikace → Read Message` - Přeloží libovolnou zprávu",
   "tips_title": "💡 Tipy pro použití",
-  "tips_value": "• Použij `auto` jako zdrojový jazyk pro automatickou detekci\n• Kódy jazyků: `en`, `cs`, `de` nebo názvy: `English`, `Czech`, `German`\n• Získávej denní body a nakupuj prémiové funkce!\n• Příklad: `/texttr text:'Hello' source_lang:en target_lang:cs`",
-
-  "footer_server": "Serverový režim: {server} | Všechny funkce dostupné | Použij /daily pro body!",
-  "footer_dm": "Režim uživatele: Ideální pro DMs | Některé funkce jsou jen pro servery | Použij /daily pro body!",
-  "server_only": " (pouze server)"
+  "tips_value": "• Použij `auto` jako zdrojový jazyk pro automatické rozpoznání\n• Kódy jazyků: `en`, `cs`, `de` nebo názvy: English, Czech, German\n• Získávej denní body a nakupuj dočasné prémiové funkce!\n• Příklad: `/texttr text:'Hello' source_lang:en target_lang:cs`",
+  "footer_server": "Server mód: {server} | Všechny funkce dostupné | Použij `/daily` pro body!",
+  "footer_dm": "Uživatelský mód: Ideální pro DM | Některé funkce pouze pro servery | Použij `/daily` pro body!",
+  "server_only": " (pouze pro servery)"
 },
+
 "FEEDBACK": {
   "rating_error": "❌ Hodnocení musí být mezi 1 a 5 hvězdičkami!",
 
