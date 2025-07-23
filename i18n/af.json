@@ -373,42 +373,34 @@
 "HELP": {
   "title": "🤖 Muse Translator - Opdraglys",
   "description": "Hier is al die beskikbare opdragte:",
-  
   "text_title": "📝 Teksvertaling",
-  "text_value": "`/texttr [text] [source_lang] [target_lang]` - Vertaal teks\n`/read [target_lang] [message_id]` - Vertaal boodskap volgens ID\n`/dmtr [user] [text] [source_lang] [target_lang]` - Stuur vertaalde DM{server_only}",
-
+  "text_value": "/texttr [teks] [bron_taal] [teiken_taal] - Vertaal teks\n/read [teiken_taal] [boodskap_id] - Vertaal boodskap volgens ID\n/dmtr [gebruiker] [teks] [bron_taal] [teiken_taal] - Stuur vertaalde DM{server_only}",
   "voice_title": "🎤 Stemopdragte",
-  "voice_value": "`/voice [text] [source_lang] [target_lang]` - Teks na spraak\n`/speak [text] [source_lang] [target_lang]` - Speel spraak in stemkanaal{server_only}\n`/voicechat [source_lang] [target_lang]` - Regstreekse stemvertaling{server_only}\n`/voicechat2 [lang1] [lang2]` - Verbeterde tweerigting-stemvertaling{server_only}",
-
-  "auto_title": "🔄 Outo-vertaling (Slegs op Bediener)",
-  "auto_value": "`/autotranslate [source_lang] [target_lang]` - Outo-vertaal jou boodskappe",
-
+  "voice_value": "/voice [teks] [bron_taal] [teiken_taal] - Teks na spraak\n/speak [teks] [bron_taal] [teiken_taal] - Speel spraak in stemkanaal af{server_only}\n/voicechat [bron_taal] [teiken_taal] - Regstreekse stemvertaling{server_only}\n/voicechat2 [taal1] [taal2] - Verbeterde tweerigting-stemvertaling{server_only}",
+  "auto_title": "🔄 Outo-vertaling (Slegs bediener)",
+  "auto_value": "/autotranslate [bron_taal] [teiken_taal] - Outo-vertaal jou boodskappe",
   "reward_title": "💎 Beloningstelsel",
-  "reward_value": "`/daily` - Eis daaglikse puntbelonings\n`/shop` - Blaai deur die beloningswinkel\n`/buy [reward]` - Koop belonings met punte\n`/profile [user]` - Sien profiel en statistieke\n`/rewards` - Sien aktiewe belonings\n`/gift [user] [amount]` - Skenk punte aan ander",
-
+  "reward_value": "/daily - Eis daaglikse puntebelonings\n/shop - Blaai deur beloningswinkel\n/buy [beloning] - Koop belonings met punte\n/profile [gebruiker] - Sien profiel en statistieke\n/rewards - Sien aktiewe belonings\n/gift [gebruiker] [bedrag] - Skenk punte aan ander",
   "social_title": "🏆 Sosiaal & Kompetisie",
-  "social_value": "`/leaderboard` - Sien topgebruikers volgens punte\n`/achievements` - Sien jou kentekens en prestasies\n`/cashout` - Wissel prestasiepunte om vir gebruik in `/shop`\n`/transactions` - Sien punttransaksiegeskiedenis",
-
+  "social_value": "/leaderboard - Sien topspelers volgens punte\n/achievements - Sien jou kentekens en prestasies\n/cashout - Wissel prestasiepunte vir winkelkrediete\n/transactions - Sien punte-transaksiegeskiedenis",
   "setup_title": "⚙️ Opstelling & Beheer",
-  "setup_value_user": "`/start` - Inisialiseer vertaler\n`/stop` - Stop aktiewe sessies",
-  "setup_value_admin": "`/start` - Inisialiseer vertaler\n`/setchannel [channel_id]` - Stel vertaling- en taalpermissies vir kanaal\n`/stop` - Stop aktiewe sessies",
-
+  "setup_value_user": "/stop - Stop aktiewe vertaalsessies",
+  "setup_value_admin": "/setchannel [kanaal_id] - Stel vertaal- en taaltoegang vir kanaal in\n/stop - Stop aktiewe vertaalsessies",
   "settings_title": "🎛️ Instellings",
-  "settings_value": "`/hide` - Versteek oorspronklike teks in vertalings\n`/show` - Wys oorspronklike teks in vertalings\n`/preferences` - Pas taalvoorkeure aan\n`/history` - Sien vertalingsgeskiedenis",
-
+  "settings_value": "/hide - Versteek oorspronklike teks in vertalings\n/show - Wys oorspronklike teks in vertalings\n/preferences - Stel taalvoorkeure aan\n/history - Sien vertaalgeskiedenis",
   "info_title": "ℹ️ Inligting",
-  "info_value": "`/list` - Wys alle ondersteunde tale\n`/upgrade` - Kyk na premium toegangsinligting\n`/invite` - Kry bot uitnodigingskakels\n`/vote` - Stem op botlyste\n`/help` - Wys hierdie opdraglys",
-
+  "info_value": "/list - Wys alle ondersteunde tale\n/upgrade - Kry premium-toeganginligting\n/invite - Kry bot-uitnodigingskakels\n/vote - Kry stemskakels vir bot\n/help - Wys hierdie opdraglys",
   "context_title": "📱 Kontekskieslys",
-  "context_value": "`Regsklik op boodskap` → `Apps` → `Read Message` - Vertaal enige boodskap",
-
+  "readimage_title": "🖼️ Beeldvertaling",
+  "readimage_value": "/readimage [teiken_taal] - Onttrek en vertaal teks uit opgelaaide beelde met OCR",
+  "context_value": "Regs-klik boodskap → Apps → Lees Boodskap - Vertaal enige boodskap",
   "tips_title": "💡 Gebruikswenke",
-  "tips_value": "• Gebruik `auto` as brontaal vir outomatiese opsporing\n• Taalkodes: `en`, `es`, `fr` of name: `English`, `Spanish`, `French`\n• Verdien daagliks punte en koop tydelike premium funksies!\n• Voorbeeld: `/texttr text:'Hello' source_lang:en target_lang:es`",
-
+  "tips_value": "• Gebruik 'auto' as bron vir outomatiese taalherkenning\n• Taalkodes: en, es, fr of name: Engels, Spaans, Frans\n• Verdien daagliks punte en koop tydelike premiumfunksies!\n• Voorbeeld: /texttr text:'Hello' source_lang:en target_lang:es",
   "footer_server": "Bedienermodus: {server} | Alle funksies beskikbaar | Gebruik /daily vir punte!",
-  "footer_dm": "Gebruikermodus: Ideaal vir DMs | Sommige funksies is slegs op bedieners beskikbaar | Gebruik /daily vir punte!",
-  "server_only": " (slegs op bediener)"
+  "footer_dm": "Gebruikermodus: Perfek vir DM’s | Sommige funksies slegs op bedieners | Gebruik /daily vir punte!",
+  "server_only": " (slegs bediener)"
 },
+
 "FEEDBACK": {
   "rating_error": "❌ Gradering moet tussen 1 en 5 sterre wees!",
 
