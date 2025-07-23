@@ -417,42 +417,35 @@
 
 "HELP": {
   "title": "🤖 Muse Translator - Mndandanda wa Malamulo",
-  "description": "Awa ndi malamulo onse omwe akupezeka:",
-  "text_title": "📝 Translation ya Zolemba",
-  "text_value": "`/texttr [text] [source_lang] [target_lang]` - Tembenuzani zolemba\n`/read [target_lang] [message_id]` - Tembenuzani uthenga mwa ID\n`/dmtr [user] [text] [source_lang] [target_lang]` - Tumizani DM yotembenuzidwa{server_only}",
-
-  "voice_title": "🎤 Malamulo a Voice",
-  "voice_value": "`/voice [text] [source_lang] [target_lang]` - Zolemba kupita ku mawu\n`/speak [text] [source_lang] [target_lang]` - Sewerani mawu mu voice channel{server_only}\n`/voicechat [source_lang] [target_lang]` - Real-time voice translation{server_only}\n`/voicechat2 [lang1] [lang2]` - Voice translation yowirikiza ya mawu{server_only}",
-
-  "auto_title": "🔄 Auto Translation (Server Yokha)",
-  "auto_value": "`/autotranslate [source_lang] [target_lang]` - Tembenuzani mauthenga anu mwadzidzidzi",
-
-  "reward_title": "💎 Mchitidwe wa Mphotho",
-  "reward_value": "`/daily` - Pezani mphotho ya tsiku ndi tsiku\n`/shop` - Onani sitolo ya mphotho\n`/buy [reward]` - Gulani mphotho ndi ma points\n`/profile [user]` - Onani mbiri ndi ziwerengero\n`/rewards` - Onani mphotho zomwe zikuyenda\n`/gift [user] [amount]` - Perekani ma points kwa ena",
-
-  "social_title": "🏆 Social & Mpikisano",
-  "social_value": "`/leaderboard` - Onani ogwiritsa ntchito apamwamba pa ma points\n`/achievements` - Onani zibwano ndi mphotho zanu\n`/cashout` - Sandutsani ma achievement points kuti mugwiritse ntchito mu `/shop`\n`/transactions` - Onani mbiri ya ma transaction a points",
-
-  "setup_title": "⚙️ Kukhazikitsa & Kuwongolera",
-  "setup_value_user": "`/start` - Yambitsani translator\n`/stop` - Yimitsani ma session a translation",
-  "setup_value_admin": "`/start` - Yambitsani translator\n`/setchannel [channel_id]` - Khazikitsani channel ya translation\n`/stop` - Yimitsani ma session a translation",
-
+  "description": "Malamulo onse omwe mungagwiritse ntchito:",
+  "text_title": "📝 Kumamasulira Malemba",
+  "text_value": "`/texttr [text] [source_lang] [target_lang]` - Tanthauzirani mawu\n`/read [target_lang] [message_id]` - Tanthauzirani uthenga pogwiritsa ntchito ID\n`/dmtr [user] [text] [source_lang] [target_lang]` - Tumizani uthenga womasuliridwa kwa wogwiritsa ntchito{server_only}",
+  "voice_title": "🎤 Malamulo a Mawu",
+  "voice_value": "`/voice [text] [source_lang] [target_lang]` - Sinthani mawu kukhala mawu omveka\n`/speak [text] [source_lang] [target_lang]` - Yambitsani kulankhula mu channel yamawu{server_only}\n`/voicechat [source_lang] [target_lang]` - Yambitsani kumasulira kwa mawu nthawi yeniyeni{server_only}\n`/voicechat2 [lang1] [lang2]` - Mtundu wabwino wa kulankhula ndi kumasulira{server_only}",
+  "auto_title": "🔄 Kumasulira Kokha (pa server yokha)",
+  "auto_value": "`/autotranslate [source_lang] [target_lang]` - Masulira uthenga wanu basi",
+  "reward_title": "💎 Njira ya Mphoto",
+  "reward_value": "`/daily` - Pezani mphotho yanu ya tsiku ndi tsiku\n`/shop` - Onani mphotho zomwe zilipo\n`/buy [reward]` - Gulani mphotho ndi mfundo\n`/profile [user]` - Onetsani mbiri ndi ziwerengero\n`/rewards` - Onani mphotho zomwe mwapeza\n`/gift [user] [amount]` - Perekani mfundo kwa wina",
+  "social_title": "🏆 Zantchito ndi Mpikisano",
+  "social_value": "`/leaderboard` - Onani mndandanda wa anthu apamwamba\n`/achievements` - Onani zomwe mwachita ndi zikho\n`/cashout` - Sinthani zomwe mwapeza kukhala mphotho\n`/transactions` - Onani mbiri yanu ya mfundo",
+  "setup_title": "⚙️ Kukonzekera ndi Kuwongolera",
+  "setup_value_user": "`/stop` - Lekani kumasulira komwe kulipo",
+  "setup_value_admin": "`/setchannel [channel_id]` - Khazikitsani channel ndi zilolezo\n`/stop` - Lekani kumasulira komwe kulipo",
   "settings_title": "🎛️ Zikhazikiko",
-  "settings_value": "`/hide` - Bisani zolemba zoyambirira mu translation\n`/show` - Onetsani zolemba zoyambirira mu translation\n`/preferences` - Sinthani zilankhulo zomwe mumakonda\n`/history` - Onani mbiri ya ma translation",
-
+  "settings_value": "`/hide` - Bisani uthenga woyambirira mukamasulira\n`/show` - Onetsani uthenga woyambirira mukamasulira\n`/preferences` - Sinthani zilankhulo zomwe mumakonda\n`/history` - Onani mbiri yanu ya kumasulira",
   "info_title": "ℹ️ Zambiri",
-  "info_value": "`/list` - Onetsani zilankhulo zonse zothandizidwa\n`/upgrade` - Pezani zambiri za premium\n`/invite` - Pezani ma link a bot\n`/vote` - Pezani ma link a bot listings\n`/help` - Onetsani mndandanda wa malamulo awa",
-
-  "context_title": "📱 Context Menu",
-  "context_value": "`Dinani uthenga ndi right-click` → `Apps` → `Read Message` - Tembenuzani uthenga uliwonse",
-
-  "tips_title": "💡 Malangizo Ogwiritsa Ntchito",
-  "tips_value": "• Gwiritsani ntchito `auto` monga source language kuti muzindikire zokha\n• Makhodi a chilankhulo: `en`, `es`, `fr` kapena maina: `English`, `Spanish`, `French`\n• Pezani ma points tsiku ndi tsiku ndikugula premium yokhazikika!\n• Chitsanzo: `/texttr text:'Hello' source_lang:en target_lang:es`",
-
-  "footer_server": "Server Mode: {server} | Mawonekedwe onse alipo | Gwiritsani ntchito /daily kuti mulandire ma points!",
-  "footer_dm": "User Mode: Zabwino pa ma DM | Mawonekedwe ena a server-only | Gwiritsani ntchito /daily kuti mulandire ma points!",
-  "server_only": " (server yokha)"
+  "info_value": "`/list` - Mndandanda wa zilankhulo zomwe zili ndi chithandizo\n`/upgrade` - Onani zosankha za premium\n`/invite` - Pezani ulalo woti muyitane bot\n`/vote` - Votani bot iyi\n`/help` - Onetsani mndandanda uwu wa malamulo",
+  "context_title": "📱 Mndandanda wa Zosankha pa Uthenga",
+  "readimage_title": "🖼️ Tanthauzirani mawu kuchokera ku chithunzi",
+  "readimage_value": "`/readimage [target_lang]` - Tanthauzirani mawu ochokera ku chithunzi pogwiritsa ntchito OCR",
+  "context_value": "`Dinani kumanja pa uthenga → Mapulogalamu → Read Message` - Tanthauzirani uthenga uliwonse",
+  "tips_title": "💡 Malangizo",
+  "tips_value": "• Gwiritsani ntchito `auto` kuti zilankhulo zizindikiridwe zokha\n• Gwiritsani ntchito ma code monga: `en`, `ny`, `fr`, kapena dzina lonse: English, Chichewa, French\n• Pezani mfundo tsiku lililonse kuti mupeze premium mwachidule!\n• Chitsanzo: `/texttr text:'moni' source_lang:ny target_lang:en`",
+  "footer_server": "Mawonekedwe a server: {server} | Malamulo onse alipo | Gwiritsani ntchito `/daily` kuti mupeze mfundo!",
+  "footer_dm": "Mawonekedwe a DM: Zimagwira bwino pa DM | Ena mwa malamulo amagwira ntchito pa server yokha | Gwiritsani ntchito `/daily` kuti mupeze mfundo!",
+  "server_only": " (pa server yokha)"
 },
+
 "FEEDBACK": {
   "rating_error": "❌ Mavoti ayenera kukhala pakati pa 1 ndi 5 nyenyezi!",
   "sessions_needed": "📊 Mukufunikira **{sessions_needed} zina za kutembenuza** musanapereke ndemanga!\n💡 Yesani kugwiritsa ntchito `/texttr`, `/voice`, kapena `/voicechat` kuti muwonjezere ma session.\nMa session apano: **{current_sessions}/3**",
