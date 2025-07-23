@@ -45,7 +45,11 @@ from reward_system import (
 from discord.ui import View, Button
 from add_streak_column import add_streak_column, check_column_exists
 from i18n.translate import t
+import pytesseract
+from PIL import Image
 
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+ffmpeg_path = r"C:\Users\shoub\Downloads\ffmpeg\ffmpeg-master-latest-win64-gpl-shared\bin\ffmpeg.exe"
 
 new_achievements = []
 YOUR_ADMIN_ID = 1192196672437096520
@@ -1610,331 +1614,193 @@ def get_language_code(lang_input):
     # Not found
     return None
 
-@tree.command(name="start", description="Initialize your personal translation bot")
+@tree.command(name="help", description="List of commands for your personal translation bot")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def start(interaction: discord.Interaction):
     try:
-        # Get user's UI language first
         user_id = interaction.user.id
         ui_lang = await get_user_ui_language(user_id)
-        
-        # Step 1: Track command usage
+
+        # Track usage
         try:
             await track_command_usage(interaction)
-            print("✅ Step 1: Command usage tracked successfully")
         except Exception as e:
-            print(f"❌ Step 1 Error - track_command_usage: {e}")
-            # Continue anyway, this isn't critical
-            
-        # Step 2: Get user and guild info
-        try:
-            guild_id = interaction.guild_id
-            print(f"✅ Step 2: Got user_id={user_id}, guild_id={guild_id}")
-        except Exception as e:
-            print(f"❌ Step 2 Error - Getting user/guild info: {e}")
-            await interaction.response.send_message(
-                get_translation(ui_lang, "START.error_user_info"), 
-                ephemeral=True
-            )
-            return
+            print(f"track_command_usage error: {e}")
 
-        # Step 3: Initialize user in reward system
-        try:
-            user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
-            is_new_user = user_data['total_sessions'] == 1  # Changed from == 0 since we increment in get_or_create_user
-            print(f"✅ Step 3: User data retrieved, is_new_user={is_new_user}, sessions={user_data['total_sessions']}")
-        except Exception as e:
-            print(f"❌ Step 3 Error - reward_db.get_or_create_user: {e}")
-            await interaction.response.send_message(
-                get_translation(ui_lang, "START.error_user_data", error=str(e)), 
-                ephemeral=True
-            )
-            return
+        guild_id = interaction.guild_id
 
-        # Step 4: Handle guild-based translator initialization
-        try:
-            if guild_id:
-                if not hasattr(translation_server, 'translators'):
-                    translation_server.translators = {}
-                    print("✅ Step 4a: Created translation_server.translators")
-                    
-                if guild_id not in translation_server.translators:
-                    translation_server.translators[guild_id] = {}
-                    print(f"✅ Step 4b: Created translators for guild {guild_id}")
-                    
-                if user_id not in translation_server.translators[guild_id]:
-                    translation_server.translators[guild_id][user_id] = {}
-                    try:
-                        translation_server.get_user_url(user_id)
-                        print(f"✅ Step 4c: Initialized translator for user {user_id}")
-                    except Exception as url_error:
-                        print(f"⚠️ Step 4c: URL generation failed but continuing: {url_error}")
-                else:
-                    print(f"✅ Step 4c: User {user_id} already has translator")
-            else:
-                print("✅ Step 4: Skipped guild initialization (DM context)")
-        except Exception as e:
-            print(f"❌ Step 4 Error - Translation server initialization: {e}")
-            # Don't return here, translation server isn't critical for /start
+        user_data = reward_db.get_or_create_user(user_id, interaction.user.display_name)
+        is_new_user = user_data['total_sessions'] == 1
 
-        # Step 5: Get current tier for display (using your TierHandler methods)
-        try:
-            # Use the synchronous methods from your TierHandler
-            current_tier = tier_handler.get_user_tier(user_id)
-            print(f"✅ Step 5a: Got current_tier={current_tier}")
-                    
-            # Get tier limits
-            limits = tier_handler.get_limits(user_id)
-            print(f"✅ Step 5b: Got limits: {limits}")
-                    
-            # Create tier info manually since your TierHandler doesn't have get_tier_info
-            tier_info = {
-                'name': current_tier.title(),
-                'emoji': TIER_EMOJIS.get(current_tier, '🆓'),
-                'color': TIER_COLORS.get(current_tier, 0x95a5a6),
-                'point_multiplier': {
-                    'free': '1x',
-                    'basic': '1.5x',
-                    'premium': '2x',
-                    'pro': '3x'
-                }.get(current_tier, '1x')
-            }
-            print(f"✅ Step 5c: Created tier_info for {current_tier}")
-                
-        except Exception as e:
-            print(f"❌ Step 5 Error - Getting tier info: {e}")
-            # Use fallback values
-            current_tier = 'free'
-            tier_info = {
-                'emoji': '🆓',
-                'name': 'Free',
-                'color': 0x95a5a6,
-                'point_multiplier': '1x'
-            }
-            limits = {
-                'text_limit': 50,
-                'voice_limit': 1800
-            }
-            print(f"✅ Step 5: Using fallback tier info")
-
-        # Step 6: Create embed based on user status
-        try:
-            if is_new_user:
-                # Create new user welcome embed
-                embed = discord.Embed(
-                    title=get_translation(ui_lang, "START.new_user_title", emoji=tier_info['emoji']),
-                    description=get_translation(ui_lang, "START.new_user_description", username=interaction.user.display_name),
-                    color=0x2ecc71
-                )
-                
-                # Add tier status for new users
-                text_limit_str = get_translation(ui_lang, "START.tier_unlimited") if limits['text_limit'] == float('inf') else str(limits['text_limit'])
-                voice_limit_str = get_translation(ui_lang, "START.tier_unlimited") if limits['voice_limit'] == float('inf') else str(limits['voice_limit']//60)
-                
-                embed.add_field(
-                    name=get_translation(ui_lang, "START.tier_field_name", tier=tier_info['name']),
-                    value=get_translation(ui_lang, "START.tier_field_value", 
-                                        text_limit=text_limit_str,
-                                        voice_limit=voice_limit_str,
-                                        points=f"{user_data['points']:,}"),
-                    inline=False
-                )
-                
-                # Getting started tips for new users
-                embed.add_field(
-                    name=get_translation(ui_lang, "START.getting_started_name"),
-                    value=get_translation(ui_lang, "START.getting_started_value"),
-                    inline=False
-                )
-                print("✅ Step 6a: Created new user embed")
-            else:
-                # Returning user embed
-                embed = discord.Embed(
-                    title=get_translation(ui_lang, "START.returning_user_title", emoji=tier_info['emoji']),
-                    description=get_translation(ui_lang, "START.returning_user_description", username=interaction.user.display_name),
-                    color=tier_info['color']
-                )
-
-            # Show admin/mod setup tips only to server admins/mods
-            if interaction.guild:
-                perms = interaction.channel.permissions_for(interaction.user)
-                if perms.administrator or perms.manage_guild:
-                    embed.add_field(
-                        name=get_translation(ui_lang, "START.admin_tips_name"),
-                        value=get_translation(ui_lang, "START.admin_tips_value"),
-                        inline=False
-                    )
-                
-                # Show user stats
-                embed.add_field(
-                    name=get_translation(ui_lang, "START.stats_name"),
-                    value=get_translation(ui_lang, "START.stats_value",
-                                        points=f"{user_data['points']:,}",
-                                        sessions=user_data['total_sessions'],
-                                        usage=f"{user_data['total_usage_hours']:.1f}",
-                                        tier=tier_info['name']),
-                    inline=True
-                )
-                
-                # Daily reward reminder
-                from datetime import datetime
-                today = datetime.now().date().isoformat()
-                if user_data.get('last_daily_claim') != today:
-                    embed.add_field(
-                        name=get_translation(ui_lang, "START.daily_available_name"),
-                        value=get_translation(ui_lang, "START.daily_available_value"),
-                        inline=True
-                    )
-                else:
-                    embed.add_field(
-                        name=get_translation(ui_lang, "START.daily_claimed_name"),
-                        value=get_translation(ui_lang, "START.daily_claimed_value"),
-                        inline=True
-                    )
-                print("✅ Step 6b: Created returning user embed")
-        except Exception as e:
-            print(f"❌ Step 6 Error - Creating main embed: {e}")
-            await interaction.response.send_message(
-                get_translation(ui_lang, "START.error_welcome_message", error=str(e)), 
-                ephemeral=True
-            )
-            return
-
-        # Step 7: Add command categories
-        try:
-            # Add command categories (same for both new and returning users)
-            embed.add_field(
-                name=get_translation(ui_lang, "START.voice_commands_name"),
-                value=get_translation(ui_lang, "START.voice_commands_value"),
-                inline=False
-            )
-                    
-            embed.add_field(
-                name=get_translation(ui_lang, "START.text_commands_name"),
-                value=get_translation(ui_lang, "START.text_commands_value"),
-                inline=False
-            )
-                    
-            # Reward system commands
-            embed.add_field(
-                name=get_translation(ui_lang, "START.achievements_name"),
-                value=get_translation(ui_lang, "START.achievements_value"),
-                inline=False
-            )
-                    
-            embed.add_field(
-                name=get_translation(ui_lang, "START.settings_name"),
-                value=get_translation(ui_lang, "START.settings_value"),
-                inline=False
-            )
-                    
-            # Add feedback & community section
-            embed.add_field(
-                name=get_translation(ui_lang, "START.community_name"),
-                value=get_translation(ui_lang, "START.community_value"),
-                inline=False
-            )
-            print("✅ Step 7: Added command categories")
-        except Exception as e:
-            print(f"❌ Step 7 Error - Adding command fields: {e}")
-            # Continue anyway, basic embed is created
-
-        # Step 8: Add tier-specific information
-        try:
-            if current_tier == 'free':
-                embed.add_field(
-                    name=get_translation(ui_lang, "START.upgrade_benefits_name"),
-                    value=get_translation(ui_lang, "START.upgrade_benefits_value"),
-                    inline=False
-                )
-            else:
-                text_limit_str = get_translation(ui_lang, "START.tier_unlimited") if limits['text_limit'] == float('inf') else str(limits['text_limit'])
-                voice_limit_str = get_translation(ui_lang, "START.tier_unlimited") if limits['voice_limit'] == float('inf') else str(limits['voice_limit']//60)
-                
-                embed.add_field(
-                    name=get_translation(ui_lang, "START.premium_active_name"),
-                    value=get_translation(ui_lang, "START.premium_active_value",
-                                        text_limit=text_limit_str,
-                                        voice_limit=voice_limit_str,
-                                        multiplier=tier_info.get('point_multiplier', '1x')),
-                    inline=False
-                )
-            print("✅ Step 8: Added tier-specific info")
-        except Exception as e:
-            print(f"❌ Step 8 Error - Adding tier info: {e}")
-            # Continue anyway
-
-        # Step 9: Add language format help and footer
-        try:
-            # Add language format help
-            embed.add_field(
-                name=get_translation(ui_lang, "START.language_format_name"),
-                value=get_translation(ui_lang, "START.language_format_value"),
-                inline=False
-            )
-                    
-            # Context-specific footer
-            if interaction.guild:
-                embed.set_footer(text=get_translation(ui_lang, "START.footer_server", server=interaction.guild.name))
-            else:
-                embed.set_footer(text=get_translation(ui_lang, "START.footer_dm"))
-            print("✅ Step 9: Added language help and footer")
-        except Exception as e:
-            print(f"❌ Step 9 Error - Adding final fields: {e}")
-            # Continue anyway
-
-        # Step 10: Send the response
-        try:
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            print("✅ Step 10: Response sent successfully")
-        except Exception as e:
-            print(f"❌ Step 10 Error - Sending response: {e}")
-            # Try to send a simple error message
+        if guild_id:
+            translation_server.translators = getattr(translation_server, 'translators', {})
+            translation_server.translators.setdefault(guild_id, {}).setdefault(user_id, {})
             try:
-                await interaction.response.send_message(
-                    get_translation(ui_lang, "START.error_send_welcome"),
-                    ephemeral=True
-                )
-            except:
-                print("❌ Failed to send error message too")
-            return
+                translation_server.get_user_url(user_id)
+            except Exception as e:
+                print(f"URL init fail: {e}")
 
-        # Step 11: Log the initialization
         try:
-            logger.info(f"🔥 User {'initialized' if is_new_user else 'returned'}: {interaction.user.display_name} (ID: {user_id}) - Tier: {current_tier}, Points: {user_data['points']}")
-            print("✅ Step 11: Logged initialization")
-        except Exception as e:
-            print(f"❌ Step 11 Error - Logging: {e}")
-            # Not critical, continue
+            current_tier = tier_handler.get_user_tier(user_id)
+            limits = tier_handler.get_limits(user_id)
+        except:
+            current_tier = 'free'
+            limits = {'text_limit': 50, 'voice_limit': 1800}
 
-        print("🎉 Start command completed successfully!")
+        # Hardcoded tier colors here
+        tier_colors = {
+            'free': 0x95a5a6,      # grey
+            'basic': 0x3498db,     # blue
+            'premium': 0xe67e22,   # orange
+            'pro': 0x9b59b6        # purple
+        }
+
+        tier_info = {
+            'name': current_tier.title(),
+            'emoji': TIER_EMOJIS.get(current_tier, '🆓'),
+            'color': tier_colors.get(current_tier, 0x95a5a6),
+            'point_multiplier': {
+                'free': '1x', 'basic': '1.5x', 'premium': '2x', 'pro': '3x'
+            }.get(current_tier, '1x')
+        }
+
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "START.new_user_title" if is_new_user else "START.returning_user_title", emoji=tier_info['emoji']),
+            description=get_translation(ui_lang, "START.new_user_description" if is_new_user else "START.returning_user_description", username=interaction.user.display_name),
+            color=tier_info['color'] if not is_new_user else 0x2ecc71
+        )
+
+        text_limit_str = get_translation(ui_lang, "START.tier_unlimited") if limits['text_limit'] == float('inf') else str(limits['text_limit'])
+        voice_limit_str = get_translation(ui_lang, "START.tier_unlimited") if limits['voice_limit'] == float('inf') else str(limits['voice_limit']//60)
+
+        embed.add_field(
+            name=get_translation(ui_lang, "START.tier_field_name", tier=tier_info['name']),
+            value=get_translation(ui_lang, "START.tier_field_value", text_limit=text_limit_str, voice_limit=voice_limit_str, points=f"{user_data['points']:,}"),
+            inline=False
+        )
+
+        if current_tier == 'free':
+            embed.add_field(
+                name=get_translation(ui_lang, "START.upgrade_benefits_name"),
+                value=get_translation(ui_lang, "START.upgrade_benefits_value"),
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name=get_translation(ui_lang, "START.premium_active_name"),
+                value=get_translation(ui_lang, "START.premium_active_value", text_limit=text_limit_str, voice_limit=voice_limit_str, multiplier=tier_info['point_multiplier']),
+                inline=False
+            )
+
+        if interaction.guild:
+            perms = interaction.channel.permissions_for(interaction.user)
+            if perms.administrator or perms.manage_guild:
+                embed.add_field(
+                    name=get_translation(ui_lang, "START.admin_tips_name"),
+                    value=get_translation(ui_lang, "START.admin_tips_value"),
+                    inline=False
+                )
+
+        from datetime import datetime
+        today = datetime.now().date().isoformat()
+        if user_data.get('last_daily_claim') != today:
+            embed.add_field(
+                name=get_translation(ui_lang, "START.daily_available_name"),
+                value=get_translation(ui_lang, "START.daily_available_value"),
+                inline=True
+            )
+        else:
+            embed.add_field(
+                name=get_translation(ui_lang, "START.daily_claimed_name"),
+                value=get_translation(ui_lang, "START.daily_claimed_value"),
+                inline=True
+            )
+
+        if interaction.guild:
+            embed.add_field(
+                name=get_translation(ui_lang, "START.stats_name"),
+                value=get_translation(ui_lang, "START.stats_value", points=f"{user_data['points']:,}", sessions=user_data['total_sessions'], usage=f"{user_data['total_usage_hours']:.1f}", tier=tier_info['name']),
+                inline=True
+            )
+
+        # Command categories
+        embed.add_field(
+            name=get_translation(ui_lang, "START.voice_commands_name"),
+            value=get_translation(ui_lang, "START.voice_commands_value"),
+            inline=False
+        )
+        embed.add_field(
+            name=get_translation(ui_lang, "START.text_commands_name"),
+            value=get_translation(ui_lang, "START.text_commands_value"),
+            inline=False
+        )
+        embed.add_field(
+            name=get_translation(ui_lang, "HELP.readimage_title"),
+            value=get_translation(ui_lang, "HELP.readimage_value"),
+            inline=False
+        )
+
+        embed.add_field(
+            name=get_translation(ui_lang, "START.achievements_name"),
+            value=get_translation(ui_lang, "START.achievements_value"),
+            inline=False
+        )
+        embed.add_field(
+            name=get_translation(ui_lang, "HELP.settings_title"),
+            value=get_translation(ui_lang, "HELP.settings_value"),
+            inline=False
+        )
+        embed.add_field(
+            name=get_translation(ui_lang, "HELP.social_title"),
+            value=get_translation(ui_lang, "HELP.social_value"),
+            inline=False
+        )
+        setup_key = "HELP.setup_value_admin" if (interaction.guild and (perms.administrator or perms.manage_guild)) else "HELP.setup_value_user"
+        embed.add_field(
+            name=get_translation(ui_lang, "HELP.setup_title"),
+            value=get_translation(ui_lang, setup_key),
+            inline=False
+        )
+        embed.add_field(
+            name=get_translation(ui_lang, "HELP.info_title"),
+            value=get_translation(ui_lang, "HELP.info_value"),
+            inline=False
+        )
+        embed.add_field(
+            name=get_translation(ui_lang, "HELP.context_title"),
+            value=get_translation(ui_lang, "HELP.context_value"),
+            inline=False
+        )
+        embed.add_field(
+            name=get_translation(ui_lang, "HELP.tips_title"),
+            value=get_translation(ui_lang, "HELP.tips_value"),
+            inline=False
+        )
+
+        embed.add_field(
+            name=get_translation(ui_lang, "START.language_format_name"),
+            value=get_translation(ui_lang, "START.language_format_value"),
+            inline=False
+        )
+
+        if interaction.guild:
+            embed.set_footer(text=get_translation(ui_lang, "HELP.footer_server", server=interaction.guild.name))
+        else:
+            embed.set_footer(text=get_translation(ui_lang, "HELP.footer_dm"))
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     except Exception as e:
-        print(f"💥 CRITICAL ERROR in start command: {e}")
-        print(f"Error type: {type(e).__name__}")
         import traceback
-        print(f"Traceback: {traceback.format_exc()}")
-        
-        # Get UI language for error message
-        try:
-            ui_lang = await get_user_ui_language(interaction.user.id)
-        except:
-            ui_lang = 'en'  # Fallback
-            
-        try:
-            if not interaction.response.is_done():
-                await interaction.response.send_message(
-                    get_translation(ui_lang, "START.error_critical", error=str(e)),
-                    ephemeral=True
-                )
-            else:
-                await interaction.followup.send(
-                    get_translation(ui_lang, "START.error_critical", error=str(e)),
-                    ephemeral=True
-                )
-        except Exception as send_error:
-            print(f"💥 Failed to send error message: {send_error}")
+        print(f"Unhandled error: {e}\n{traceback.format_exc()}")
+        fallback_lang = await get_user_ui_language(interaction.user.id) if interaction.user else 'en'
+        msg = get_translation(fallback_lang, "START.error_critical", error=str(e))
+        if not interaction.response.is_done():
+            await interaction.response.send_message(msg, ephemeral=True)
+        else:
+            await interaction.followup.send(msg, ephemeral=True)
+
 @tree.command(
     name="setchannel",
     description="Restrict or allow translation in specific text/voice channels and languages (admin/mod only)"
@@ -6448,7 +6314,104 @@ async def translate_by_id(
             await interaction.response.send_message(embed=error_embed, ephemeral=True)
         else:
             await interaction.followup.send(embed=error_embed, ephemeral=True)
+@tree.command(
+    name="readimage",
+    description="Extract and translate text from an image file"
+)
+@app_commands.describe(
+    image="Image attachment to read text from",
+    target_lang="Translate extracted text to this language (type to search)"
+)
+@app_commands.autocomplete(target_lang=translated_language_autocomplete)
+async def readimage(
+    interaction: discord.Interaction,
+    image: discord.Attachment,
+    target_lang: str
+):
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+    await db.get_or_create_user(user_id, interaction.user.display_name)
 
+    if user_id in tier_handler.pro_users:
+        tier = "pro"
+    elif user_id in tier_handler.premium_users:
+        tier = "premium"
+    elif user_id in tier_handler.basic_users:
+        tier = "basic"
+    else:
+        tier = "free"
+
+    max_size_bytes = MEDIA_LIMITS_MB[tier] * 1024 * 1024
+    if image.size > max_size_bytes:
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "MEDIAREAD.error_title"),
+            description=get_translation(ui_lang, "MEDIAREAD.error_image_too_large", tier=tier, limit=MEDIA_LIMITS_MB[tier]),
+            color=0xE74C3C
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    try:
+        image_bytes = await image.read()
+        pil_image = Image.open(io.BytesIO(image_bytes))
+
+        # Map UI language to Tesseract lang code, fallback to English
+        tesseract_lang = tesseract_lang_map.get(ui_lang, "eng")
+        extracted_text = pytesseract.image_to_string(pil_image, lang=tesseract_lang)
+
+        if not extracted_text.strip():
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "MEDIAREAD.error_title"),
+                description=get_translation(ui_lang, "MEDIAREAD.error_no_text_found"),
+                color=0xE74C3C
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+
+        target_code = get_language_code(target_lang)
+        if not target_code:
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "MEDIAREAD.error_title"),
+                description=get_translation(ui_lang, "MEDIAREAD.error_invalid_target", language=target_lang),
+                color=0xE74C3C
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+
+        translator = GoogleTranslator(source="auto", target=target_code)
+        translated_text = translator.translate(extracted_text)
+
+        target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
+        flag = flag_mapping.get(target_code, "🌐")
+
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "MEDIAREAD.title_image"),
+            description=get_translation(ui_lang, "MEDIAREAD.description"),
+            color=0x2ECC71
+        )
+        embed.add_field(
+            name=get_translation(ui_lang, "MEDIAREAD.original_text"),
+            value=extracted_text[:1024],
+            inline=False
+        )
+        embed.add_field(
+            name=get_translation(ui_lang, "MEDIAREAD.translated_text", flag=flag, language=target_name),
+            value=translated_text[:1024],
+            inline=False
+        )
+        embed.set_footer(text=get_translation(ui_lang, f"MEDIAREAD.footer_{tier}"))
+
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+    except Exception as e:
+        embed = discord.Embed(
+            title=get_translation(ui_lang, "MEDIAREAD.error_title"),
+            description=get_translation(ui_lang, "MEDIAREAD.error_processing", error=str(e)),
+            color=0xE74C3C
+        )
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
 @tree.context_menu(name="Read Message")
 @app_commands.allowed_installs(guilds=True, users=True)
@@ -8955,91 +8918,6 @@ set_preferences.autocomplete('default_target')(translated_language_autocomplete)
 set_preferences.autocomplete('ui_language')(translated_language_autocomplete)
 
 
-@tree.command(name="help", description="Show all available commands")
-async def help_command(interaction: discord.Interaction):
-    await track_command_usage(interaction)
-
-    user_id = interaction.user.id
-    ui_lang = await get_user_ui_language(user_id)
-    
-    embed = discord.Embed(
-        title=get_translation(ui_lang, "HELP.title"),
-        description=get_translation(ui_lang, "HELP.description"),
-        color=0x3498db
-    )
-
-    is_server = interaction.guild is not None
-    server_tag = get_translation(ui_lang, "HELP.server_only") if not is_server else ""
-
-    embed.add_field(
-        name=get_translation(ui_lang, "HELP.text_title"),
-        value=get_translation(ui_lang, "HELP.text_value", server_only=server_tag),
-        inline=False
-    )
-
-    embed.add_field(
-        name=get_translation(ui_lang, "HELP.voice_title"),
-        value=get_translation(ui_lang, "HELP.voice_value", server_only=server_tag),
-        inline=False
-    )
-
-    if is_server:
-        embed.add_field(
-            name=get_translation(ui_lang, "HELP.auto_title"),
-            value=get_translation(ui_lang, "HELP.auto_value"),
-            inline=False
-        )
-
-    embed.add_field(
-        name=get_translation(ui_lang, "HELP.reward_title"),
-        value=get_translation(ui_lang, "HELP.reward_value"),
-        inline=False
-    )
-
-    embed.add_field(
-        name=get_translation(ui_lang, "HELP.social_title"),
-        value=get_translation(ui_lang, "HELP.social_value"),
-        inline=False
-    )
-
-    setup_key = "HELP.setup_value_admin" if (is_server and interaction.channel.permissions_for(interaction.user).administrator or interaction.channel.permissions_for(interaction.user).manage_guild) else "HELP.setup_value_user"
-
-    embed.add_field(
-        name=get_translation(ui_lang, "HELP.setup_title"),
-        value=get_translation(ui_lang, setup_key),
-        inline=False
-    )
-
-    embed.add_field(
-        name=get_translation(ui_lang, "HELP.settings_title"),
-        value=get_translation(ui_lang, "HELP.settings_value"),
-        inline=False
-    )
-
-    embed.add_field(
-        name=get_translation(ui_lang, "HELP.info_title"),
-        value=get_translation(ui_lang, "HELP.info_value"),
-        inline=False
-    )
-
-    embed.add_field(
-        name=get_translation(ui_lang, "HELP.context_title"),
-        value=get_translation(ui_lang, "HELP.context_value"),
-        inline=False
-    )
-
-    embed.add_field(
-        name=get_translation(ui_lang, "HELP.tips_title"),
-        value=get_translation(ui_lang, "HELP.tips_value"),
-        inline=False
-    )
-
-    if is_server:
-        embed.set_footer(text=get_translation(ui_lang, "HELP.footer_server", server=interaction.guild.name))
-    else:
-        embed.set_footer(text=get_translation(ui_lang, "HELP.footer_dm"))
-
-    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @tree.command(name="feedback", description="Leave feedback for the bot (1-5 stars)")
 @app_commands.allowed_installs(guilds=True, users=True)
@@ -9577,8 +9455,6 @@ async def profile(interaction: discord.Interaction):
         is_premium = user_id in getattr(tier_handler, 'premium_users', [])
         is_pro = user_id in getattr(tier_handler, 'pro_users', [])
 
-        
-
         if is_pro:
             tier_key = "pro"
         elif is_premium:
@@ -9633,7 +9509,7 @@ async def profile(interaction: discord.Interaction):
             name=get_translation(ui_lang, "PROFILE.rank_title"),
             value=f"**{rank_display_name}**\n{points_display}",
             inline=True
-            )
+        )
 
         embed.add_field(
             name=get_translation(ui_lang, "PROFILE.usage_title"),
@@ -9680,6 +9556,15 @@ async def profile(interaction: discord.Interaction):
             inline=True
         )
 
+        # Add media limits under the tier limits section with emoji
+        MEDIA_LIMITS_MB = {
+            "free": 4,      # below 8MB Discord limit
+            "basic": 8,
+            "premium": 20,
+            "pro": 50       # Nitro user cap
+        }
+        media_limit_mb = MEDIA_LIMITS_MB.get(tier_key, 4)
+
         tier_emoji = {
             "pro": "💎",
             "premium": "💠",
@@ -9687,23 +9572,24 @@ async def profile(interaction: discord.Interaction):
             "free": "🪙"
         }.get(tier_key, "🪙")
 
-        embed.add_field(
-            name=get_translation(ui_lang, "PROFILE.current_tier_title"),
-            value=f"{tier_emoji} {tier_key.capitalize()}",
-            inline=False
-        )
-
         text_limit_display = "Unlimited" if text_limit_val == float("inf") else f"{text_limit_val:,} chars"
         voice_limit_display = "Unlimited" if voice_limit_val == float("inf") else f"{voice_limit_val:,} seconds"
 
         tier_limits_lines = [
             f"📝 Text Limit: {text_limit_display}",
             f"🎹 Voice Limit: {voice_limit_display}",
+            f"🖼️ Media Upload Limit: {media_limit_mb} MB"
         ]
 
         embed.add_field(
             name=get_translation(ui_lang, "PROFILE.tier_limits_title"),
             value="\n".join(tier_limits_lines),
+            inline=False
+        )
+
+        embed.add_field(
+            name=get_translation(ui_lang, "PROFILE.current_tier_title"),
+            value=f"{tier_emoji} {tier_key.capitalize()}",
             inline=False
         )
 
@@ -9777,7 +9663,6 @@ async def profile(interaction: discord.Interaction):
             color=0xFF0000
         )
         await interaction.response.send_message(embed=error_embed, ephemeral=True)
-
 
 class ProfileView(discord.ui.View):
     def __init__(self, user_id: int, is_premium: bool):
@@ -12093,7 +11978,6 @@ async def list_premium(interaction: discord.Interaction):
         
     except Exception as e:
         await interaction.response.send_message(f"❌ Error listing premium users: {str(e)}", ephemeral=True)
-
 # Separate sync command for guild commands
 @tree.command(name="syncguild", description="[ADMIN] Sync guild commands", guild=discord.Object(id=YOUR_SERVER_ID))
 @app_commands.default_permissions(administrator=True)
