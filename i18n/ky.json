@@ -418,69 +418,71 @@
   "description": "Here are all the languages you can use with the translator:",
   "footer": "Usage example: /texttr text:Hello source_lang:en target_lang:es"
 },
-"HELP": {
-  "title": "🤖 Muse Translator - Command List",
-  "description": "Here are all available commands:",
-  "text_title": "📝 Text Translation",
-  "text_value": "`/texttr [text] [source_lang] [target_lang]` - Translate text\n`/read [target_lang] [message_id]` - Translate message by ID\n`/dmtr [user] [text] [source_lang] [target_lang]` - Send translated DM{server_only}",
-  "voice_title": "🎤 Voice Commands",
-  "voice_value": "`/voice [text] [source_lang] [target_lang]` - Text to speech\n`/speak [text] [source_lang] [target_lang]` - Play speech in voice channel{server_only}\n`/voicechat [source_lang] [target_lang]` - Real-time voice translation{server_only}\n`/voicechat2 [lang1] [lang2]` - Enhanced bidirectional voice translation{server_only}",
-  "auto_title": "🔄 Auto Translation (Server Only)",
-  "auto_value": "`/autotranslate [source_lang] [target_lang]` - Auto-translate your messages",
-  "reward_title": "💎 Reward System",
-  "reward_value": "`/daily` - Claim daily point rewards\n`/shop` - Browse reward shop\n`/buy [reward]` - Purchase rewards with points\n`/profile [user]` - View profile and stats\n`/rewards` - View active rewards\n`/gift [user] [amount]` - Gift points to others",
-  "social_title": "🏆 Social & Competition",
-  "social_value": "`/leaderboard` - View top users by points\n`/achievements` - View your badges and achievements\n`/cashout` - Cash out achievement points to spend in `/shop`\n`/transactions` - View point transaction history",
-  "setup_title": "⚙️ Setup & Control",
-  "setup_value_user": "`/start` - Initialize translator\n`/stop` - Stop active translation sessions",
-  "setup_value_admin": "`/start` - Initialize translator\n`/setchannel [channel_id]` - Set translation and language channel permissions\n`/stop` - Stop active translation sessions",
-  "settings_title": "🎛️ Settings",
-  "settings_value": "`/hide` - Hide original text in translations\n`/show` - Show original text in translations\n`/preferences` - Adjust language preferences\n`/history` - View translation history",
-  "info_title": "ℹ️ Information",
-  "info_value": "`/list` - Show all supported languages\n`/upgrade` - Get premium access info\n`/invite` - Get bot invite links\n`/vote` - Get bot listing links\n`/help` - Show this command list",
-  "context_title": "📱 Context Menu",
-  "context_value": "`Right-click message` → `Apps` → `Read Message` - Translate any message",
-  "tips_title": "💡 Usage Tips",
-  "tips_value": "• Use `auto` as source language for automatic detection\n• Language codes: `en`, `es`, `fr` or names: `English`, `Spanish`, `French`\n• Earn points daily and purchase temporary premium features!\n• Example: `/texttr text:'Hello' source_lang:en target_lang:es`",
-  "footer_server": "Server Mode: {server} | All features available | Use /daily for points!",
-  "footer_dm": "User Mode: Perfect for DMs | Some features are server-only | Use /daily for points!",
-  "server_only": " (server only)"
-},
-"FEEDBACK": {
-  "rating_error": "❌ Rating must be between 1 and 5 stars!",
-  
-  "sessions_needed": "📊 You need **{sessions_needed} more translation sessions** before you can leave feedback!\n💡 Try using `/texttr`, `/voice`, or `/voicechat` to build up your sessions.\nCurrent sessions: **{current_sessions}/3**",
-
-  "daily_limit": "⏰ You can only leave feedback **once per day**!\n⏳ Next feedback available in: **{hours_left}h {minutes_left}m**\n📅 Come back tomorrow to share more feedback!",
-
-  "session_limit": "📈 You need **{sessions_needed} more sessions** since your last feedback!\n💡 Use the bot more and come back to share your updated experience.\nSessions since last feedback: **{sessions_since_feedback}/3**",
-
-  "thank_you_title": "✅ Thank you for your feedback!",
-
-  "your_message_field": "💬 Your Message",
-
-  "reward_field": "🎁 Reward",
-
-  "next_feedback_field": "⏰ Next Feedback",
-
-  "next_feedback_value": "Available tomorrow or after 3 more sessions",
-
-  "footer": "Your feedback helps improve Muse for everyone! 💖",
-
-  "notification_title": "📝 New Feedback Received!",
-
-  "notification_fields": {
-    "user": "👤 User",
-    "rating": "⭐ Rating",
-    "sessions": "📊 Sessions",
-    "context": "🌍 Context",
-    "tier": "⭐ Tier",
-    "points_awarded": "💎 Points Awarded",
-    "message": "💬 Message"
+  "HELP": {
+    "title": "🤖 Muse Translator - Буйруктар тизмеси",
+    "description": "Бул жерде бардык жеткиликтүү буйруктар келтирилген:",
+    "text_title": "📝 Текстти которуу",
+    "text_value": "`/texttr [текст] [булак тили] [максаттуу тил]` - Текстти которуу\n`/read [максаттуу тил] [билдирүүнүн ID]` - Билдирүүнү ID менен которуу\n`/dmtr [колдонуучу] [текст] [булак тили] [максаттуу тил]` - Колдонуучуга которулган DM жөнөтүү {server_only}",
+    "voice_title": "🎤 Үн буйруктары",
+    "voice_value": "`/voice [текст] [булак тили] [максаттуу тил]` - Текстти үнгө айлантуу\n`/speak [текст] [булак тили] [максаттуу тил]` - Үндү үн каналына ойнотуу {server_only}\n`/voicechat [булак тили] [максаттуу тил]` - Түз үн котормосу {server_only}\n`/voicechat2 [тил1] [тил2]` - Эки тараптуу түз үн котормосу {server_only}",
+    "auto_title": "🔄 Автоматтык котормо (желе үчүн гана)",
+    "auto_value": "`/autotranslate [булак тили] [максаттуу тил]` - Билдирүүлөрдү автоматтык түрдө которуу",
+    "reward_title": "💎 Сыйлыктар тутуму",
+    "reward_value": "`/daily` - Күнүмдүк сыйлык алуу\n`/shop` - Сыйлык дүкөнүн көрүү\n`/buy [сыйлык]` - Сыйлык сатып алуу\n`/profile [колдонуучу]` - Профилди жана статистиканы көрүү\n`/rewards` - Жеткиликтүү сыйлыктарды көрүү\n`/gift [колдонуучу] [сандагы упай]` - Башка адамга упай белек кылуу",
+    "social_title": "🏆 Коомчулук жана Дүң таймаштар",
+    "social_value": "`/leaderboard` - Жогорку упайлуу колдонуучулар\n`/achievements` - Жеткишкендиктериңизди көрүү\n`/cashout` - Жеткишкендик упайларын дүкөн кредити катары колдонуңуз\n`/transactions` - Упайлардын транзакция тарыхын көрүү",
+    "setup_title": "⚙️ Орнотуулар жана Башкаруу",
+    "setup_value_user": "`/stop` - Котормону токтотуу",
+    "setup_value_admin": "`/setchannel [канал ID]` - Котормо жана тил каналы орнотуу\n`/stop` - Котормону токтотуу",
+    "settings_title": "🎛️ Жөндөөлөр",
+    "settings_value": "`/hide` - Котормо баштапкы билдирүүсүн жашыруу\n`/show` - Котормо баштапкы билдирүүсүн көрсөтүү\n`/preferences` - Тил жөндөөлөрүн өзгөртүү\n`/history` - Котормо тарыхын көрүү",
+    "info_title": "ℹ️ Маалымат",
+    "info_value": "`/list` - Колдоого алынган тилдерди көрсөтүү\n`/upgrade` - Премиум мүмкүнчүлүктөр тууралуу маалымат\n`/invite` - Ботту чакыруу шилтемеси\n`/vote` - Бот үчүн добуш берүү шилтемеси\n`/help` - Бул буйруктар тизмесин көрсөтүү",
+    "context_title": "📱 Контекст Менюсу",
+    "readimage_title": "🖼️ Сүрөттөн которуу",
+    "readimage_value": "`/readimage [максаттуу тил]` - Жүктөлгөн сүрөттөрдөн текстти таанып которуу (OCR)",
+    "context_value": "`Билдирүүгө оң баскыч → Тиркемелер → Read Message` - Каалаган билдирүүнү которуу",
+    "tips_title": "💡 Колдонуу кеңештери",
+    "tips_value": "• Автоматтык котормо үчүн `auto` булак тили катары колдонуңуз\n• Тил коддору: en, fr, ky же тил аттары: English, French, Kyrgyz\n• Күн сайын сыйлык алып, премиум мүмкүнчүлүктөрдү колдон\n• Мисалы: `/texttr text:'Hello' source_lang:en target_lang:ky`",
+    "footer_server": "Сервер режими: {server} | Бардык мүмкүнчүлүктөр жеткиликтүү | Сыйлык алуу үчүн `/daily` колдонуңуз!",
+    "footer_dm": "Жеке режим: DM'дер үчүн жеткиликтүү | Кээ бир мүмкүнчүлүктөр серверде гана иштейт | Сыйлык алуу үчүн `/daily` колдонуңуз!",
+    "server_only": " (желе үчүн гана)"
   },
+  "FEEDBACK": {
+    "rating_error": "❌ Баа 1ден 5ке чейин болушу керек!",
+    
+    "sessions_needed": "📊 Кайтарым байланыш калтыруудан мурун дагы **{sessions_needed} котормо сессиясы** талап кылынат!\n💡 `/texttr`, `/voice` же `/voicechat` буйруктарын колдонуп сессияларды топтоңуз.\nУчурдагы сессиялар: **{current_sessions}/3**",
 
-  "error_saving": "❌ Error saving feedback: {error}\nPlease try again later or contact support."
-},
+    "daily_limit": "⏰ Сиз күнүнө **бир жолу гана** кайтарым байланыш бере аласыз!\n⏳ Кийинки кайтарым байланыш: **{hours_left}с {minutes_left}м** ичинде жеткиликтүү болот\n📅 Эртең кайра келип, дагы ой бөлүшүңүз!",
+
+    "session_limit": "📈 Акыркы кайтарым байланыштан кийин дагы **{sessions_needed} сессия** талап кылынат!\n💡 Ботту активдүү колдонуп, кайра ой бөлүшүңүз.\nАкыркы пикирден кийинки сессиялар: **{sessions_since_feedback}/3**",
+
+    "thank_you_title": "✅ Пикириңиз үчүн рахмат!",
+
+    "your_message_field": "💬 Сиздин билдирүү",
+
+    "reward_field": "🎁 Сыйлык",
+
+    "next_feedback_field": "⏰ Кийинки пикир",
+
+    "next_feedback_value": "Эртең же дагы 3 сессиядан кийин жеткиликтүү",
+
+    "footer": "Сиздин пикириңиз Muse ботун баары үчүн жакшыртууга жардам берет! 💖",
+
+    "notification_title": "📝 Жаңы пикир кабыл алынды!",
+
+    "notification_fields": {
+      "user": "👤 Колдонуучу",
+      "rating": "⭐ Баа",
+      "sessions": "📊 Сессиялар",
+      "context": "🌍 Контекст",
+      "tier": "⭐ Деңгээл",
+      "points_awarded": "💎 Берилген упайлар",
+      "message": "💬 Билдирүү"
+    },
+
+    "error_saving": "❌ Пикирди сактоо учурунда ката кетти: {error}\nКийинчерээк кайра аракет кылыңыз же колдоо бөлүмүнө кайрылыңыз."
+  },
   "REVIEWS": {
     "title": "📊 Ботко сын-пикирлер жана Feedback",
     "no_reviews_title": "📝 Азырынча сын жок",
