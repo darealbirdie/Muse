@@ -416,43 +416,34 @@
 },
 
 "HELP": {
-  "title": "🤖 Muse Translator - Lista di Comandi",
-  "description": "Eccu tutti i comandi dispunibili:",
-
+  "title": "🤖 Muse Translator - Lista di Cumandamenti",
+  "description": "Eccu tutti i cumandamenti dispunibuli:",
   "text_title": "📝 Traduzzione di Testu",
-  "text_value": "`/texttr [text] [source_lang] [target_lang]` - Traduce testu\n`/read [target_lang] [message_id]` - Traduce missaghju per ID\n`/dmtr [user] [text] [source_lang] [target_lang]` - Invia DM traduttu{server_only}",
-
-  "voice_title": "🎤 Comandi Vocali",
-  "voice_value": "`/voice [text] [source_lang] [target_lang]` - Testu à voce\n`/speak [text] [source_lang] [target_lang]` - Riproduce parlatu in canale vocale{server_only}\n`/voicechat [source_lang] [target_lang]` - Traduzzione vocale in tempu reale{server_only}\n`/voicechat2 [lang1] [lang2]` - Traduzzione vocale bidirezionale avanzata{server_only}",
-
-  "auto_title": "🔄 Traduzzione Automatica (Solu Servitore)",
-  "auto_value": "`/autotranslate [source_lang] [target_lang]` - Traduce automaticamente i vostri missaghji",
-
-  "reward_title": "💎 Sistema di Premi",
-  "reward_value": "`/daily` - Riscatta premi di punti quotidiani\n`/shop` - Naviga in u magazinu di premi\n`/buy [reward]` - Compra premi cù i punti\n`/profile [user]` - Vede profilu è statistiche\n`/rewards` - Vede premi attivi\n`/gift [user] [amount]` - Regala punti à altri",
-
-  "social_title": "🏆 Sociale & Cumpetizione",
-  "social_value": "`/leaderboard` - Vede i migliori utenti per punti\n`/achievements` - Vede badge è successi\n`/cashout` - Cunta punti di successu per spende in `/shop`\n`/transactions` - Vede storia di transazzioni",
-
-  "setup_title": "⚙️ Configurazione & Cuntrollu",
-  "setup_value_user": "`/start` - Inizializza traduttore\n`/stop` - Ferma sessioni di traduzzione attive",
-  "setup_value_admin": "`/start` - Inizializza traduttore\n`/setchannel [channel_id]` - Setta permessi di canali\n`/stop` - Ferma sessioni di traduzzione attive",
-
+  "text_value": "`/texttr [testu] [lingua_sorgente] [lingua_destinazione]` - Traduci u testu\n`/read [lingua_destinazione] [id_messaghju]` - Traduci un messaghju per ID\n`/dmtr [utilizatore] [testu] [lingua_sorgente] [lingua_destinazione]` - Mandà un DM traduttu{server_only}",
+  "voice_title": "🎤 Cumandamenti Vocali",
+  "voice_value": "`/voice [testu] [lingua_sorgente] [lingua_destinazione]` - Testu à parlatu\n`/speak [testu] [lingua_sorgente] [lingua_destinazione]` - Ripruduce u parlatu in u canale vocale{server_only}\n`/voicechat [lingua_sorgente] [lingua_destinazione]` - Traduzzione vocale in tempu reale{server_only}\n`/voicechat2 [lingua1] [lingua2]` - Traduzzione vocale bidirezionale avanzata{server_only}",
+  "auto_title": "🔄 Traduzzione Automatica (Solu per Server)",
+  "auto_value": "`/autotranslate [lingua_sorgente] [lingua_destinazione]` - Traduce automaticamente i vostri missaghji",
+  "reward_title": "💎 Sistema di Ricumpense",
+  "reward_value": "`/daily` - Reclama ricumpense di punti ghjurnalieri\n`/shop` - Naviga in u magazinu di ricumpense\n`/buy [ricumpensa]` - Compra ricumpense cù punti\n`/profile [utilizatore]` - Vede u profilu è statistiche\n`/rewards` - Vede e ricumpense attive\n`/gift [utilizatore] [quantità]` - Rigala punti à altri",
+  "social_title": "🏆 Sociale è Cumpetizione",
+  "social_value": "`/leaderboard` - Vede l'utenti top per punti\n`/achievements` - Vede i vostri badge è successi\n`/cashout` - Scambia i punti di successu per u magazinu\n`/transactions` - Vede a storia di transazzioni di punti",
+  "setup_title": "⚙️ Setup è Cuntrollu",
+  "setup_value_user": "`/stop` - Ferma e sessioni attive di traduzzione",
+  "setup_value_admin": "`/setchannel [id_canale]` - Setta i permessi di traduzzione è lingua di u canale\n`/stop` - Ferma e sessioni attive di traduzzione",
   "settings_title": "🎛️ Impostazioni",
-  "settings_value": "`/hide` - Nasconde testu originale in traduzzioni\n`/show` - Mostra testu originale\n`/preferences` - Ajusta preferenze di lingua\n`/history` - Vede storia di traduzzione",
-
+  "settings_value": "`/hide` - Nascondi u testu originale in e traduzzioni\n`/show` - Mostra u testu originale in e traduzzioni\n`/preferences` - Aghjusta e preferenze di lingua\n`/history` - Vede a storia di traduzzione",
   "info_title": "ℹ️ Infurmazione",
-  "info_value": "`/list` - Mostra tutte e lingue supportate\n`/upgrade` - Info accessu premium\n`/invite` - Link per invitare u bot\n`/vote` - Link per votà u bot\n`/help` - Mostra sta lista di comandi",
-
+  "info_value": "`/list` - Mostra tutte e lingue supportate\n`/upgrade` - Infurmazioni nantu à l'accessu premium\n`/invite` - Link di invitu di u bot\n`/vote` - Link per vutà per u bot\n`/help` - Mostra sta lista di cumandamenti",
   "context_title": "📱 Menu di Cuntestu",
-  "context_value": "`Right-click missaghju` → `Apps` → `Read Message` - Traduce ogni missaghju",
-
-  "tips_title": "💡 Consigli d'Usu",
-  "tips_value": "• Aduprate `auto` per rilevazione automatica\n• Codici lingua: `en`, `es`, `fr` o nomi: `English`, `Spanish`, `French`\n• Guadagnate punti ogni ghjornu è cumprate funzioni premium temporanee!\n• Esempiu: `/texttr text:'Hello' source_lang:en target_lang:es`",
-
-  "footer_server": "Modo Servitore: {server} | Tutte e funzioni dispunibili | Aduprate /daily per i punti!",
-  "footer_dm": "Modo Utente: Perfettu per DM | Certi funzioni solu servitore | Aduprate /daily per i punti!",
-  "server_only": " (solu servitore)"
+  "readimage_title": "🖼️ Traduzzione di Immagini",
+  "readimage_value": "`/readimage [lingua_destinazione]` - Estrae è traduce u testu da l'imaghjini caricati cù OCR",
+  "context_value": "`Clicca drittu nantu à u messagiu → Apps → Read Message` - Traduce ogni messagiu",
+  "tips_title": "💡 Cunsigli di Usu",
+  "tips_value": "• Aduprate `auto` cum'è lingua sorgente per a rilevazione automatica\n• Codici di lingua: `en`, `es`, `fr` o nomi: English, Spanish, French\n• Guadagnate punti ogni ghjornu è cumprate funzioni premium temporanee!\n• Esempiu: `/texttr text:'Hello' source_lang:en target_lang:es`",
+  "footer_server": "Modalità Server: {server} | Tutte e funzioni dispunibili | Aduprate `/daily` per punti!",
+  "footer_dm": "Modalità Utente: Perfettu per DM | Alcune funzioni sò solu per server | Aduprate `/daily` per punti!",
+  "server_only": " (solu per server)"
 },
 
 "FEEDBACK": {
