@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import discord
+from discord import Interaction
+from discord.app_commands import Choice
 from discord import app_commands
 from flask import Flask, request, jsonify
 import threading
@@ -589,6 +591,34 @@ async def send_consolation_notification(user_id: int, points: int, amount: float
 
 # Language name mapping
 languages = {
+    "auto": "🔍 Auto-detect", 'af': 'Afrikaans', 'sq': 'Albanian', 'am': 'Amharic', 'ar': 'Arabic',
+    'hy': 'Armenian', 'az': 'Azerbaijani', 'eu': 'Basque', 'be': 'Belarusian',
+    'bn': 'Bengali', 'bs': 'Bosnian', 'bg': 'Bulgarian', 'ca': 'Catalan',
+    'ceb': 'Cebuano', 'ny': 'Chichewa', 'zh-CN': 'Chinese', 'zh-TW': 'Chinese (Traditional)', 'co': 'Corsican',
+    'hr': 'Croatian', 'cs': 'Czech', 'da': 'Danish', 'nl': 'Dutch',
+    'en': 'English', 'eo': 'Esperanto', 'et': 'Estonian', 'tl': 'Filipino',
+    'fi': 'Finnish', 'fr': 'French', 'fy': 'Frisian', 'gl': 'Galician',
+    'ka': 'Georgian', 'de': 'German', 'el': 'Greek', 'gu': 'Gujarati',
+    'ht': 'Haitian Creole', 'ha': 'Hausa', 'haw': 'Hawaiian', 'iw': 'Hebrew',
+    'hi': 'Hindi', 'hmn': 'Hmong', 'hu': 'Hungarian', 'is': 'Icelandic',
+    'ig': 'Igbo', 'id': 'Indonesian', 'ga': 'Irish', 'it': 'Italian',
+    'ja': 'Japanese', 'jw': 'Javanese', 'kn': 'Kannada', 'kk': 'Kazakh',
+    'km': 'Khmer', 'ko': 'Korean', 'ku': 'Kurdish', 'ky': 'Kyrgyz',
+    'lo': 'Lao', 'la': 'Latin', 'lv': 'Latvian', 'lt': 'Lithuanian',
+    'lb': 'Luxembourgish', 'mk': 'Macedonian', 'mg': 'Malagasy', 'ms': 'Malay',
+    'ml': 'Malayalam', 'mt': 'Maltese', 'mi': 'Maori', 'mr': 'Marathi',
+    'mn': 'Mongolian', 'my': 'Myanmar', 'ne': 'Nepali', 'no': 'Norwegian',
+    'ps': 'Pashto', 'fa': 'Persian', 'pl': 'Polish', 'pt': 'Portuguese',
+    'pa': 'Punjabi', 'ro': 'Romanian', 'ru': 'Russian', 'sm': 'Samoan',
+    'gd': 'Scots Gaelic', 'sr': 'Serbian', 'st': 'Sesotho', 'sn': 'Shona',
+    'sd': 'Sindhi', 'si': 'Sinhala', 'sk': 'Slovak', 'sl': 'Slovenian',
+    'so': 'Somali', 'es': 'Spanish', 'su': 'Sundanese', 'sw': 'Swahili',
+    'sv': 'Swedish', 'tg': 'Tajik', 'ta': 'Tamil', 'te': 'Telugu',
+    'th': 'Thai', 'tr': 'Turkish', 'uk': 'Ukrainian', 'ur': 'Urdu',
+    'uz': 'Uzbek', 'vi': 'Vietnamese', 'cy': 'Welsh', 'xh': 'Xhosa',
+    'yi': 'Yiddish', 'yo': 'Yoruba', 'zu': 'Zulu'
+}
+target_languages = {
     'af': 'Afrikaans', 'sq': 'Albanian', 'am': 'Amharic', 'ar': 'Arabic',
     'hy': 'Armenian', 'az': 'Azerbaijani', 'eu': 'Basque', 'be': 'Belarusian',
     'bn': 'Bengali', 'bs': 'Bosnian', 'bg': 'Bulgarian', 'ca': 'Catalan',
@@ -731,24 +761,7 @@ flag_mapping = {
 }
 # Add these functions after flag_mapping and before class TierHandler:
 
-async def language_autocomplete(
-    interaction: discord.Interaction,
-    current: str,
-) -> list[app_commands.Choice[str]]:
-    # Filter languages based on what user is typing
-    current_lower = current.lower()
-    
-    # Search both language codes and names
-    matches = []
-    for code, name in languages.items():
-        # Match by code or name
-        if (current_lower in code.lower() or 
-            current_lower in name.lower()):
-            # Show both code and name in the choice
-            matches.append(app_commands.Choice(name=f"{name} ({code})", value=code))
-    
-    # Limit to 25 choices (Discord's limit)
-    return matches[:25]
+
 
 async def source_language_autocomplete(
     interaction: discord.Interaction,
@@ -756,18 +769,14 @@ async def source_language_autocomplete(
 ) -> list[app_commands.Choice[str]]:
     current_lower = current.lower()
     matches = []
-    
-    # Always show auto-detect first if it matches
-    if not current or "auto" in current_lower:
-        matches.append(app_commands.Choice(name="🔍 Auto-detect language", value="auto"))
-    
-    # Then add language matches
     for code, name in languages.items():
-        if (current_lower in code.lower() or 
-            current_lower in name.lower()):
+        if current_lower in code.lower() or current_lower in name.lower():
             matches.append(app_commands.Choice(name=f"{name} ({code})", value=code))
-    
     return matches[:25]
+
+
+
+
 class TierHandler:
     def __init__(self):
         self.premium_users = set()  # Premium users
@@ -1976,7 +1985,7 @@ async def text_translate(
 
     limits = tier_handler.get_limits(user_id)
 
-    source_code = get_language_code(source_lang)
+    source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
     target_code = get_language_code(target_lang)
 
     if interaction.guild:
@@ -2183,7 +2192,7 @@ async def translate_and_speak(
             pass
         
         # Convert language inputs to codes
-        source_code = get_language_code(source_lang)
+        source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
         target_code = get_language_code(target_lang)
         
         if interaction.guild:
@@ -4455,7 +4464,7 @@ async def translate_and_speak_voice(
         # --- TIER PRIORITY LOGIC END ---
 
         # Convert language inputs to codes
-        source_code = get_language_code(source_lang)
+        source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
         target_code = get_language_code(target_lang)
         
         if interaction.guild:
@@ -5614,6 +5623,7 @@ async def on_message(message):
     
     return
 
+
 @tree.command(name="dmtr", description="Translate and send a message to another user")
 @app_commands.describe(
     user="User to send the translated message to",
@@ -5627,59 +5637,48 @@ async def dm_translate(
     text: str,
     source_lang: str,
     target_lang: str):
-    
+
     try:
+        logger.info(f"DM_TRANSLATE: Starting command for user {interaction.user.id}")
+        
+        logger.info(f"DM_TRANSLATE: Calling track_command_usage")
         await track_command_usage(interaction)
-        
+        logger.info(f"DM_TRANSLATE: track_command_usage completed")
+
         sender_id = interaction.user.id
-        
-        # Get user's UI language
+        logger.info(f"DM_TRANSLATE: Getting UI language for user {sender_id}")
         ui_lang = await get_user_ui_language(sender_id)
-        
+        logger.info(f"DM_TRANSLATE: UI language retrieved: {ui_lang}")
+
         # Convert language inputs to codes
+        logger.info(f"DM_TRANSLATE: Converting language codes - source: {source_lang}, target: {target_lang}")
         source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
         target_code = get_language_code(target_lang)
-        
-        # Check channel permissions if in a guild
-        if interaction.guild:
-            allowed = await db.is_translation_allowed(
-                interaction.guild.id,
-                interaction.channel.id,
-                "text",
-                target_code
-            )
-            if not allowed:
-                embed = discord.Embed(
-                    title=get_translation(ui_lang, "DMTR.error_not_allowed_title"),
-                    description=get_translation(ui_lang, "DMTR.error_not_allowed_desc"),
-                    color=0xFF6B6B
-                )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
-                return
-        
+        logger.info(f"DM_TRANSLATE: Language codes converted - source_code: {source_code}, target_code: {target_code}")
+
         # Validate language codes
         if source_lang.lower() != "auto" and not source_code:
+            logger.warning(f"DM_TRANSLATE: Invalid source language: {source_lang}")
             embed = discord.Embed(
                 title=get_translation(ui_lang, "DMTR.error_invalid_source_title"),
-                description=get_translation(ui_lang, "DMTR.error_invalid_source_desc", 
-                                          language=source_lang),
+                description=get_translation(ui_lang, "DMTR.error_invalid_source_desc", language=source_lang),
                 color=0xFF6B6B
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-        
+
         if not target_code:
+            logger.warning(f"DM_TRANSLATE: Invalid target language: {target_lang}")
             embed = discord.Embed(
                 title=get_translation(ui_lang, "DMTR.error_invalid_target_title"),
-                description=get_translation(ui_lang, "DMTR.error_invalid_target_desc", 
-                                          language=target_lang),
+                description=get_translation(ui_lang, "DMTR.error_invalid_target_desc", language=target_lang),
                 color=0xFF6B6B
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-        
-        # Check if trying to DM themselves
+
         if user.id == sender_id:
+            logger.warning(f"DM_TRANSLATE: User trying to DM themselves: {sender_id}")
             embed = discord.Embed(
                 title=get_translation(ui_lang, "DMTR.error_self_dm_title"),
                 description=get_translation(ui_lang, "DMTR.error_self_dm_desc"),
@@ -5687,9 +5686,9 @@ async def dm_translate(
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-        
-        # Check if trying to DM a bot
+
         if user.bot:
+            logger.warning(f"DM_TRANSLATE: User trying to DM a bot: {user.id}")
             embed = discord.Embed(
                 title=get_translation(ui_lang, "DMTR.error_bot_dm_title"),
                 description=get_translation(ui_lang, "DMTR.error_bot_dm_desc"),
@@ -5697,285 +5696,284 @@ async def dm_translate(
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-        
-        # Get user tier and check limits
+
+        logger.info(f"DM_TRANSLATE: Getting user tier for {sender_id}")
         current_tier = tier_handler.get_user_tier(sender_id)
-        limits = tier_handler.get_limits(sender_id)
+        logger.info(f"DM_TRANSLATE: User tier: {current_tier}")
         
-        # Check text length limits
+        logger.info(f"DM_TRANSLATE: Getting limits for user {sender_id}")
+        limits = tier_handler.get_limits(sender_id)
+        logger.info(f"DM_TRANSLATE: Limits retrieved: {limits}")
+
         if len(text) > limits['text_limit']:
+            logger.warning(f"DM_TRANSLATE: Text too long - {len(text)} > {limits['text_limit']}")
             embed = discord.Embed(
                 title=get_translation(ui_lang, "DMTR.error_text_too_long_title"),
-                description=get_translation(ui_lang, "DMTR.error_text_too_long_desc",
-                                          length=len(text),
-                                          tier=current_tier,
-                                          limit=limits['text_limit']),
+                description=get_translation(ui_lang, "DMTR.error_text_too_long_desc", length=len(text), tier=current_tier, limit=limits['text_limit']),
                 color=0xFF6B6B
             )
-            
             embed.add_field(
                 name=get_translation(ui_lang, "DMTR.upgrade_benefits_field"),
                 value=get_translation(ui_lang, "DMTR.upgrade_benefits_value"),
                 inline=False
             )
-            
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
+
+        # CRITICAL: Check if check_usage_limits is async or sync
+        logger.info(f"DM_TRANSLATE: About to call check_usage_limits - checking if it's async")
+        logger.info(f"DM_TRANSLATE: check_usage_limits function type: {type(tier_handler.check_usage_limits)}")
         
-        # Check usage limits
-        can_translate, limit_message = await tier_handler.check_usage_limits(sender_id, text_chars=len(text))
+        try:
+            import asyncio
+            if asyncio.iscoroutinefunction(tier_handler.check_usage_limits):
+                logger.info(f"DM_TRANSLATE: check_usage_limits IS async - using await")
+                can_translate, limit_message = await tier_handler.check_usage_limits(sender_id, text_chars=len(text))
+            else:
+                logger.info(f"DM_TRANSLATE: check_usage_limits is NOT async - calling directly")
+                can_translate, limit_message = tier_handler.check_usage_limits(sender_id, text_chars=len(text))
+            logger.info(f"DM_TRANSLATE: check_usage_limits result - can_translate: {can_translate}, limit_message: {limit_message}")
+        except Exception as e:
+            logger.error(f"DM_TRANSLATE: ERROR in check_usage_limits call: {e}")
+            logger.error(f"DM_TRANSLATE: Exception type: {type(e)}")
+            raise e
+
         if not can_translate:
+            logger.warning(f"DM_TRANSLATE: Usage limit reached for user {sender_id}")
             embed = discord.Embed(
                 title=get_translation(ui_lang, "DMTR.error_limit_reached_title"),
-                description=get_translation(ui_lang, "DMTR.error_limit_reached_desc", 
-                                          message=limit_message),
+                description=get_translation(ui_lang, "DMTR.error_limit_reached_desc", message=limit_message),
                 color=0xFF6B6B
             )
-            
             embed.add_field(
                 name=get_translation(ui_lang, "DMTR.limit_solutions_field"),
                 value=get_translation(ui_lang, "DMTR.limit_solutions_value"),
                 inline=False
             )
-            
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-        
+
+        logger.info(f"DM_TRANSLATE: Deferring interaction response")
         await interaction.response.defer(ephemeral=True)
+        logger.info(f"DM_TRANSLATE: Interaction deferred")
         
-        # Create/update user in database
+        logger.info(f"DM_TRANSLATE: Getting or creating user in database")
         await db.get_or_create_user(sender_id, interaction.user.display_name)
-        
-        # Detect language if set to auto
+        logger.info(f"DM_TRANSLATE: User database operation completed")
+
         detected_message = ""
         if source_code == "auto":
+            logger.info(f"DM_TRANSLATE: Auto-detecting language for text: {text[:50]}...")
             try:
-                detected_lang = detect(text)
-                source_code = detected_lang
+                source_code = detect(text)
                 detected_message = get_translation(ui_lang, "DMTR.detected_suffix")
-                logger.info(f"Detected language: {detected_lang}")
+                logger.info(f"DM_TRANSLATE: Language detected: {source_code}")
             except Exception as e:
-                logger.error(f"Language detection error: {e}")
-                source_code = "en"  # Default to English if detection fails
+                logger.error(f"DM_TRANSLATE: Language detection error: {e}")
+                source_code = "en"
                 detected_message = get_translation(ui_lang, "DMTR.detection_failed_suffix")
-        
-        # Skip translation if detected language matches target
-        if source_code == target_code:
-            translated_text = text
-            same_language = True
-        else:
-            # Translate the text
-            try:
-                translator = GoogleTranslator(source=source_code, target=target_code)
-                translated_text = translator.translate(text)
-                same_language = False
-                
-                if not translated_text or translated_text.strip() == "":
-                    raise Exception("Translation returned empty result")
-                    
-            except Exception as e:
-                logger.error(f"Translation error: {e}")
-                embed = discord.Embed(
-                    title=get_translation(ui_lang, "DMTR.error_translation_failed_title"),
-                    description=get_translation(ui_lang, "DMTR.error_translation_failed_desc", 
-                                              error=str(e)),
-                    color=0xFF6B6B
-                )
-                await interaction.followup.send(embed=embed, ephemeral=True)
-                return
-        
-        # Track usage and save translation
+
+        same_language = source_code == target_code
+        logger.info(f"DM_TRANSLATE: Same language check: {same_language}")
+
+        try:
+            logger.info(f"DM_TRANSLATE: Starting translation from {source_code} to {target_code}")
+            translated_text = text if same_language else GoogleTranslator(source=source_code, target=target_code).translate(text)
+            logger.info(f"DM_TRANSLATE: Translation completed")
+
+            if not translated_text.strip():
+                raise Exception("Translation returned empty result")
+
+        except Exception as e:
+            logger.error(f"DM_TRANSLATE: Translation error: {e}")
+            embed = discord.Embed(
+                title=get_translation(ui_lang, "DMTR.error_translation_failed_title"),
+                description=get_translation(ui_lang, "DMTR.error_translation_failed_desc", error=str(e)),
+                color=0xFF6B6B
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+
+        logger.info(f"DM_TRANSLATE: Tracking usage in database")
         await db.track_usage(sender_id, text_chars=len(text))
-        await db.save_translation(
-            user_id=sender_id,
-            guild_id=interaction.guild_id or 0,
-            original_text=text,
-            translated_text=translated_text,
-            source_lang=source_code,
-            target_lang=target_code,
-            translation_type="dm"
-        )
-        
-        # Award points based on tier
+        logger.info(f"DM_TRANSLATE: Saving translation to database")
+        await db.save_translation(sender_id, interaction.guild_id or 0, text, translated_text, source_code, target_code, "dm")
+        logger.info(f"DM_TRANSLATE: Database operations completed")
+
         points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
-        points_awarded = points_map[current_tier]
+        points_awarded = points_map.get(current_tier, 1)
+        logger.info(f"DM_TRANSLATE: Adding {points_awarded} points for tier {current_tier}")
         reward_db.add_points(sender_id, points_awarded, f"DM translation: {source_code}→{target_code}")
-        
-        # Track for achievements
+
         is_premium = current_tier in ['premium', 'pro']
+        logger.info(f"DM_TRANSLATE: Tracking achievement - is_premium: {is_premium}")
         achievement_db.track_translation(sender_id, source_code, target_code, is_premium)
         new_achievements = achievement_db.check_achievements(sender_id)
-        if new_achievements:
-            await send_achievement_notification(client, sender_id, new_achievements)
         
-        # Get language names and flags
+        if new_achievements:
+            logger.info(f"DM_TRANSLATE: New achievements found: {new_achievements}")
+            # Check if send_achievement_notification is async
+            try:
+                import asyncio
+                if asyncio.iscoroutinefunction(send_achievement_notification):
+                    logger.info(f"DM_TRANSLATE: send_achievement_notification IS async - using await")
+                    await send_achievement_notification(client, sender_id, new_achievements)
+                else:
+                    logger.info(f"DM_TRANSLATE: send_achievement_notification is NOT async - calling directly")
+                    send_achievement_notification(client, sender_id, new_achievements)
+                logger.info(f"DM_TRANSLATE: Achievement notification sent")
+            except Exception as e:
+                logger.error(f"DM_TRANSLATE: Error sending achievement notification: {e}")
+
+        logger.info(f"DM_TRANSLATE: Getting language names and flags")
         source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
         target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
         source_flag = flag_mapping.get(source_code, '🌐')
         target_flag = flag_mapping.get(target_code, '🌐')
-        
-        # Get recipient's UI language (fallback to English if not found)
+
         try:
+            logger.info(f"DM_TRANSLATE: Getting recipient UI language for user {user.id}")
             recipient_ui_lang = await get_user_ui_language(user.id)
-        except:
+            logger.info(f"DM_TRANSLATE: Recipient UI language: {recipient_ui_lang}")
+        except Exception as e:
+            logger.error(f"DM_TRANSLATE: Error getting recipient UI language: {e}")
             recipient_ui_lang = 'en'
-        
-        # Create embed for the recipient
+
+        logger.info(f"DM_TRANSLATE: Creating recipient embed")
         recipient_embed = discord.Embed(
-            title=get_translation(recipient_ui_lang, "DMTR.recipient_title", 
-                                sender=interaction.user.display_name),
+            title=get_translation(recipient_ui_lang, "DMTR.recipient_title", sender=interaction.user.display_name),
             description=get_translation(recipient_ui_lang, "DMTR.recipient_desc"),
             color=0x3498db,
             timestamp=datetime.utcnow()
         )
-        
-        # Add source language field
-        source_field_name = get_translation(recipient_ui_lang, "DMTR.original_field", 
-                                          flag=source_flag, language=source_name)
+
+        source_field_name = get_translation(recipient_ui_lang, "DMTR.original_field", flag=source_flag, language=source_name)
         if source_lang.lower() == "auto":
             source_field_name += detected_message
-        
-        recipient_embed.add_field(
-            name=source_field_name,
-            value=text[:1024],  # Discord embed field limit
-            inline=False
-        )
-        
-        # Add target language field
+
+        recipient_embed.add_field(name=source_field_name, value=text[:1024], inline=False)
+
         if same_language:
             recipient_embed.add_field(
-                name=get_translation(recipient_ui_lang, "DMTR.same_language_field", 
-                                   flag=target_flag, language=target_name),
+                name=get_translation(recipient_ui_lang, "DMTR.same_language_field", flag=target_flag, language=target_name),
                 value=get_translation(recipient_ui_lang, "DMTR.same_language_value"),
                 inline=False
             )
         else:
             recipient_embed.add_field(
-                name=get_translation(recipient_ui_lang, "DMTR.translation_field", 
-                                   flag=target_flag, language=target_name),
+                name=get_translation(recipient_ui_lang, "DMTR.translation_field", flag=target_flag, language=target_name),
                 value=translated_text[:1024],
                 inline=False
             )
-        
-        # Add server context if sent from a server
+
         if interaction.guild:
             recipient_embed.add_field(
                 name=get_translation(recipient_ui_lang, "DMTR.server_context_field"),
-                value=get_translation(recipient_ui_lang, "DMTR.server_context_value", 
-                                    server=interaction.guild.name, 
-                                    channel=interaction.channel.name),
+                value=get_translation(recipient_ui_lang, "DMTR.server_context_value", server=interaction.guild.name, channel=interaction.channel.name),
                 inline=True
             )
-        
+
         recipient_embed.set_footer(
             text=get_translation(recipient_ui_lang, "DMTR.recipient_footer"),
             icon_url=interaction.user.display_avatar.url
         )
-        
-        # Try to send the DM
+
+        logger.info(f"DM_TRANSLATE: Attempting to send DM to user {user.id}")
         try:
             dm_channel = await user.create_dm()
             await dm_channel.send(embed=recipient_embed)
             dm_sent = True
+            logger.info(f"DM_TRANSLATE: DM sent successfully")
         except discord.Forbidden:
             dm_sent = False
+            logger.warning(f"DM_TRANSLATE: DM forbidden - user has DMs disabled")
         except Exception as e:
-            logger.error(f"Error sending DM: {e}")
+            logger.error(f"DM_TRANSLATE: Error sending DM: {e}")
             dm_sent = False
-        
-        # Create confirmation embed for sender
-        if dm_sent:
-            sender_embed = discord.Embed(
-                title=get_translation(ui_lang, "DMTR.success_title", user=user.display_name),
-                description=get_translation(ui_lang, "DMTR.success_desc"),
-                color=0x2ecc71,
-                timestamp=datetime.utcnow()
-            )
-        else:
-            sender_embed = discord.Embed(
-                title=get_translation(ui_lang, "DMTR.failed_title", user=user.display_name),
-                description=get_translation(ui_lang, "DMTR.failed_desc"),
-                color=0xFFA500,
-                timestamp=datetime.utcnow()
-            )
-        
-        # Add translation details
+
+        logger.info(f"DM_TRANSLATE: Creating sender embed")
+        sender_embed = discord.Embed(
+            title=get_translation(ui_lang, "DMTR.success_title" if dm_sent else "DMTR.failed_title", user=user.display_name),
+            description=get_translation(ui_lang, "DMTR.success_desc" if dm_sent else "DMTR.failed_desc"),
+            color=0x2ecc71 if dm_sent else 0xFFA500,
+            timestamp=datetime.utcnow()
+        )
+
         sender_embed.add_field(
-            name=get_translation(ui_lang, "DMTR.original_field", 
-                               flag=source_flag, language=source_name),
+            name=get_translation(ui_lang, "DMTR.original_field", flag=source_flag, language=source_name),
             value=text[:1024],
             inline=False
         )
-        
+
         if same_language:
             sender_embed.add_field(
-                name=get_translation(ui_lang, "DMTR.same_language_field", 
-                                   flag=target_flag, language=target_name),
+                name=get_translation(ui_lang, "DMTR.same_language_field", flag=target_flag, language=target_name),
                 value=get_translation(ui_lang, "DMTR.same_language_value"),
                 inline=False
             )
         else:
             sender_embed.add_field(
-                name=get_translation(ui_lang, "DMTR.translation_field", 
-                                   flag=target_flag, language=target_name),
+                name=get_translation(ui_lang, "DMTR.translation_field", flag=target_flag, language=target_name),
                 value=translated_text[:1024],
                 inline=False
             )
-        
-        # Add points earned
+
         sender_embed.add_field(
             name=get_translation(ui_lang, "DMTR.points_field"),
             value=get_translation(ui_lang, "DMTR.points_value", points=points_awarded),
             inline=True
         )
-        
-        # Add character usage for limited tiers
+
         if current_tier in ['free', 'basic']:
             sender_embed.add_field(
                 name=get_translation(ui_lang, "DMTR.usage_field"),
-                value=get_translation(ui_lang, "DMTR.usage_value", 
-                                    current=len(text), limit=limits['text_limit']),
+                value=get_translation(ui_lang, "DMTR.usage_value", current=len(text), limit=limits['text_limit']),
                 inline=True
             )
-        
-        # Tier-specific footer
+
         tier_footers = {
-            'free': get_translation(ui_lang, "DMTR.footer_free", 
-                                  current=len(text), limit=limits['text_limit']),
-            'basic': get_translation(ui_lang, "DMTR.footer_basic", 
-                                   current=len(text), limit=limits['text_limit']),
+            'free': get_translation(ui_lang, "DMTR.footer_free", current=len(text), limit=limits['text_limit']),
+            'basic': get_translation(ui_lang, "DMTR.footer_basic", current=len(text), limit=limits['text_limit']),
             'premium': get_translation(ui_lang, "DMTR.footer_premium"),
             'pro': get_translation(ui_lang, "DMTR.footer_pro")
         }
-        
         sender_embed.set_footer(text=tier_footers[current_tier])
-        
+
+        logger.info(f"DM_TRANSLATE: Sending response to user")
         await interaction.followup.send(embed=sender_embed, ephemeral=True)
-        
+        logger.info(f"DM_TRANSLATE: Command completed successfully")
+
     except Exception as e:
-        logger.error(f"DM translation error: {e}")
+        logger.error(f"DM_TRANSLATE: MAIN EXCEPTION CAUGHT - Type: {type(e)}, Message: {str(e)}")
+        logger.error(f"DM_TRANSLATE: Exception details: {repr(e)}")
+        import traceback
+        logger.error(f"DM_TRANSLATE: Full traceback: {traceback.format_exc()}")
         
-        # Get UI language for error message
         try:
             ui_lang = await get_user_ui_language(interaction.user.id)
-        except:
+        except Exception as lang_e:
+            logger.error(f"DM_TRANSLATE: Error getting UI language in exception handler: {lang_e}")
             ui_lang = 'en'
-        
+
         error_embed = discord.Embed(
             title=get_translation(ui_lang, "DMTR.error_general_title"),
             description=get_translation(ui_lang, "DMTR.error_general_desc", error=str(e)),
             color=0xFF0000
         )
-        
-        if not interaction.response.is_done():
-            await interaction.response.send_message(embed=error_embed, ephemeral=True)
-        else:
-            await interaction.followup.send(embed=error_embed, ephemeral=True)
+
+        try:
+            if not interaction.response.is_done():
+                logger.info(f"DM_TRANSLATE: Sending error response (initial)")
+                await interaction.response.send_message(embed=error_embed, ephemeral=True)
+            else:
+                logger.info(f"DM_TRANSLATE: Sending error response (followup)")
+                await interaction.followup.send(embed=error_embed, ephemeral=True)
+        except Exception as response_e:
+            logger.error(f"DM_TRANSLATE: Error sending error response: {response_e}")
 
 # Add autocomplete
 dm_translate.autocomplete('source_lang')(translated_language_autocomplete)
 dm_translate.autocomplete('target_lang')(translated_language_autocomplete)
-
 
 
 @tree.command(name="read", description="Translate a message by ID")
@@ -6314,6 +6312,8 @@ async def translate_by_id(
             await interaction.response.send_message(embed=error_embed, ephemeral=True)
         else:
             await interaction.followup.send(embed=error_embed, ephemeral=True)
+translate_by_id.autocomplete('target_lang')(translated_language_autocomplete)
+            
 @tree.command(
     name="readimage",
     description="Extract and translate text from an image file"
@@ -8809,112 +8809,62 @@ async def translation_history(interaction: discord.Interaction, limit: int = 10)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@tree.command(name="preferences", description="Set your default translation and interface languages")
+@tree.command(name="preferences", description="Set your interface language")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(
-    default_source="Your default source language (or 'auto' for detection)",
-    default_target="Your default target language",
-    ui_language="Language used for bot messages (e.g. en, es)")
+    ui_language="Language used for bot messages (e.g. en, es)"
+)
 async def set_preferences(
     interaction: discord.Interaction,
-    default_source: str = None,
-    default_target: str = None,
-    ui_language: str = None):
+    ui_language: str = None
+):
     user_id = interaction.user.id
     current_ui_lang = await get_user_ui_language(user_id)
-    updates = []
 
     def get_display_language_name(lang_code: str, ui_lang: str) -> str:
         fallback = languages.get(lang_code, lang_code)
         return get_translation(ui_lang, f"LANGUAGES.{lang_code}", default=fallback)
 
     try:
-        # --- Handle default source language ---
-        if default_source:
-            source_code = "auto" if default_source.lower() == "auto" else get_language_code(default_source)
-            if default_source.lower() != "auto" and not source_code:
-                await interaction.response.send_message(
-                    get_translation(current_ui_lang, "ERRORS.invalid_source", language=default_source),
-                    ephemeral=True
-                )
-                return
-            await db.update_user_preferences(user_id, source_lang=source_code)
-            updates.append(("source", source_code))
-
-        # --- Handle default target language ---
-        if default_target:
-            target_code = get_language_code(default_target)
-            if not target_code:
-                await interaction.response.send_message(
-                    get_translation(current_ui_lang, "ERRORS.invalid_target", language=default_target),
-                    ephemeral=True
-                )
-                return
-            await db.update_user_preferences(user_id, target_lang=target_code)
-            updates.append(("target", target_code))
-
-        # --- Handle UI language ---
-        if ui_language:
-            ui_code = get_language_code(ui_language)
-            if not ui_code or ui_code not in SUPPORTED_UI_LANGUAGES:
-                supported_langs = ", ".join(SUPPORTED_UI_LANGUAGES)
-                await interaction.response.send_message(
-                    get_translation(current_ui_lang, "ERRORS.invalid_ui",
-                                    language=ui_language, supported=supported_langs),
-                    ephemeral=True
-                )
-                return
-            await db.update_user_ui_language(user_id, ui_code)
-            updates.append(("ui", ui_code))
-
-        if not updates:
+        if not ui_language:
             await interaction.response.send_message(
                 get_translation(current_ui_lang, "PREFERENCES.nothing_set"),
                 ephemeral=True
             )
             return
 
-        # --- Determine language for response ---
-        response_lang = next((val for key, val in updates if key == "ui"), current_ui_lang)
+        ui_code = get_language_code(ui_language)
+        if not ui_code or ui_code not in SUPPORTED_UI_LANGUAGES:
+            supported_langs = ", ".join(SUPPORTED_UI_LANGUAGES)
+            await interaction.response.send_message(
+                get_translation(current_ui_lang, "ERRORS.invalid_ui",
+                                language=ui_language, supported=supported_langs),
+                ephemeral=True
+            )
+            return
 
-        # --- Build translated success message ---
-        desc_lines = []
-        for update_type, code in updates:
-            if update_type == "source":
-                display = "Auto-detect" if code == "auto" else get_display_language_name(code, response_lang)
-                flag = '🔍' if code == "auto" else flag_mapping.get(code, '🌐')
-                label = get_translation(response_lang, 'PREFERENCES.source_label')
-                desc_lines.append(f"**{label}:** {flag} {display}")
-            elif update_type == "target":
-                display = get_display_language_name(code, response_lang)
-                flag = flag_mapping.get(code, '🌐')
-                label = get_translation(response_lang, 'PREFERENCES.target_label')
-                desc_lines.append(f"**{label}:** {flag} {display}")
-            elif update_type == "ui":
-                display = get_display_language_name(code, response_lang)  # Changed from current_ui_lang to response_lang
-                flag = flag_mapping.get(code, '🌐')
-                label = get_translation(response_lang, 'PREFERENCES.ui_label')
-                desc_lines.append(f"**{label}:** {flag} {display}")
+        await db.update_user_ui_language(user_id, ui_code)
+
+        display = get_display_language_name(ui_code, ui_code)
+        flag = flag_mapping.get(ui_code, '🌐')
+        label = get_translation(ui_code, 'PREFERENCES.ui_label')
 
         embed = discord.Embed(
-            title=get_translation(response_lang, "PREFERENCES.updated_title"),
-            description="\n".join(desc_lines) + "\n\n" + get_translation(response_lang, "PREFERENCES.footer"),
+            title=get_translation(ui_code, "PREFERENCES.updated_title"),
+            description=f"**{label}:** {flag} {display}\n\n" + get_translation(ui_code, "PREFERENCES.footer"),
             color=0x2ecc71
         )
-
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     except Exception as e:
-        logger.error(f"Error updating preferences for user {user_id}: {e}")
+        logger.error(f"Error updating UI language for user {user_id}: {e}")
         await interaction.response.send_message(
             get_translation(current_ui_lang, "ERRORS.database_error"),
             ephemeral=True
         )
 
-# Keep your existing autocomplete
-set_preferences.autocomplete('default_source')(translated_language_autocomplete)
-set_preferences.autocomplete('default_target')(translated_language_autocomplete)
+# Only keep autocomplete for UI
 set_preferences.autocomplete('ui_language')(translated_language_autocomplete)
 
 
