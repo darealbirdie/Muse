@@ -1080,192 +1080,202 @@
   "uncashed_notify_footer": "Qhubeka uvula iimpumelelo ukuze ufumane umvuzo ongakumbi!"
 },
   "RANKS": {
-    "Newcomer": "🆕 Newcomer",
-    "Explorer": "🗺️ Explorer",
-    "Translator": "📝 Translator",
-    "Linguist": "🎓 Linguist",
-    "Polyglot": "🌍 Polyglot",
-    "Expert": "⭐ Expert",
-    "Master": "🏆 Master",
-    "Legend": "👑 Legend",
-    "Max_Level": "🏁 Max Level!",
-    "next_rank": "Next Rank: {next_rank} ({points_needed} more points)"
-  },
+  "Newcomer": "🆕 Umntu Omtsha",
+  "Explorer": "🗺️ Umhloli",
+  "Translator": "📝 Umguquleli",
+  "Linguist": "🎓 Ulwimi Lwazi",
+  "Polyglot": "🌍 Umntu Osebenzisa Iilwimi Ezininzi",
+  "Expert": "⭐ Ingcali",
+  "Master": "🏆 Inkosi",
+  "Legend": "👑 Ibali",
+  "Max_Level": "🏁 Inqanaba Eliphezulu!",
+  "next_rank": "Inqanaba Elilandelayo: {next_rank} (amanqaku angakumbi {points_needed})"
+},
 
-  "RARITIES": {
-    "Common": "⚪ Common",
-    "Uncommon": "🟢 Uncommon",
-    "Rare": "🔵 Rare",
-    "Epic": "🟣 Epic",
-    "Legendary": "🟡 Legendary"
-  },
+"RARITIES": {
+  "Common": "⚪ Eziqhelekileyo",
+  "Uncommon": "🟢 Ezingenakuphindwa rhoqo",
+  "Rare": "🔵 Ezinqabileyo",
+  "Epic": "🟣 Ezimangalisayo",
+  "Legendary": "🟡 Ezilabali"
+},
 
-  "PROFILE": {
-    "title": "📊 {username}'s Translation Profile",
-    "rank_title": "🏅 Rank & Points",
-    "points_activity": "{points} activity points",
-    "points_achievement": "{points} unclaimed from achievements",
-    "points_total": "{points} total points",
-    "usage_title": "📈 Usage Stats",
-    "usage_value": "{translations} translations · {sessions} voice sessions · {hours} hrs · {languages} languages used",
-    "limit_title": "📏 Daily Limits",
-    "limit_remaining": "**Text:** {chars}\n**Voice:** {voice}",
-    "limit_unlimited": "Unlimited",
-    "current_tier_title": "💼 Current Tier",
-    "tier_limits_title": "📦 Your Tier Limits",
-    "achievements_title": "🎖️ Achievements",
-    "achievements_value": "{count} unlocked achievements",
-    "most_used_title": "📌 Most Used Language",
-    "most_used_value": "{flag} {language}",
-    "languages_title": "🌍 Languages Used",
-    "languages_empty": "No languages recorded yet!",
-    "unranked": "Unranked",
-    "error_title": "⚠️ Profile Error",
-    "error_desc": "An error occurred while loading your profile:\n`{error}`"
-  },
+"PROFILE": {
+  "title": "📊 Iprofayili ka-{username} Yokuguqulela",
+  "rank_title": "🏅 Inqanaba Namaphuzu",
+  "points_activity": "{points} amaphuzu omsebenzi",
+  "points_achievement": "{points} engakafunyanwanga kwimveliso",
+  "points_total": "{points} iyonke amaphuzu",
+  "usage_title": "📈 Iinkcukacha Zokusetyenziswa",
+  "usage_value": "{translations} iinguqulelo · {sessions} izeshishini zolwimi · {hours} iiyure · {languages} iilwimi ezisetyenzisiweyo",
+  "limit_title": "📏 Imida Yemihla Ngemihla",
+  "limit_remaining": "**Umbhalo:** {chars}\n**Ilizwi:** {voice}",
+  "limit_unlimited": "Akukho Mda",
+  "current_tier_title": "💼 Inqanaba Langoku",
+  "tier_limits_title": "📦 Imida Yenqanaba Lakho",
+  "achievements_title": "🎖️ Iimpumelelo",
+  "achievements_value": "{count} iimpumelelo ezivuliweyo",
+  "most_used_title": "📌 Ulwimi Olusetyenziswe Ngakumbi",
+  "most_used_value": "{flag} {language}",
+  "languages_title": "🌍 Iilwimi Ezisetyenzisiweyo",
+  "languages_empty": "Akukho lwimi luchongiweyo okwangoku!",
+  "unranked": "Alunakulinganiswa",
+  "error_title": "⚠️ Impazamo Yebhodi",
+  "error_desc": "Kwenzeka impazamo ngelixa kufakwa iprofayili yakho:\n`{error}`"
+},
 
-  "DMTR": {
-    "error_not_allowed_title": "❌ Translation Not Allowed",
-    "error_not_allowed_desc": "Translations to this language are not allowed in this channel. Please use an approved channel or language.",
-    "error_invalid_source_title": "❌ Invalid Source Language",
-    "error_invalid_source_desc": "Invalid source language: '{language}'\nUse /list to see available languages or use 'auto' for automatic detection.",
-    "error_invalid_target_title": "❌ Invalid Target Language",
-    "error_invalid_target_desc": "Invalid target language: '{language}'\nUse /list to see available languages.",
-    "error_self_dm_title": "❌ Cannot DM Yourself",
-    "error_self_dm_desc": "You cannot send a translated DM to yourself! Try using `/texttr` instead.",
-    "error_bot_dm_title": "❌ Cannot DM Bots",
-    "error_bot_dm_desc": "You cannot send translated messages to bots. Please select a human user.",
-    "error_text_too_long_title": "🔒 Text Too Long",
-    "error_text_too_long_desc": "Your message ({length} characters) exceeds your **{tier} tier** limit of {limit} characters per translation.",
-    "upgrade_benefits_field": "💡 Upgrade Benefits",
-    "upgrade_benefits_value": "🥉 **Basic ($1/month):** 500 characters\n🥈 **Premium ($3/month):** 2000 characters\n🥇 **Pro ($5/month):** Unlimited characters\n\nUse `/upgrade` to upgrade now!",
-    "error_limit_reached_title": "🔒 Usage Limit Reached",
-    "error_limit_reached_desc": "{message}",
-    "limit_solutions_field": "💡 Solutions",
-    "limit_solutions_value": "• **Try shorter text** for this translation\n• **Wait until tomorrow** for limit reset\n• **Upgrade your tier** with `/upgrade`",
-    "detected_suffix": " (Auto-detected)",
-    "detection_failed_suffix": " (Detection failed, using English)",
-    "error_translation_failed_title": "❌ Translation Failed",
-    "error_translation_failed_desc": "Translation failed: {error}\nPlease check your language codes and try again.",
-    "recipient_title": "📨 Translated Message from {sender}",
-    "recipient_desc": "You received a translated message via Muse Translator!",
-    "original_field": "{flag} Original ({language})",
-    "translation_field": "{flag} Translation ({language})",
-    "same_language_field": "{flag} Message ({language})",
-    "same_language_value": "*(No translation needed - same language)*",
-    "server_context_field": "🏠 Server Context",
-    "server_context_value": "**Server:** {server}\n**Channel:** #{channel}",
-    "recipient_footer": "Translated by Muse • Reply normally to respond",
-    "success_title": "✅ Message Sent to {user}",
-    "success_desc": "Your translated message has been successfully delivered!",
-    "failed_title": "⚠️ Could Not Send to {user}",
-    "failed_desc": "The message was translated but couldn't be delivered. They may have DMs disabled or blocked the bot.",
-    "points_field": "💎 Points Earned",
-    "points_value": "+{points}",
-    "usage_field": "📊 Character Usage",
-    "usage_value": "{current}/{limit}",
-    "footer_free": "🆓 Free: {current}/{limit} chars • Use /upgrade for unlimited DM translations",
-    "footer_basic": "🥉 Basic: {current}/{limit} chars • Use /upgrade for unlimited DM translations",
-    "footer_premium": "🥈 Premium: DM Translation",
-    "footer_pro": "🥇 Pro: DM Translation",
-    "error_general_title": "❌ DM Translation Error",
-    "error_general_desc": "An error occurred while processing your DM translation: {error}\nPlease try again or contact support."
-  },
-    "BUY": {
-    "error_invalid_title": "❌ Invalid Reward",
-    "error_invalid_description": "Reward '{reward}' not found. Use `/shop` to see available rewards.",
-    
-    "success_title": "✅ Purchase Successful!",
-    "success_description": "You purchased **{reward_name}**!",
-    "field_points_spent": "💎 Points Spent",
-    "field_points_remaining": "💰 Points Remaining",
-    "field_expires": "⏰ Expires",
-    "field_description": "📝 Description",
-    
-    "error_failed_title": "❌ Purchase Failed",
-    "error_failed_description": "{error}"
-  },
-  "LEADERBOARD": {
-    "title": "🏆 Leaderboard - Top Users",
-    "description": "Top 10 users by total points",
-    "no_users": "No users found!",
-    "field_top_users": "Top Users",
-    "field_your_rank": "Your Rank",
-    "field_statistics": "📊 Statistics",
-    "stat_total_users": "Total Users: {total_users}",
-    "stat_total_points": "All Points Earned: {total_points}"
-  },
-  "GIFT": {
-    "error_self_gift": "❌ You can't gift points to yourself!",
-    "error_invalid_amount": "❌ Gift amount must be at least 1 point!",
-    "error_title": "❌ Insufficient Points",
-    "error_insufficient_points": "You need {needed} points but only have {current} points.",
-    
-    "success_title": "🎁 Gift Sent Successfully!",
-    "success_description": "You gifted **{amount} points** to {receiver}!",
-    "field_remaining": "💎 Your Remaining Points",
-    "field_thanks": "🎉 Generous Gift!",
-    "value_thanks": "Thank you for supporting the community!",
+"DMTR": {
+  "error_not_allowed_title": "❌ Akugunyazwanga UkuGuqulela",
+  "error_not_allowed_desc": "Iinguqulelo kweli lwimi azivunyelwanga kweli channels. Nceda usebenzise i-channel evunyiweyo okanye ulwimi.",
+  "error_invalid_source_title": "❌ Ulwimi Lomthombo Alulunganga",
+  "error_invalid_source_desc": "Ulwimi lomthombo alulunganga: '{language}'\nSebenzisa /list ukubona iilwimi ezikhoyo okanye sebenzisa 'auto' yokufumanisa ngokuzenzekelayo.",
+  "error_invalid_target_title": "❌ Ulwimi Olujolise Kulo Alulunganga",
+  "error_invalid_target_desc": "Ulwimi olujolise kulo alulunganga: '{language}'\nSebenzisa /list ukubona iilwimi ezikhoyo.",
+  "error_self_dm_title": "❌ Awunakuthumela DM Kuwe",
+  "error_self_dm_desc": "Awunakuthumela i-DM eguqulelweyo kuwe! Zama ukusebenzisa `/texttr` endaweni yoko.",
+  "error_bot_dm_title": "❌ Awunakuthumela DM Kumabhothi",
+  "error_bot_dm_desc": "Awunakuthumela imiyalezo eguqulelweyo kumabhothi. Nceda ukhethe umsebenzisi ongumntu.",
+  "error_text_too_long_title": "🔒 Umbhalo Ude Kakhulu",
+  "error_text_too_long_desc": "Umyalezo wakho ({length} oonobumba) udlula umda wakho we **{tier}** we {limit} oonobumba ngomguqulelo ngamnye.",
+  "upgrade_benefits_field": "💡 Iingenelo Zokuphucula",
+  "upgrade_benefits_value": "🥉 **Eyisiseko ($1/ngenyanga):** 500 oonobumba\n🥈 **I-Premium ($3/ngenyanga):** 2000 oonobumba\n🥇 **I-Pro ($5/ngenyanga):** Akukho mda kwiinobumba\n\nSebenzisa `/upgrade` ukuphucula ngoku!",
+  "error_limit_reached_title": "🔒 Kufikelelwe Umda Wokusetyenziswa",
+  "error_limit_reached_desc": "{message}",
+  "limit_solutions_field": "💡 Izisombululo",
+  "limit_solutions_value": "• **Zama umbhalo omfutshane** wolu guqulelo\n• **Linda kuze kube ngumso** ukuze umda uphinde umiselwe\n• **Phucula inqanaba lakho** nge `/upgrade`",
+  "detected_suffix": " (Ifunyenwe ngokuzenzekelayo)",
+  "detection_failed_suffix": " (Ukuhlolwa kwehlulekile, kusetyenziswa i-English)",
+  "error_translation_failed_title": "❌ UkuGuqulela KuNgalunganga",
+  "error_translation_failed_desc": "UkuGuqulela kuhlulekile: {error}\nNceda ujonge iikhowudi zolwimi kwaye uzame kwakhona.",
+  "recipient_title": "📨 Umyalezo Oguqulelweyo ovela ku {sender}",
+  "recipient_desc": "Ufumeneyo umyalezo oguqulelweyo nge Muse Translator!",
+  "original_field": "{flag} Imvelaphi ({language})",
+  "translation_field": "{flag} UkuGuqulela ({language})",
+  "same_language_field": "{flag} Umyalezo ({language})",
+  "same_language_value": "*(Akukho mfuneko yenguqulelo - ulwimi olufanayo)*",
+  "server_context_field": "🏠 Imeko YeServer",
+  "server_context_value": "**Server:** {server}\n**Channel:** #{channel}",
+  "recipient_footer": "Guqulelwe ngu Muse • Phendula njengesiqhelo",
+  "success_title": "✅ Umyalezo Uthunyelwe Ku {user}",
+  "success_desc": "Umyalezo wakho oguqulelweyo uthunyelwe ngempumelelo!",
+  "failed_title": "⚠️ Akuqinisekiswanga Ukuthunyelwa Ku {user}",
+  "failed_desc": "Umyalezo uguqulelwe kodwa awuphumelelanga ukuthunyelwa. Banokuba ne-DM eziwuthintileyo okanye bavimbe i-bot.",
+  "points_field": "💎 Amanqaku Afunyenweyo",
+  "points_value": "+{points}",
+  "usage_field": "📊 Ukusetyenziswa Koonobumba",
+  "usage_value": "{current}/{limit}",
+  "footer_free": "🆓 Simahla: {current}/{limit} oonobumba • Sebenzisa /upgrade ukufumana ukuGuqulela kwe-DM okungenamda",
+  "footer_basic": "🥉 Eyisiseko: {current}/{limit} oonobumba • Sebenzisa /upgrade ukufumana ukuGuqulela kwe-DM okungenamda",
+  "footer_premium": "🥈 Premium: UkuGuqulela kwe-DM",
+  "footer_pro": "🥇 Pro: UkuGuqulela kwe-DM",
+  "error_general_title": "❌ Impazamo ye-DM Translation",
+  "error_general_desc": "Kwenzeke impazamo ngelixa kusetyenziswa ukuGuqulela kwe-DM yakho: {error}\nNceda uzame kwakhona okanye uqhagamshelane nenkxaso."
+},
 
-    "notify_title": "🎁 You Received a Gift!",
-    "notify_description": "{sender} gifted you **{amount} points**!",
-    "notify_shop_title": "💎 Use Your Points",
-    "notify_shop_description": "Visit `/shop` to spend your points on rewards and upgrades!",
+"BUY": {
+  "error_invalid_title": "❌ Umvuzo Alulunganga",
+  "error_invalid_description": "Umvuzo '{reward}' awufunyanwanga. Sebenzisa `/shop` ukujonga imivuzo ekhoyo.",
+  
+  "success_title": "✅ Ukuthenga Kupheleleyo!",
+  "success_description": "Uthenge **{reward_name}**!",
+  "field_points_spent": "💎 Amanqaku Achithiweyo",
+  "field_points_remaining": "💰 Amanqaku Aseleyo",
+  "field_expires": "⏰ Kuphela",
+  "field_description": "📝 Inkcazo",
+  
+  "error_failed_title": "❌ Ukuthenga Akuphumelelanga",
+  "error_failed_description": "{error}"
+},
 
-    "failed_title": "❌ Gift Failed",
-    "failed_description": "Failed to transfer points. Please try again."
-  },
-  "REWARDS": {
-    "title": "🎁 Your Active Rewards",
-    "no_active": "You don't have any active rewards.\nUse `/shop` to browse available rewards!",
-    "tip_title": "💡 Tip",
-    "tip_value": "Claim your daily points with `/daily` to earn rewards!",
-    "reward_name": "✨ {name}",
-    "reward_expiry": "Expires: {relative}\n({absolute})",
-    "premium_title": "⭐ Premium Benefits (Permanent)",
-    "premium_value": "• 2.5x daily rewards\n• 10x usage point multiplier\n• Enhanced Voice Chat V2 access"
-  },
-  "TRANSACTIONS": {
-    "title": "💳 Recent Transactions",
-    "description": "Here are your latest point transactions:",
-    "no_transactions": "No transactions found yet. Use `/daily` to start earning!",
-    "unknown_time": "some time ago",
-    "field_history": "📜 History",
-    "field_balance": "💎 Current Balance",
-    "balance_value": "{points} points"
-  },
-  "INVITE": {
-    "title": "📨 Invite Muse to Your Server",
-    "description": "Click the link below to add Muse to your server!",
-    "bonus_title": "🎁 Referral Bonus",
-    "bonus_description": "You'll earn the **Muse Ambassador** achievement and 120 points when Muse joins a new server!",
-    "button_label": "Invite Muse",
-    "error": "❌ Error generating invite link."
-  },
-  "VOTE": {
-    "title": "🌟 Support Muse Translator!",
-    "description": "Upvotes help us grow and unlock new features for everyone.",
-    "field_title": "Vote Links",
-    "field_value": "[Upvote on Top.gg](https://top.gg/bot/1323041248835272724/vote)\n[Upvote on Discord Bots](https://discord.bots.gg/bots/1323041248835272724)\n\n🌟 **Upvote on Top.gg to earn the 'Muse Supporter' achievement and bonus points!**",
-    "footer": "Thank you for supporting Muse!"
-  },
-  "PREFERENCES": {
-    "title": "🌐 Language Preferences",
-    "updated_title": "✅ Preferences Updated!",
-    "footer": "These will apply to future commands and responses.",
-    "nothing_set": "⚠️ You didn't provide any preferences to update.",
-    "source_set": "🌐 Source language set to: {lang}",
-    "target_set": "🎯 Target language set to: {lang}",
-    "ui_set": "🗣️ Interface language set to: {lang}",
-    "source_label": "Default Source",
-    "target_label": "Default Target",
-    "ui_label": "Bot UI Language"
-  },
-  "ERRORS": {
-    "invalid_source": "❌ Invalid source language: '{language}'\nUse /list to see available languages or use 'auto' for automatic detection.",
-    "invalid_target": "❌ Invalid target language: '{language}'\nUse /list to see available languages.",
-    "invalid_ui": "❌ Invalid UI language: '{language}'\nSupported UI languages: {supported}",
-    "database_error": "❌ Failed to save preferences. Please try again."
-  }
+"LEADERBOARD": {
+  "title": "🏆 Uluhlu Lwabaphambili - Abasebenzisi AbaPhezulu",
+  "description": "Abasebenzisi abali-10 abaphezulu ngokwezonke amanqaku",
+  "no_users": "Akukho basebenzisi bafunyenweyo!",
+  "field_top_users": "Abasebenzisi AbaPhezulu",
+  "field_your_rank": "Inqanaba Lakho",
+  "field_statistics": "📊 Iinkcukacha",
+  "stat_total_users": "Iyonke AbaBasebenzisi: {total_users}",
+  "stat_total_points": "Amanqaku Awo Onke Afunyenweyo: {total_points}"
+},
+
+"GIFT": {
+  "error_self_gift": "❌ Awunakunika amanqaku kuwe!",
+  "error_invalid_amount": "❌ Ubungakanani bomvuzo kufuneka bungaphantsi kwe-1!",
+  "error_title": "❌ Amanqaku Angaphelelanga",
+  "error_insufficient_points": "Ufuna amanqaku {needed} kodwa unawo kuphela {current}.",
+  
+  "success_title": "🎁 Umvuzo Uthunyelwe Ngempumelelo!",
+  "success_description": "Uziphe **{amount} amanqaku** ku {receiver}!",
+  "field_remaining": "💎 Amanqaku Akho Aseleyo",
+  "field_thanks": "🎉 Umvuzo Omkhulu!",
+  "value_thanks": "Enkosi ngokuxhasa uluntu!",
+  
+  "notify_title": "🎁 Ufumeneyo Umvuzo!",
+  "notify_description": "{sender} ukukhiphe **{amount} amanqaku**!",
+  "notify_shop_title": "💎 Sebenzisa Amanqaku Akho",
+  "notify_shop_description": "Ndwendwela `/shop` ukusebenzisa amanqaku akho kwimivuzo kunye nokuphuculwa!",
+  
+  "failed_title": "❌ Umvuzo Akuphumelelanga",
+  "failed_description": "Akuphumelelanga ukudlulisa amanqaku. Nceda uzame kwakhona."
+},
+
+"REWARDS": {
+  "title": "🎁 Imivuzo Yakho Esesebenzayo",
+  "no_active": "Awunayo imivuzo esebenzayo.\nSebenzisa `/shop` ukhangela imivuzo ekhoyo!",
+  "tip_title": "💡 Ingcebiso",
+  "tip_value": "Fumana amanqaku akho emihla ngemihla nge `/daily` ukufumana imivuzo!",
+  "reward_name": "✨ {name}",
+  "reward_expiry": "Kuphela: {relative}\n({absolute})",
+  "premium_title": "⭐ Iingenelo zePremium (Ezingapheliyo)",
+  "premium_value": "• Iimbuyekezo zemihla ngemihla 2.5x\n• Ukuphindaphinda kwephuzu lokusetyenziswa 10x\n• Ukufikelela okuphuculweyo kwiVoice Chat V2"
+},
+
+"TRANSACTIONS": {
+  "title": "💳 Imisebenzi Yakutshanje",
+  "description": "Nazi imisebenzi yakho yakutshanje yamanqaku:",
+  "no_transactions": "Akukho msebenzi ufunyenweyo okwethutyana. Sebenzisa `/daily` ukuqala ukufumana!",
+  "unknown_time": "ixesha elithile emva koko",
+  "field_history": "📜 Imbali",
+  "field_balance": "💎 Ibhalansi yangoku",
+  "balance_value": "{points} amanqaku"
+},
+
+"INVITE": {
+  "title": "📨 Mema uMuse kwiServer Yakho",
+  "description": "Cofa ikhonkco elingezantsi ukufaka uMuse kwiserver yakho!",
+  "bonus_title": "🎁 Imvuzo Yokubhekisa",
+  "bonus_description": "Uza kufumana impumelelo ye-**Muse Ambassador** kunye namanqaku angama-120 xa uMuse ejoyina iserver entsha!",
+  "button_label": "Memela uMuse",
+  "error": "❌ Impazamo ekudaleni ikhonkco lokumema."
+},
+
+"VOTE": {
+  "title": "🌟 Xhasa iMuse Translator!",
+  "description": "Uvoto lusinceda sikhule kwaye sivule iimpawu ezintsha kubo bonke.",
+  "field_title": "Amakhonkco Evoti",
+  "field_value": "[Vota kuTop.gg](https://top.gg/bot/1323041248835272724/vote)\n[Vota kuDiscord Bots](https://discord.bots.gg/bots/1323041248835272724)\n\n🌟 **Vota kuTop.gg ukuze ufumane impumelelo 'Muse Supporter' kunye namanqaku ongezelelweyo!**",
+  "footer": "Enkosi ngokuxhasa iMuse!"
+},
+
+"PREFERENCES": {
+  "title": "🌐 Ukukhetha Ulwimi",
+  "updated_title": "✅ Ukukhetha Kuhlaziyiwe!",
+  "footer": "Oku kuya kusetyenziswa kwimiyalelo nempendulo ezizayo.",
+  "nothing_set": "⚠️ Awuzange unike naluphi na ukhetho lokuhlaziya.",
+  "source_set": "🌐 Ulwimi Lomthombo lusetiwe ku: {lang}",
+  "target_set": "🎯 Ulwimi Olujolise Kulo lusetiwe ku: {lang}",
+  "ui_set": "🗣️ Ulwimi lwe-UI lusetiwe ku: {lang}",
+  "source_label": "Ulwimi Lomthombo Olungagqibekanga",
+  "target_label": "Ulwimi Olujolise Kulo Olungagqibekanga",
+  "ui_label": "Ulwimi lwe-Bot UI"
+},
+
+"ERRORS": {
+  "invalid_source": "❌ Ulwimi Lomthombo Alulunganga: '{language}'\nSebenzisa /list ukubona iilwimi ezikhoyo okanye sebenzisa 'auto' yokufumanisa ngokuzenzekelayo.",
+  "invalid_target": "❌ Ulwimi Olujolise Kulo Alulunganga: '{language}'\nSebenzisa /list ukubona iilwimi ezikhoyo.",
+  "invalid_ui": "❌ Ulwimi lwe-UI Alulunganga: '{language}'\nIilwimi ze-UI ezixhaswayo: {supported}",
+  "database_error": "❌ Akuvunywanga ukugcina ukukhetha. Nceda uzame kwakhona."
+}
+
 
 }
