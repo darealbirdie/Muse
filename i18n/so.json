@@ -410,43 +410,36 @@
   "footer": "Tusaale: /texttr text:Hello source_lang:en target_lang:es"
 },
 "HELP": {
-  "title": "🤖 Muse Translator - Liiska Amarada",
+  "title": "🤖 Muse Turjumaanka - Liiska Amarada",
   "description": "Kuwani waa dhammaan amarrada la heli karo:",
   "text_title": "📝 Tarjumaadda Qoraalka",
-  "text_value": "`/texttr [text] [source_lang] [target_lang]` - Tarjum qoraal\n`/read [target_lang] [message_id]` - Tarjum farriin ID ah\n`/dmtr [user] [text] [source_lang] [target_lang]` - U dir DM turjuman {server_only}",
-
-  "voice_title": "🎤 Amarrada Codka",
-  "voice_value": "`/voice [text] [source_lang] [target_lang]` - Qoraal u beddel cod\n`/speak [text] [source_lang] [target_lang]` - Ku ciyaar cod voice channel {server_only}\n`/voicechat [source_lang] [target_lang]` - Turjumaadda codka waqtiga dhabta ah {server_only}\n`/voicechat2 [lang1] [lang2]` - Turjumaad cod laba jiho ah oo horumarsan {server_only}",
-
-  "auto_title": "🔄 Tarjumaad Toos ah (Server Keliya)",
-  "auto_value": "`/autotranslate [source_lang] [target_lang]` - U turjum farriimahaaga si toos ah",
-
-  "reward_title": "💎 Nidaamka Abaal-marinta",
-  "reward_value": "`/daily` - Soo qaado abaal-marin maalinle ah\n`/shop` - Eeg dukaanka abaal-marinta\n`/buy [reward]` - Ku iibsato abaal-marino dhibco\n`/profile [user]` - Daawo profile iyo tirakoob\n`/rewards` - Daawo abaal-marino firfircoon\n`/gift [user] [amount]` - U dir dhibco dadka kale",
-
+  "text_value": "`/texttr [qoraal] [luqad_ila] [luqad_ujeeddo]` - Tarjum qoraal\n`/read [luqad_ujeeddo] [message_id]` - Tarjum fariin adigoo adeegsanaya ID\n`/dmtr [adeegsiye] [qoraal] [luqad_ila] [luqad_ujeeddo]` - U dir DM turjuman isticmaalaha kale{server_only}",
+  "voice_title": "🎤 Amarada Codka",
+  "voice_value": "`/voice [qoraal] [luqad_ila] [luqad_ujeeddo]` - Qoraal u beddel cod\n`/speak [qoraal] [luqad_ila] [luqad_ujeeddo]` - Ka ciyaar codka kanaalka codka{server_only}\n`/voicechat [luqad_ila] [luqad_ujeeddo]` - Tarjumaadda codka waqtiga-dhabta ah{server_only}\n`/voicechat2 [luqad1] [luqad2]` - Tarjumaadda codka labada-dhinac ah ee horumarsan{server_only}",
+  "auto_title": "🔄 Tarjumaad Toos ah (Kaliya Server-ka)",
+  "auto_value": "`/autotranslate [luqad_ila] [luqad_ujeeddo]` - Si toos ah u turjum fariimahaaga",
+  "reward_title": "💎 Nidaamka Abaalmarinta",
+  "reward_value": "`/daily` - Soo qaado abaalmarintaada maalinlaha ah\n`/shop` - Daawo dukaanka abaalmarinta\n`/buy [abaalmarin]` - Ku iibi abaalmarino adigoo isticmaalaya dhibco\n`/profile [adeegsiye]` - Daawo astaantaada iyo tirakoobka\n`/rewards` - Daawo abaalmarintaada firfircoon\n`/gift [adeegsiye] [tiro]` - Ku deeq dhibco isticmaaleyaal kale",
   "social_title": "🏆 Bulsho & Tartan",
-  "social_value": "`/leaderboard` - Eeg dadka ugu sarreeya dhibcaha\n`/achievements` - Daawo calaamadahaaga iyo guulaha\n`/cashout` - U beddel guulaha dhibco si aad uga iibsato `/shop`\n`/transactions` - Eeg taariikhda macaamilka dhibcaha",
-
-  "setup_title": "⚙️ Dejin & Maamulid",
-  "setup_value_user": "`/start` - Bilaabi tarjumaadda\n`/stop` - Jooji fadhiyada tarjumaadda",
-  "setup_value_admin": "`/start` - Bilaabi tarjumaadda\n`/setchannel [channel_id]` - U deji channel-yada tarjumaadda\n`/stop` - Jooji fadhiyada tarjumaadda",
-
+  "social_value": "`/leaderboard` - Daawo kuwa ugu sareeya dhibcaha\n`/achievements` - Daawo guulaha iyo billadaha\n`/cashout` - Ku fur dhibcaha guulaha dukaanka `/shop`\n`/transactions` - Daawo taariikhda macaamilka dhibcahaaga",
+  "setup_title": "⚙️ Dejinta & Xakamaynta",
+  "setup_value_user": "`/stop` - Jooji fadhi kasta oo tarjumaad ah",
+  "setup_value_admin": "`/setchannel [channel_id]` - U deji kanaalka tarjumaadda iyo oggolaanshaha luqadda\n`/stop` - Jooji fadhi kasta oo tarjumaad ah",
   "settings_title": "🎛️ Dejinta",
-  "settings_value": "`/hide` - Qari qoraalka asalka\n`/show` - Muuji qoraalka asalka\n`/preferences` - Deji doorbidka luqadda\n`/history` - Daawo taariikhda tarjumaadda",
-
-  "info_title": "ℹ️ Xog Dheeraad ah",
-  "info_value": "`/list` - Muujin dhammaan luqadaha la taageero\n`/upgrade` - Hel macluumaad premium\n`/invite` - Hel link-ga casuumaadda\n`/vote` - Codsi bot\n`/help` - Muujin liiska amarada",
-
-  "context_title": "📱 Menu Xaalad",
-  "context_value": "`Right-click message` → `Apps` → `Read Message` - Tarjum farriin kasta",
-
-  "tips_title": "💡 Talooyin Isticmaal",
-  "tips_value": "• Adeegso `auto` luqadda isha si toos ah loogu ogaado\n• Koodh luqadeed: `en`, `es`, `fr` ama magacyadooda: `English`, `Spanish`, `French`\n• Ka hel dhibco maalin kasta, iibsana premium muddo kooban!\n• Tusaale: `/texttr text:'Hello' source_lang:en target_lang:es`",
-
-  "footer_server": "Habka Server: {server} | Dhammaan astaamaha waa la heli karaa | Isticmaal /daily si aad dhibco u hesho!",
-  "footer_dm": "Habka User: Ku habboon DM-yada | Qaar ka mid ah astaamaha waa server-only | Isticmaal /daily si aad dhibco u hesho!",
-  "server_only": " (server oo keliya)"
+  "settings_value": "`/hide` - Qari farriinta asalka ah ee tarjumaadda\n`/show` - Tus farriinta asalka ah ee tarjumaadda\n`/preferences` - Habee luqadahaaga caadiga ah\n`/history` - Daawo taariikhdaada tarjumaadda",
+  "info_title": "ℹ️ Macluumaad",
+  "info_value": "`/list` - Daawo dhammaan luqadaha la taageerayo\n`/upgrade` - Daawo xulashooyinka premium-ka\n`/invite` - Hel xiriiriyeyaasha casuumaadda bot-ka\n`/vote` - Hel xiriiriyeyaasha codbixinta\n`/help` - Muuji liiskan amarrada",
+  "context_title": "📱 Menu-ga Macnaha",
+  "readimage_title": "🖼️ Tarjumaadda Sawirka",
+  "readimage_value": "`/readimage [luqad_ujeeddo]` - Ka akhri oo turjum qoraalka sawirka adigoo adeegsanaya OCR",
+  "context_value": "`Midig-guji farriin → Apps → Akhri Farriinta` - Turjum farriin kasta",
+  "tips_title": "💡 Talooyin",
+  "tips_value": "• Adeegso `auto` si loo ogaado luqadda si toos ah\n• Koodhadhka luqadaha: `en`, `es`, `fr` ama magacyada: English, Spanish, French\n• Kasbo dhibco maalin kasta kuna iibi faa’iidooyin ku meel gaar ah!\n• Tusaale: `/texttr text:'hola' source_lang:es target_lang:en`",
+  "footer_server": "Habka Server: {server} | Dhammaan sifooyinka waa la heli karaa | Adeegso `/daily` si aad u hesho dhibco!",
+  "footer_dm": "Habka Isticmaalaha: Wanaagsan marka la isticmaalayo DM | Qaar ka mid ah sifooyinka waxay u baahan yihiin server | Adeegso `/daily` si aad u hesho dhibco!",
+  "server_only": " (kaliya server-ka)"
 },
+
 "FEEDBACK": {
   "rating_error": "❌ Qiimeynta waa inay u dhexeysaa 1 ilaa 5 xidigood!",
   
