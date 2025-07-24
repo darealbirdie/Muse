@@ -413,45 +413,36 @@
   "description": "Eyi ni gbogbo awọn ede ti o le lo pẹlu ẹrọ itumọ:",
   "footer": "Apeere lilo: /texttr text:Hello source_lang:en target_lang:es"
 },
-"HELP": {
-  "title": "🤖 Muse Translator - Atokọ Awọn Aṣẹ",
-  "description": "Eyi ni gbogbo awọn aṣẹ to wa:",
-
-  "text_title": "📝 Itumọ Ọrọ",
-  "text_value": "`/texttr [text] [source_lang] [target_lang]` - Itumọ ọrọ\n`/read [target_lang] [message_id]` - Itumọ ifiranṣẹ nipasẹ ID\n`/dmtr [user] [text] [source_lang] [target_lang]` - Fi DM ti a tumọ ranṣẹ{server_only}",
-
-  "voice_title": "🎤 Awọn Aṣẹ Ohùn",
-  "voice_value": "`/voice [text] [source_lang] [target_lang]` - Ọrọ si ọrọ\n`/speak [text] [source_lang] [target_lang]` - Ṣere ọrọ ninu ikanni ohùn{server_only}\n`/voicechat [source_lang] [target_lang]` - Itumọ ohùn ni akoko gidi{server_only}\n`/voicechat2 [lang1] [lang2]` - Itumọ ohùn ilọsiwaju ni ọna meji{server_only}",
-
-  "auto_title": "🔄 Itumọ Laifọwọyi (Server Nikan)",
-  "auto_value": "`/autotranslate [source_lang] [target_lang]` - Itumọ laifọwọyi awọn ifiranṣẹ rẹ",
-
-  "reward_title": "💎 Eto Ere",
-  "reward_value": "`/daily` - Gba awọn aaye ojoojumọ\n`/shop` - Ṣawari ile itaja ere\n`/buy [reward]` - Ra awọn ere pẹlu awọn aaye\n`/profile [user]` - Wo profaili ati iṣiro\n`/rewards` - Wo awọn ere ti nṣiṣe lọwọ\n`/gift [user] [amount]` - Fi awọn aaye ranṣẹ si ẹlomiran",
-
-  "social_title": "🏆 Awujọ & Idije",
-  "social_value": "`/leaderboard` - Wo awọn olumulo oke nipasẹ awọn aaye\n`/achievements` - Wo awọn asia ati aṣeyọri rẹ\n`/cashout` - Ta awọn aaye aṣeyọri lati lo ninu `/shop`\n`/transactions` - Wo itan awọn iṣowo aaye",
-
-  "setup_title": "⚙️ Eto & Iṣakoso",
-  "setup_value_user": "`/start` - Bẹrẹ ẹrọ itumọ\n`/stop` - Da awọn igbasilẹ itumọ duro",
-  "setup_value_admin": "`/start` - Bẹrẹ ẹrọ itumọ\n`/setchannel [channel_id]` - Ṣeto awọn igbanilaaye ikanni itumọ ati ede\n`/stop` - Da awọn igbasilẹ itumọ duro",
-
-  "settings_title": "🎛️ Eto",
-  "settings_value": "`/hide` - Pa ọrọ atilẹba ninu itumọ\n`/show` - Fi ọrọ atilẹba han ninu itumọ\n`/preferences` - Ṣatunṣe awọn ayanfẹ ede\n`/history` - Wo itan itumọ",
-
-  "info_title": "ℹ️ Alaye",
-  "info_value": "`/list` - Fi gbogbo awọn ede atilẹyin han\n`/upgrade` - Gba alaye wiwọle premium\n`/invite` - Gba ọna asopọ ipe bot\n`/vote` - Gba ọna asopọ iforukọsilẹ bot\n`/help` - Fi atokọ aṣẹ yii han",
-
-  "context_title": "📱 Akopọ Ipo",
-  "context_value": "`Tẹ ọtun lori ifiranṣẹ` → `Apps` → `Ka Ifiranṣẹ` - Itumọ eyikeyi ifiranṣẹ",
-
-  "tips_title": "💡 Awọn imọran Lilo",
-  "tips_value": "• Lo `auto` gẹgẹbi ede orisun fun iwari laifọwọyi\n• Awọn koodu ede: `en`, `es`, `fr` tabi awọn orukọ: `English`, `Spanish`, `French`\n• Gba awọn aaye lojoojumọ ki o ra awọn ẹya premium igba diẹ!\n• Apeere: `/texttr text:'Hello' source_lang:en target_lang:es`",
-
-  "footer_server": "Ipo Server: {server} | Gbogbo awọn ẹya wa | Lo /daily fun awọn aaye!",
-  "footer_dm": "Ipo Olumulo: Dara fun DMs | Diẹ ninu awọn ẹya jẹ fun server nikan | Lo /daily fun awọn aaye!",
-  "server_only": " (server nikan)"
-},
+ "HELP": {
+    "title": "🤖 מוזע טראַנסלעטער - קאַמאַנדז רשימה",
+    "description": "היינט זענען דאָ אַלע בנימצא קאַמאַנדז:",
+    "text_title": "📝 טעקסט איבערזעצן",
+    "text_value": "`/texttr [טעקסט] [מקור_שפּראַך] [ציל_שפּראַך]` - איבערזעצן אַ טעקסט בלאָק\n`/read [ציל_שפּראַך] [מעסידזש_איד]` - איבערזעצן אַ מעסידזש דורך איד\n`/dmtr [באַניצער] [טעקסט] [מקור_שפּראַך] [ציל_שפּראַך]` - שיקן אַ איבערגעזעצטן פּריוואַטן מעסידזש {נאָר_סערווער}",
+    "voice_title": "🎤 קול קאַמאַנדז",
+    "voice_value": "`/voice [טעקסט] [מקור_שפּראַך] [ציל_שפּראַך]` - טעקסט צו קול\n`/speak [טעקסט] [מקור_שפּראַך] [ציל_שפּראַך]` - שפראך אין וואָיס טשאַנעל {נאָר_סערווער}\n`/voicechat [מקור_שפּראַך] [ציל_שפּראַך]` - ליווערדיקער קול איבערזעצונג {נאָר_סערווער}\n`/voicechat2 [שפּראַך1] [שפּראַך2]` - שטאַרקער צווייט-וועג קול איבערזעצונג {נאָר_סערווער}",
+    "auto_title": "🔄 אָטאָמאַטיש איבערזעצן (נאָר אויף סערווער)",
+    "auto_value": "`/autotranslate [מקור_שפּראַך] [ציל_שפּראַך]` - אָטאַמאַטיש איבערזעצן דיין מעסידזשיז",
+    "reward_title": "💎 באָנען סיסטעם",
+    "reward_value": "`/daily` - באַקומען דיילי באָנען\n`/shop` - זען באָנען שאַפּ\n`/buy [באָנען]` - קויפן באָנען מיט פוינטן\n`/profile [באַניצער]` - זען דיין פּראָפיל און סטאַטיסטיקס\n`/rewards` - זען אַקטיווע באָנוסעס\n`/gift [באַניצער] [כאָנטיטעט]` - שענקען פוינטן צו אנדערע",
+    "social_title": "🏆 געזעלשאַפט און קאַמפּעטישאַן",
+    "social_value": "`/leaderboard` - זען שפּיץ ניצערס\n`/achievements` - זען דערגרייכונגען און באדזשעס\n`/cashout` - ווײַטשיין פוינטן פֿאַר באָנוס אין `/shop`\n`/transactions` - זען דיין פוינט טראנזקציעס געשיכטע",
+    "setup_title": "⚙️ סעטטינגס & קאָנטראָל",
+    "setup_value_user": "`/stop` - שטעלן אַלץ איבערזעצונג פֿאַרנאָטן",
+    "setup_value_admin": "`/setchannel [קאַנאַל_איד]` - שטעלן איבערזעצונג קאַנאַל און שפּראַך רעכט\n`/stop` - שטעלן אַלע איבערזעצונג פֿאַרנאָטן",
+    "settings_title": "🎛️ סעטטינגס",
+    "settings_value": "`/hide` - פאַרבאָרגן די אָריגינעל מעסידזש אין איבערזעצונג\n`/show` - ווײַזן די אָריגינעל מעסידזש אין איבערזעצונג\n`/preferences` - קאַסטאַמייז דיינע דיפאָלט שפּראַכן\n`/history` - זען איבערזעצונג געשיכטע",
+    "info_title": "ℹ️ אינפֿאָרמאַציע",
+    "info_value": "`/list` - זען אַלע געשטיצטע שפּראַכן\n`/upgrade` - זען העכערע אָפּציעס\n`/invite` - קריג אַ באָט איינלאַדונג לינק\n`/vote` - קריג אַ באָט רעצענזיע לינק\n`/help` - ווײַזן דעם הילף בלאָק",
+    "context_title": "📱 קאָנטעקסט מעניו",
+    "readimage_title": "🖼️ בילד איבערזעצן",
+    "readimage_value": "`/readimage [ציל_שפּראַך]` - עקסטראַקט און איבערזעצן טעקסט פֿון בילדער (OCR)",
+    "context_value": "`רעכט-קליק אויף אַ מעסידזש → אַפּלאַקיישאַן → לייענען מעסידזש` - איבערזעצן קיין מעסידזש",
+    "tips_title": "💡 עצות",
+    "tips_value": "• נוצן `auto` פֿאַר אויטאָמאַטישע שפּראַך אַנטדעקט\n• שפּראַך קאָדן: `en`, `es`, `fr` אָדער נאָמען: English, Spanish, French\n• פֿאַרדינען טעגלעכע פוינטן און קויף פרעמיום פּונקטן־באָנוס!\n• בײַשפּיל: `/texttr text:'hola' source_lang:es target_lang:en`",
+    "footer_server": "סערווער מאָדע: {server} | אַלע פֿעיִקייטן בנימצא | ניצן `/daily` פֿאַר צוטריט צו פּונקטן!",
+    "footer_dm": "באַניצער מאָדע: בעסטער אין ד״ם | עטלעכע פֿעיִקייטן בלויז אויף סערווער | ניצן `/daily` פֿאַר צוטריט צו פּונקטן!",
+    "server_only": " (נאָר סערווער)"
+  },
 "FEEDBACK": {
   "rating_error": "❌ Ipele ko gbọdọ kọja laarin 1 ati 5 irawọ!",
 
