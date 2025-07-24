@@ -419,38 +419,33 @@
   "title": "🤖 Muse Translator - Zoznam príkazov",
   "description": "Tu sú všetky dostupné príkazy:",
   "text_title": "📝 Preklad textu",
-  "text_value": "`/texttr [text] [source_lang] [target_lang]` - Preložiť text\n`/read [target_lang] [message_id]` - Preložiť správu podľa ID\n`/dmtr [user] [text] [source_lang] [target_lang]` - Poslať preklad ako DM{server_only}",
+  "text_value": "`/texttr [text] [zdrojový_jazyk] [cieľový_jazyk]` - Prelož blok textu\n`/read [cieľový_jazyk] [message_id]` - Prelož správu podľa ID\n`/dmtr [používateľ] [text] [zdrojový_jazyk] [cieľový_jazyk]` - Pošli preloženú správu do DM{server_only}",
   "voice_title": "🎤 Hlasové príkazy",
-  "voice_value": "`/voice [text] [source_lang] [target_lang]` - Prevod textu na reč\n`/speak [text] [source_lang] [target_lang]` - Prehrať hlas v hlasovom kanáli{server_only}\n`/voicechat [source_lang] [target_lang]` - Preklad v reálnom čase cez hlas{server_only}\n`/voicechat2 [lang1] [lang2]` - Vylepšený obojsmerný hlasový preklad{server_only}",
-  "auto_title": "🔄 Automatický preklad (iba server)",
-  "auto_value": "`/autotranslate [source_lang] [target_lang]` - Automatický preklad správ",
-
+  "voice_value": "`/voice [text] [zdrojový_jazyk] [cieľový_jazyk]` - Prevod textu na reč\n`/speak [text] [zdrojový_jazyk] [cieľový_jazyk]` - Prehrať reč v hlasovom kanáli{server_only}\n`/voicechat [zdrojový_jazyk] [cieľový_jazyk]` - Preklad hlasu v reálnom čase{server_only}\n`/voicechat2 [jazyk1] [jazyk2]` - Vylepšený obojsmerný hlasový preklad{server_only}",
+  "auto_title": "🔄 Automatický preklad (len na serveri)",
+  "auto_value": "`/autotranslate [zdrojový_jazyk] [cieľový_jazyk]` - Automatický preklad tvojich správ",
   "reward_title": "💎 Systém odmien",
-  "reward_value": "`/daily` - Získať dennú odmenu\n`/shop` - Prezrieť si obchod s odmenami\n`/buy [reward]` - Kúpiť odmeny za body\n`/profile [user]` - Zobraziť profil a štatistiky\n`/rewards` - Zobraziť aktívne odmeny\n`/gift [user] [amount]` - Darovať body ostatným",
-
-  "social_title": "🏆 Sociálne a súťažné funkcie",
-  "social_value": "`/leaderboard` - Zobraziť top používateľov podľa bodov\n`/achievements` - Zobraziť svoje odznaky a úspechy\n`/cashout` - Premeniť úspechy na body použiteľné v `/shop`\n`/transactions` - Zobraziť históriu transakcií",
-
-  "setup_title": "⚙️ Nastavenie a ovládanie",
-  "setup_value_user": "`/start` - Spustiť prekladač\n`/stop` - Zastaviť aktívne prekladacie relácie",
-  "setup_value_admin": "`/start` - Spustiť prekladač\n`/setchannel [channel_id]` - Nastaviť kanály a oprávnenia pre preklad\n`/stop` - Zastaviť aktívne prekladacie relácie",
-
+  "reward_value": "`/daily` - Nárok na dennú odmenu\n`/shop` - Zobraziť obchod s odmenami\n`/buy [odmena]` - Kúpiť odmeny za body\n`/profile [používateľ]` - Zobraziť profil a štatistiky\n`/rewards` - Zobraziť aktívne odmeny\n`/gift [používateľ] [množstvo]` - Darovať body iným",
+  "social_title": "🏆 Sociálne a súťaže",
+  "social_value": "`/leaderboard` - Zobraziť najlepších užívateľov\n`/achievements` - Zobraziť úspechy a odznaky\n`/cashout` - Vymeniť body za odmeny\n`/transactions` - Zobraziť históriu bodov",
+  "setup_title": "⚙️ Nastavenia a ovládanie",
+  "setup_value_user": "`/stop` - Zastaviť aktívne preklady",
+  "setup_value_admin": "`/setchannel [channel_id]` - Nastaviť kanál a povolenia\n`/stop` - Zastaviť aktívne preklady",
   "settings_title": "🎛️ Nastavenia",
-  "settings_value": "`/hide` - Skryť pôvodný text v prekladoch\n`/show` - Zobraziť pôvodný text\n`/preferences` - Upraviť jazykové preferencie\n`/history` - Zobraziť históriu prekladov",
-
+  "settings_value": "`/hide` - Skryť pôvodnú správu pri preklade\n`/show` - Zobraziť pôvodnú správu pri preklade\n`/preferences` - Prispôsobiť predvolené jazyky\n`/history` - Zobraziť históriu prekladov",
   "info_title": "ℹ️ Informácie",
-  "info_value": "`/list` - Zobraziť všetky podporované jazyky\n`/upgrade` - Informácie o prístupe k prémiu\n`/invite` - Odkazy na pozvanie bota\n`/vote` - Odkazy na hodnotenie bota\n`/help` - Zobraziť tento zoznam príkazov",
-
+  "info_value": "`/list` - Zobraziť všetky podporované jazyky\n`/upgrade` - Zobraziť prémiové možnosti\n`/invite` - Pozvať bota\n`/vote` - Hlasovať za bota\n`/help` - Zobraziť tento zoznam príkazov",
   "context_title": "📱 Kontextové menu",
-  "context_value": "`Pravým klikom na správu` → `Aplikácie` → `Prečítať správu` - Preložiť akúkoľvek správu",
-
-  "tips_title": "💡 Tipy na používanie",
-  "tips_value": "• Použite `auto` ako zdrojový jazyk pre automatickú detekciu\n• Jazykové kódy: `en`, `sk`, `es` alebo názvy: `Angličtina`, `Slovenčina`, `Španielčina`\n• Zbierajte body denne a nakupujte dočasné prémiové funkcie!\n• Príklad: `/texttr text:'Ahoj' source_lang:sk target_lang:es`",
-
-  "footer_server": "Server režim: {server} | Všetky funkcie dostupné | Použite /daily na získanie bodov!",
-  "footer_dm": "Režim používateľa: Ideálne pre DMs | Niektoré funkcie sú len pre servery | Použite /daily na získanie bodov!",
-  "server_only": " (iba server)"
+  "readimage_title": "🖼️ Preklad obrázkového textu",
+  "readimage_value": "`/readimage [cieľový_jazyk]` - Extrahovať a preložiť text z obrázku pomocou OCR",
+  "context_value": "`Klikni pravým tlačidlom na správu → Aplikácie → Read Message` - Preložiť ľubovoľnú správu",
+  "tips_title": "💡 Tipy",
+  "tips_value": "• Použi `auto` na automatické rozpoznanie jazyka\n• Jazykové kódy: `en`, `sk`, `fr` alebo mená: English, Slovak, French\n• Získavaj body denne a nakupuj prémiové funkcie!\n• Príklad: `/texttr text:'ahoj' source_lang:sk target_lang:en`",
+  "footer_server": "Režim servera: {server} | Všetky funkcie sú dostupné | Použi `/daily` pre získavanie bodov!",
+  "footer_dm": "Režim DM: Najlepšie pre súkromné preklady | Niektoré funkcie sú len na serveri | Použi `/daily` pre získavanie bodov!",
+  "server_only": " (len na serveri)"
 },
+
 "FEEDBACK": {
   "rating_error": "❌ Hodnotenie musí byť medzi 1 a 5 hviezdičkami!",
 
