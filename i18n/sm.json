@@ -408,41 +408,36 @@
   "footer": "Fa'ata'ita'iga: /texttr text:Hello source_lang:en target_lang:es"
 },
 "HELP": {
-  "title": "🤖 Muse Fa'aliliu - Lisi o Poloa'iga",
-  "description": "O nei poloa'iga uma e mafai ona e fa'aogaina:",
-  "text_title": "📝 Fa'aliliu Tusitusiga",
-  "text_value": "`/texttr [text] [source_lang] [target_lang]` - Fa'aliliu tusitusiga\n`/read [target_lang] [message_id]` - Fa'aliliu fe'au i ID\n`/dmtr [user] [text] [source_lang] [target_lang]` - Lafo fa'aliliuga i DM{server_only}",
-  "voice_title": "🎤 Poloa'iga Leo",
-  "voice_value": "`/voice [text] [source_lang] [target_lang]` - Fa'aliliu tusitusiga i le leo\n`/speak [text] [source_lang] [target_lang]` - Fai le leo i alaleo leo{server_only}\n`/voicechat [source_lang] [target_lang]` - Fa'aliliu leo i le taimi moni{server_only}\n`/voicechat2 [lang1] [lang2]` - Fa'aliliu leo i itu uma e lua{server_only}",
-  "auto_title": "🔄 Fa'aliliuga Otometi (Server Na'o)",
-  "auto_value": "`/autotranslate [source_lang] [target_lang]` - Fa'aliliu otometi au fe'au",
-
+  "title": "🤖 Muse Faaliliu - Lisi o Poloaʻiga",
+  "description": "O poloaʻiga uma e avanoa o lo'o i lalo:",
+  "text_title": "📝 Faaliliuga o Tusitusiga",
+  "text_value": "`/texttr [tusitusiga] [gagana_puna] [gagana_sini]` - Faaliliu se vaega o tusitusiga\n`/read [gagana_sini] [message_id]` - Faaliliu se feʻau i lona ID\n`/dmtr [tagata] [tusitusiga] [gagana_puna] [gagana_sini]` - Lafo se faaliliuga i feʻau tumaoti{server_only}",
+  "voice_title": "🎤 Poloaʻiga Leo",
+  "voice_value": "`/voice [tusitusiga] [gagana_puna] [gagana_sini]` - Tusitusiga i le tautala\n`/speak [tusitusiga] [gagana_puna] [gagana_sini]` - Taina le leo i le ala o le leo{server_only}\n`/voicechat [gagana_puna] [gagana_sini]` - Faaliliuga leo i le taimi moni{server_only}\n`/voicechat2 [gagana1] [gagana2]` - Faaliliuga leo faalua ua faaleleia{server_only}",
+  "auto_title": "🔄 Faaliliuga Otometi (Naʻo luga o le Server)",
+  "auto_value": "`/autotranslate [gagana_puna] [gagana_sini]` - Faaliliu otometi ou feʻau",
   "reward_title": "💎 Faiga Taui",
-  "reward_value": "`/daily` - Maua point i aso uma\n`/shop` - Siaki le faleoloa taui\n`/buy [reward]` - Fa'atau taui i point\n`/profile [user]` - Va'ai talaaga ma point\n`/rewards` - Va'ai taui o lo'o fa'agasolo\n`/gift [user] [amount]` - Foai point i isi",
-
-  "social_title": "🏆 Fesootaiga & Tauvaga",
-  "social_value": "`/leaderboard` - Va'ai tagata pito i luga i point\n`/achievements` - Va'ai fa'ailoga ma toʻa'aumea\n`/cashout` - Suia toʻa'aumea i point mo le `/shop`\n`/transactions` - Va'ai i tala o suiga o point",
-
-  "setup_title": "⚙️ Fa'atulagaga & Pulea",
-  "setup_value_user": "`/start` - Amata le fa'aliliu\n`/stop` - Taofi le fa'aliliu o lo'o fa'agasolo",
-  "setup_value_admin": "`/start` - Amata le fa'aliliu\n`/setchannel [channel_id]` - Fa'atulaga auala fa'aliliu\n`/stop` - Taofi le fa'aliliu o lo'o fa'agasolo",
-
-  "settings_title": "🎛️ Seti",
-  "settings_value": "`/hide` - Natia le tusitusiga muamua\n`/show` - Fa'aalia le tusitusiga muamua\n`/preferences` - Fa'atulaga fiafia gagana\n`/history` - Va'ai i tala fa'aliliu",
-
+  "reward_value": "`/daily` - Maua lau taui i aso uma\n`/shop` - Vaʻai i le faleoloa o taui\n`/buy [taui]` - Fa'atau taui i 'ai\n`/profile [tagata]` - Vaʻai lau talaaga ma fuainumera\n`/rewards` - Vaʻai au taui o lo'o i ai\n`/gift [tagata] [aofaʻi]` - Foai 'ai i isi",
+  "social_title": "🏆 Fesoʻotaʻiga & Tauvaga",
+  "social_value": "`/leaderboard` - Vaʻai i tagata sili ona maua 'ai\n`/achievements` - Vaʻai i ausia ma pine\n`/cashout` - Fesuiaʻi 'ai o ausia i le `/shop`\n`/transactions` - Vaʻai i le talaaga o ou fefaʻatauaʻiga 'ai",
+  "setup_title": "⚙️ Fa'atonuga & Pulega",
+  "setup_value_user": "`/stop` - Taofi soʻo se sauniga faaliliuga",
+  "setup_value_admin": "`/setchannel [channel_id]` - Seti lau alalaupapa mo faaliliuga ma aia tatau o gagana\n`/stop` - Taofi soʻo se sauniga faaliliuga",
+  "settings_title": "🎛️ Fa'atonuga",
+  "settings_value": "`/hide` - Natia le feʻau muamua i faaliliuga\n`/show` - Faʻaali le feʻau muamua i faaliliuga\n`/preferences` - Fa'avasega lau gagana masani\n`/history` - Vaʻai i lau talaaga faaliliuga",
   "info_title": "ℹ️ Fa'amatalaga",
-  "info_value": "`/list` - Va'ai gagana e mafai\n`/upgrade` - Maua fa'amatalaga Premium\n`/invite` - Maua so'oga o le bot\n`/vote` - So'oga e palota ai\n`/help` - Fa'aali lenei lisi",
-
-  "context_title": "📱 Menu Fa'aliliu",
-  "context_value": "`Right-click message` → `Apps` → `Read Message` - Fa'aliliu so'o se fe'au",
-
-  "tips_title": "💡 Fautuaga Fa'aoga",
-  "tips_value": "• Fa'aoga `auto` mo le iloa otometi o le gagana\n• Gagana: `en`, `es`, `fr` po'o igoa: `English`, `Spanish`, `French`\n• Maua point i aso uma ma fa'atau Premium!\n• Fa'ata'ita'iga: `/texttr text:'Hello' source_lang:en target_lang:es`",
-
-  "footer_server": "Faiga Server: {server} | Avanoa galuega uma | Fa'aoga /daily mo point!",
-  "footer_dm": "Faiga Tagata: Mo DM lelei | Galuega e na'o server | Fa'aoga /daily mo point!",
-  "server_only": " (na'o le server)"
+  "info_value": "`/list` - Vaʻai i gagana lagolago uma\n`/upgrade` - Vaʻai i filifiliga Premium\n`/invite` - Maua soʻotaga valaaulia mo le bot\n`/vote` - Maua soʻotaga palota\n`/help` - Fa'aali lenei lisi o poloaʻiga",
+  "context_title": "📱 Lisi o Feʻau",
+  "readimage_title": "🖼️ Faaliliuga Ata",
+  "readimage_value": "`/readimage [gagana_sini]` - Aveese ma faaliliu tusitusiga i ata e ala i le OCR",
+  "context_value": "`Kiliki taumatau feʻau → Apps → Faitau Feʻau` - Faaliliu soʻo se feʻau",
+  "tips_title": "💡 Fautuaga",
+  "tips_value": "• Fa'aoga `auto` e otometi ona iloa le gagana\n• Tulafono gagana: `en`, `es`, `fr` pe igoa: English, Spanish, French\n• Maua 'ai i aso uma ma fa'atau i perks Premium tumau!\n• Fa'ata'ita'iga: `/texttr text:'hola' source_lang:es target_lang:en`",
+  "footer_server": "Server Mode: {server} | Uma vaega e avanoa | Fa'aoga `/daily` mo 'ai!",
+  "footer_dm": "User Mode: Sili i feʻau tumaoti | O nisi vaega e mo le server na'o | Fa'aoga `/daily` mo 'ai!",
+  "server_only": " (na'o luga o le server)"
 },
+
 "FEEDBACK": {
   "rating_error": "❌ E tatau ona i le va o le 1 i le 5 fetu le fua fa'atatau!",
   
