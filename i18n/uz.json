@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Avtomatik aniqlash' faqat manba tili sifatida ruxsat etiladi, maqsad tili sifatida emas."
+  },
   "START": {
     "error_user_info": "❌ Foydalanuvchi ma'lumotlarini olishda xato yuz berdi.",
     "error_user_data": "❌ Foydalanuvchi ma'lumotlarini boshlashda xato: {error}",
@@ -523,6 +526,7 @@
     "footer_pro": "Siz Pro darajadagsiz (20 ta yozuv ko‘rsatilmoqda)."
   },
     "LANGUAGES": {
+      "auto": "🔍 Avtomatik aniqlash",
     "af": "Afrikaans",
     "sq": "Albaniyalik",
     "am": "Amharik",
