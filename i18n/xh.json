@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Ukufumanisa ngokuzenzekelayo' kuvunyelwe kuphela njengolwimi lomthombo, hayi njengolwimi olujolise kulo."
+  },
   "START": {
     "error_user_info": "❌ Impazamo ekufumaneni ulwazi lomsebenzisi.",
     "error_user_data": "❌ Impazamo ekuqaleni kwedatha yomsebenzisi: {error}",
@@ -504,6 +507,7 @@
   "footer_pro": "Use tier yePro (imiphumela eli-20 ibonisiwe)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Ukufumanisa ngokuzenzekelayo",
   "af": "IsiAfrikansi",
   "sq": "IsiAlbanian",
   "am": "IsiAmharic",
