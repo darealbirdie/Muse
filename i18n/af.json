@@ -1,4 +1,40 @@
+
 {
+  "CASHOUT": {
+    "title_success": "🎉 Prestasiepunte omgeskakel!",
+    "desc_success": "Jou prestasiepunte is suksesvol omgeskakel na aktiwiteitspunte!",
+    "field_points_added": "💰 Punte Toegevoeg",
+    "field_achievements": "🏆 Prestasies Uitbetaal",
+    "field_total": "🌟 Nuwe Totaal",
+    "field_status": "✅ Status",
+    "field_status_note": "Hierdie prestasies is nou as uitbetaal gemerk en sal nie weer omgeskakel word nie.",
+    "footer": "🎮 Jou prestasies bly steeds ontgrendel! Verdien nuwe vir meer punte.",
+    "title_empty": "❌ Geen Prestasiepunte om om te skakel nie",
+    "desc_empty": "Jy het geen ongebruikte prestasiepunte nie!",
+    "field_note": "💡 Nota",
+    "field_note_value": "Jy het dalk al jou huidige prestasies uitbetaal, of jy moet eers meer prestasies ontgrendel.",
+    "error_generic": "❌ Fout met die omskakeling van punte."
+  },
+
+  "UPGRADE": {
+    "title": "💎 Verhoog jou Vertaalervaring",
+    "description": "Kies die perfekte plan vir jou behoeftes:",
+    "free_title": "🆓 Gratis Laag",
+    "free_value": "• 50 karakter limiet per vertaling\n• 30 minute totale stemtyd\n• Basiese funksies alleen",
+    "basic_title": "🥉 Basies - $1/maand",
+    "basic_value": "• 500 karakter limiet per vertaling\n• 1 uur totale stemtyd\n• Vertaalgeskiedenis\n• Outomatiese vertaalfunksie",
+    "premium_title": "🥈 Premium - $3/maand",
+    "premium_value": "• 2000 karakter limiet per vertaling\n• 2 uur totale stemtyd\n• Prioriteitsverwerking\n• Verbeterde stemfunksies\n• Alle Basiese funksies",
+    "pro_title": "🥇 Pro - $5/maand",
+    "pro_value": "• ♾️ Onbeperkte karakters\n• ♾️ Onbeperkte stemtyd\n• Prioriteitsondersteuning\n• Toegang tot beta-funksies\n• Pasgemaakte integrasies",
+    "subscribe_title": "📝 Hoe om in te teken",
+    "subscribe_value": "1. Klik op die Ko-fi skakel hieronder\n2. Sluit jou Discord-ID in: `{user_id}`\n3. Kies jou maandelikse vlak\n4. Kry onmiddellike toegang!",
+    "try_title": "🎁 Probeer voordat jy koop",
+    "try_value": "Gebruik `/shop` om premium funksies met punte te probeer!\n• Basies (1 dag): 75 punte\n• Premium (1 dag): 150 punte\n• Pro (1 dag): 250 punte",
+    "button": "Teken in op Ko-fi"
+  },
+
+
   "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Outo-opsporing' word slegs as die brontaal toegelaat, nie as die teikentaal nie."
   },
