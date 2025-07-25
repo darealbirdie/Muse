@@ -1958,6 +1958,13 @@ async def text_translate(
 
     source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
     target_code = get_language_code(target_lang)
+    if target_code == "auto":
+        await interaction.response.send_message(
+            get_translation(ui_lang, "AUTO.error_auto_not_allowed_for_target"),
+            ephemeral=True
+        )
+        return
+
 
     if interaction.guild:
         allowed = await db.is_translation_allowed(
@@ -2165,6 +2172,12 @@ async def translate_and_speak(
         # Convert language inputs to codes
         source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
         target_code = get_language_code(target_lang)
+        if target_code == "auto":
+            await interaction.response.send_message(
+                get_translation(ui_lang, "AUTO.error_auto_not_allowed_for_target"),
+                ephemeral=True
+            )
+            return
         
         if interaction.guild:
             allowed = await db.is_translation_allowed(
@@ -2486,6 +2499,12 @@ async def voice_chat_translate(
     # Convert language inputs to codes - support both codes and names
     source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
     target_code = get_language_code(target_lang)
+    if target_code == "auto":
+            await interaction.response.send_message(
+                get_translation(ui_lang, "AUTO.error_auto_not_allowed_for_target"),
+                ephemeral=True
+            )
+            return
     
     if interaction.guild:
         allowed = await db.is_translation_allowed(
@@ -4437,6 +4456,12 @@ async def translate_and_speak_voice(
         # Convert language inputs to codes
         source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
         target_code = get_language_code(target_lang)
+        if target_code == "auto":
+            await interaction.response.send_message(
+                get_translation(ui_lang, "AUTO.error_auto_not_allowed_for_target"),
+                ephemeral=True
+            )
+            return
         
         if interaction.guild:
             allowed = await db.is_translation_allowed(
@@ -5236,6 +5261,12 @@ async def auto_translate(
         # Convert language inputs to codes
         source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
         target_code = get_language_code(target_lang)
+        if target_code == "auto":
+            await interaction.response.send_message(
+                get_translation(ui_lang, "AUTO.error_auto_not_allowed_for_target"),
+                ephemeral=True
+            )
+            return
         
         # Check channel permissions if in a guild
         if interaction.guild:
@@ -5625,6 +5656,12 @@ async def dm_translate(
         logger.info(f"DM_TRANSLATE: Converting language codes - source: {source_lang}, target: {target_lang}")
         source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
         target_code = get_language_code(target_lang)
+        if target_code == "auto":
+            await interaction.response.send_message(
+                get_translation(ui_lang, "AUTO.error_auto_not_allowed_for_target"),
+                ephemeral=True
+            )
+            return
         logger.info(f"DM_TRANSLATE: Language codes converted - source_code: {source_code}, target_code: {target_code}")
 
         # Validate language codes
@@ -6071,6 +6108,12 @@ async def translate_by_id(
         
         # Convert language input to code
         target_code = get_language_code(target_lang)
+        if target_code == "auto":
+            await interaction.response.send_message(
+                get_translation(ui_lang, "AUTO.error_auto_not_allowed_for_target"),
+                ephemeral=True
+            )
+            return
         
         # Check channel permissions if in a guild
         if interaction.guild:
@@ -6342,6 +6385,12 @@ async def readimage(
             return
 
         target_code = get_language_code(target_lang)
+        if target_code == "auto":
+            await interaction.response.send_message(
+                get_translation(ui_lang, "AUTO.error_auto_not_allowed_for_target"),
+                ephemeral=True
+            )
+            return
         if not target_code:
             embed = discord.Embed(
                 title=get_translation(ui_lang, "MEDIAREAD.error_title"),
@@ -12088,7 +12137,6 @@ def safe_db_operation(operation, *args, **kwargs):
     except Exception as e:
         logger.error(f"Database operation failed: {e}")
         return None
-
 if 'HOSTING' in os.environ:
     # Install dependencies when deploying to cloud
     system('pip install -r requirements.txt')
