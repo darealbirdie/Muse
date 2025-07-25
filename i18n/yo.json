@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Àwárí laifọwọyi' gba laaye gẹ́gẹ́ bí èdè orísun nìkan, kì í ṣe gẹ́gẹ́ bí èdè ibi-afẹ́."
+  },
 "START": {
     "error_user_info": "❌ Aṣiṣe ninu gbigba alaye olumulo.",
     "error_user_data": "❌ Aṣiṣe ninu ibẹrẹ data olumulo: {error}",
@@ -527,6 +530,7 @@
   "footer_pro": "O wa lori Ipele Pro (awọn ìkọkọ 20 ti fihan)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Idanimọ laifọwọyi",
   "af": "Afíríkàánsì",
   "sq": "Àlùbáníánì",
   "am": "Àmáríkà",
