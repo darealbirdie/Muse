@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Rilevazione automatica' hè permessa solu cum'è lingua di origine, micca cum'è lingua di destinazione."
+  },
 "START": {
   "error_user_info": "❌ Errore à ottene l'infurmazioni di l'utente.",
   "error_user_data": "❌ Errore à inizializà i dati di l'utente: {error}",
@@ -533,6 +536,7 @@
   "footer_pro": "Site in u livellu Pro (20 voci mostrate)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Rilevazione automatica",
   "af": "Afrikanu",
   "sq": "Albanese",
   "am": "Amharicu",

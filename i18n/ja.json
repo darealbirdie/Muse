@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 「自動検出」は翻訳元の言語としてのみ使用できます。翻訳先の言語としては使用できません。"
+  },
   "START": {
     "error_user_info": "❌ ユーザー情報の取得エラーです。",
     "error_user_data": "❌ ユーザーデータの初期化エラー: {error}",
@@ -544,6 +547,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 自動検出",
     "af": "アフリカーンス語",
     "sq": "アルバニア語",
     "am": "アムハラ語",

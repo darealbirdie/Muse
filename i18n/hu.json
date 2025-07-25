@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ Az 'Automatikus felismerés' csak forrásnyelvként engedélyezett, célnyelvként nem."
+  },
     "START": {
   "error_user_info": "❌ Hiba a felhasználói adatok lekérésekor.",
   "error_user_data": "❌ Hiba a felhasználói adatok inicializálásakor: {error}",
@@ -556,6 +559,7 @@
 
 
   "LANGUAGES": {
+    "auto": "🔍 Automatikus felismerés",
     "af": "Afrikaans",
     "sq": "Albán",
     "am": "Amhara",

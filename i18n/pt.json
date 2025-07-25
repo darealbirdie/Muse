@@ -544,8 +544,11 @@
     "footer_premium": "Você está no nível Premium (15 entradas mostradas).",
     "footer_pro": "Você está no nível Pro (20 entradas mostradas)."
   },
-
+  "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Detecção automática' é permitida apenas como idioma de origem, não como idioma de destino."
+  },
   "LANGUAGES": {
+    "auto": "🔍 Detecção automática",
     "af": "Africâner",
     "sq": "Albanês",
     "am": "Amárico",

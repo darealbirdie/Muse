@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automātiskā noteikšana' ir atļauta tikai kā avota valoda, nevis kā mērķa valoda."
+  },
     "START": {
   "error_user_info": "❌ Kļūda iegūstot lietotāja informāciju.",
   "error_user_data": "❌ Kļūda inicializējot lietotāja datus: {error}",
@@ -531,6 +534,7 @@
     "footer_pro": "Jūs esat Pro līmenī (rādīti 20 ieraksti)."
   },
     "LANGUAGES": {
+    "auto": "🔍 Automātiska noteikšana",  
     "af": "Afrikāņu",
     "sq": "Albāņu",
     "am": "Amharu",

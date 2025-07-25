@@ -957,7 +957,11 @@
   "description": "Aquí están todos los idiomas que puedes usar con el traductor:",
   "footer": "Ejemplo: /texttr text:Hola source_lang:es target_lang:en"
 },
+  "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Detección automática' solo está permitida como idioma de origen, no como idioma de destino."
+  },
 "LANGUAGES": {
+  "auto": "🔍 Detección automática",
   "af": "Afrikáans",
   "sq": "Albanés",
   "am": "Amárico",

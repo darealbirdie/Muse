@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ Ang 'Awtomatikong pagtuklas' ay pinapayagan lamang bilang pinagmulan ng wika, hindi bilang target na wika."
+  },
 "START": {
   "error_user_info": "❌ May error sa pagkuha ng impormasyon ng user.",
   "error_user_data": "❌ May error sa pag-initialize ng user data: {error}",
@@ -525,6 +528,7 @@
   "footer_pro": "Nasa Pro tier ka (20 entries ang ipinapakita)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Awtomatikong pagtukoy",
   "af": "Afrikano",
   "sq": "Albanian",
   "am": "Amharic",

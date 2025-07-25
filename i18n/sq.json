@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Zbulimi automatik' lejohet vetëm si gjuha burimore, jo si gjuha e synuar."
+  },
     "START": {
     "error_user_info": "❌ Gabim gjatë marrjes së informacionit të përdoruesit.",
     "error_user_data": "❌ Gabim gjatë inicializimit të të dhënave të përdoruesit: {error}",
@@ -526,6 +529,7 @@
     "footer_pro": "Je në nivelin Pro (shfaqen 20 hyrje)."
   },
     "LANGUAGES": {
+    "auto": "🔍 Zbulim automatik",
     "af": "Afrikansh",
     "sq": "Shqip",
     "am": "Amharik",

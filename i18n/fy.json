@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automatyske deteksje' is allinich tastien as boarnetaal, net as doeltaal."
+  },
       "START": {
     "error_user_info": "❌ Flater by it opheljen fan brûkersynformaasje.",
     "error_user_data": "❌ Flater by it ynitialisearjen fan brûkersgegevens: {error}",
@@ -532,6 +535,7 @@
     "footer_pro": "Jo binne op de Pro tier (20 ynfier toand)."
   },
     "LANGUAGES": {
+    "auto": "🔍 Automatysk deteksje",
     "af": "Afrikaans",
     "sq": "Albaneesk",
     "am": "Amhaarsk",

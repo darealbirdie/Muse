@@ -1,4 +1,7 @@
 {
+   "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Mataʻituina otometi' e fa'atagaina na'o i le gagana amata, ae le o le gagana taula'i."
+  },
 "START": {
   "error_user_info": "❌ Sese i le aumaia o fa'amatalaga o le tagata.",
   "error_user_data": "❌ Sese i le amataina o fa'amaumauga o le tagata: {error}",
@@ -522,6 +525,7 @@
   "footer_pro": "O e i le Tulaga Pro (20 ulua’i fa’amaumauga fa’aalia)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Maua otometi",
   "af": "Afrikaans",
   "sq": "Albanian",
   "am": "Amharic",

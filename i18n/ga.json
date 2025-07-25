@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ Ní cheadaítear ‘Aimsitheoir Uathoibríoch’ ach mar theanga foinse, ní mar theanga sprioc."
+  },
     "START": {
     "error_user_info": "❌ Earráid ag fáil faisnéise úsáideora.",
     "error_user_data": "❌ Earráid ag toiseacht sonraí úsáideora: {error}",
@@ -541,6 +544,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Braiteadh uathoibríoch",
     "af": "Afrikáinis",
     "sq": "Albáinis",
     "am": "Amharaic",

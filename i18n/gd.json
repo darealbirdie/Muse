@@ -1,5 +1,7 @@
 {
-  
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ ’Faodar aithneachadh fèin-ghluasadach’ a chleachdadh mar chànan stòrais a-mhàin, chan e mar chànan targaid."
+  },
   "START": {
     "error_user_info": "❌ Mearachd a' faighinn fiosrachadh cleachdaiche.",
     "error_user_data": "❌ Mearachd a' tòiseachadh dàta cleachdaiche: {error}",
@@ -545,6 +547,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Lorg fèin-obrachail",
     "af": "Afraganais",
     "sq": "Albàinis",
     "am": "Amhàiris",

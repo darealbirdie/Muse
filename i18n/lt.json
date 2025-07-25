@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ „Automatinis aptikimas“ leidžiamas tik kaip šaltinio kalba, ne kaip tikslinė kalba."
+  },
       "START": {
     "error_user_info": "❌ Klaida gaunant vartotojo informaciją.",
     "error_user_data": "❌ Klaida inicijuojant vartotojo duomenis: {error}",
@@ -515,6 +518,7 @@
     "footer_pro": "Jūs naudojate Pro lygį (rodyti 20 įrašų)."
   },
     "LANGUAGES": {
+    "auto": "🔍 Automatinis aptikimas",  
     "af": "Afrikansų",
     "sq": "Albanų",
     "am": "Amharų",

@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ Dim ond fel iaith ffynhonnell y caniateir 'Canfod yn awtomatig', nid fel iaith darged."
+  },
   "START": {
     "error_user_info": "❌ Gwall wrth gael gwybodaeth y defnyddiwr.",
     "error_user_data": "❌ Gwall wrth gychwyn data’r defnyddiwr: {error}",
@@ -464,6 +467,7 @@
   "footer_pro": "Rydych ar lefel Pro (20 cofnod yn cael eu dangos)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Canfod yn awtomatig",
   "af": "Affricaneg",
   "sq": "Albaneg",
   "am": "Amhareg",

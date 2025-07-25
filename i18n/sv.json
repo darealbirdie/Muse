@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automatisk identifiering' är endast tillåten som källspråk, inte som målspråk."
+  },
   "START": {
     "error_user_info": "❌ Fel vid hämtning av användarinformation.",
     "error_user_data": "❌ Fel vid initialisering av användardata: {error}",
@@ -528,6 +531,7 @@
     "footer_pro": "Du är på Pro-nivå (20 poster visas)."
   },
     "LANGUAGES": {
+    "auto": "🔍 Automatisk detektering",
     "af": "Afrikaans",
     "sq": "Albanska",
     "am": "Amhariska",

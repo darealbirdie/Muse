@@ -1,5 +1,7 @@
 {
-  
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Ho iketsa ho ipona' ho lumelloa feela e le puo ea mohloli, eseng puo eo u e lebellang."
+  },
   "START": {
     "error_user_info": "❌ Phoso ho fumana tlhahisoleseling ea mosebelisi.",
     "error_user_data": "❌ Phoso ho qala data ea mosebelisi: {error}",
@@ -545,6 +547,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Ho iphumanela ka bohona",
     "af": "Seafrikanse",
     "sq": "Sealbaniane",
     "am": "Seamharike",

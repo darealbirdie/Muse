@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Deteksi otomatis' mung diidini minangka basa sumber, dudu basa target."
+  },
     "START": {
   "error_user_info": "❌ Kesalahan nalika njupuk informasi pangguna.",
   "error_user_data": "❌ Kesalahan nalika inisialisasi data pangguna: {error}",
@@ -513,6 +516,7 @@
     "footer_pro": "Kowe ana ing tier Pro (ditampilaké 20 entri)."
   },
   "LANGUAGES": {
+    "auto": "🔍 Deteksi otomatis",
     "af": "Afrikaans",
     "sq": "Albanian",
     "am": "Amharic",

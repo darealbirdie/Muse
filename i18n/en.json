@@ -530,9 +530,12 @@
   "footer_premium": "You're on the Premium tier (15 entries shown).",
   "footer_pro": "You're on the Pro tier (20 entries shown)."
 },
- 
+"AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Auto-detect' is only allowed as the source language, not the target language."
+  },
 
 "LANGUAGES": {
+  "auto": "🔍 Auto-detect",
   "af": "Afrikaans",
   "sq": "Albanian",
   "am": "Amharic",

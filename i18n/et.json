@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automaatne tuvastamine' on lubatud ainult lähtekeelena, mitte sihtkeelena."
+  },
    "START": {
     "error_user_info": "❌ Viga kasutaja info hankimisel.",
     "error_user_data": "❌ Viga kasutaja andmete algatamisel: {error}",
@@ -521,6 +524,7 @@
   "footer_pro": "Oled Pro tasemel (kuvatud 20 kirjet)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Automaatne tuvastus",
   "af": "Afrikaans",
   "sq": "Albaani",
   "am": "Amhara",

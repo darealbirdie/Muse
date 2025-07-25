@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Sjálfvirk uppgötvun' er aðeins leyfð sem upphafsmál, ekki sem markmál."
+  },
     "START": {
   "error_user_info": "❌ Villa við að sækja notendaupplýsingar.",
   "error_user_data": "❌ Villa við að stofna notandagögn: {error}",
@@ -517,6 +520,7 @@
   "footer_pro": "Þú ert á Pro pakka (sýnir 20 færslur)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Sjálfvirk greining",
   "af": "Afríkans",
   "sq": "Albanska",
   "am": "Amharíska",

@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automaattinen tunnistus' on sallittu vain lähdekielenä, ei kohdekielenä."
+  },
   "START": {
     "error_user_info": "❌ Virhe käyttäjätietojen hakemisessa.",
     "error_user_data": "❌ Virhe käyttäjätietojen alustamisessa: {error}",
@@ -503,6 +506,7 @@
     "footer_pro": "Olet Pro-tasolla (näytetään 20 merkintää)."
   },
     "LANGUAGES": {
+    "auto": "🔍 Automaattinen tunnistus",  
     "af": "Afrikaans",
     "sq": "Albania",
     "am": "Amharan",

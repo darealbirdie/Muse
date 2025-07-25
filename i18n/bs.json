@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automatsko prepoznavanje' je dozvoljeno samo kao izvorni jezik, ne kao ciljni jezik."
+  },
 "START": {
   "error_user_info": "❌ Greška pri dohvaćanju informacija o korisniku.",
   "error_user_data": "❌ Greška pri inicijalizaciji korisničkih podataka: {error}",
@@ -535,6 +538,7 @@
   "footer_pro": "Na pro nivou (prikazano 20 zapisa)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Automatsko otkrivanje",
   "af": "Afrikaans",
   "sq": "Albanski",
   "am": "Amharski",

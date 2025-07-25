@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Skoperta awtomatika' hija permessa biss bħala lingwa sors, mhux bħala lingwa destinazzjoni."
+  },
       "START": {
     "error_user_info": "❌ Żball fit-tqassim tal-informazzjoni tal-utent.",
     "error_user_data": "❌ Żball fl-inizjalizzazzjoni tad-dejta tal-utent: {error}",
@@ -719,6 +722,7 @@
 },
 
  "LANGUAGES": {
+  "auto": "🔍 Skoperta awtomatika",
   "af": "Afrikani",
   "sq": "Albaniż",
   "am": "Amariċi",

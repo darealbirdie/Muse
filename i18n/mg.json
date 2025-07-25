@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ Ny 'Fahitana ho azy' dia ekena ho fiteny loharano ihany, fa tsy ho fiteny kendrena."
+  },
     "START": {
   "error_user_info": "❌ Fahadisoana nahazo fampahalalana momba ny mpampiasa.",
   "error_user_data": "❌ Fahadisoana nanomboka ny angon‑drakitra mpampiasa: {error}",
@@ -511,6 +514,7 @@
   "footer_pro": "Ao amin'ny tier Pro ianao (fampisehoana 20)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Famaritana mandeha ho azy",
   "af": "Afrikana",
   "sq": "Albaniana",
   "am": "Amharika",

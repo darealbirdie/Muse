@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Kuzindikira zokha' kumalola kokha ngati chinenero choyambirira, osati chinenero chofunikira."
+  },
 "START": {
   "error_user_info": "❌ Cholakwika pakupanga zambiri za wogwiritsa ntchito.",
   "error_user_data": "❌ Cholakwika pakuyambitsa deta ya wogwiritsa ntchito: {error}",
@@ -518,6 +521,7 @@
   "footer_pro": "Muli pa Gulu Laukadaulo (zolemba 20 zikuwonetsedwa)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Kuzindikira zokha",
   "af": "Chiafrikaansi",
   "sq": "Chialubaniya",
   "am": "Chiamhariki",

@@ -1,5 +1,8 @@
 {
-  
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Kuona otomatiki' kunobvumidzwa chete seshoko remutauro wekutanga, kwete semutauro wekwauri kuenda."
+  },
+
   "START": {
     "error_user_info": "❌ Kukanganisa kuwana ruzivo rweshandisi.",
     "error_user_data": "❌ Kukanganisa kutanga data yeshandisi: {error}",
@@ -545,6 +548,7 @@
   },
 
   "LANGUAGES": {
+  "auto": "🔍 Kuona otomatiki",
   "af": "Afrikaans",
   "sq": "ChiAlbania",
   "am": "ChiAmhariki",

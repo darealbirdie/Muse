@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Pengesanan automatik' hanya dibenarkan sebagai bahasa sumber, bukan sebagai bahasa sasaran."
+  },
   "START": {
     "error_user_info": "❌ Ralat mendapatkan maklumat pengguna.",
     "error_user_data": "❌ Ralat memulakan data pengguna: {error}",
@@ -528,6 +531,7 @@
     "footer_pro": "Anda berada di tahap Pro (20 entri dipaparkan)."
   },
   "LANGUAGES": {
+    "auto": "🔍 Pengesanan automatik",
     "af": "Afrikaans",
     "sq": "Albanian",
     "am": "Amharic",

@@ -1,5 +1,7 @@
 {
-  
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Detectarea automată' este permisă doar ca limbă sursă, nu ca limbă țintă."
+  },
   "START": {
     "error_user_info": "❌ Eroare la obținerea informațiilor utilizatorului.",
     "error_user_data": "❌ Eroare la inițializarea datelor utilizatorului: {error}",
@@ -545,6 +547,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Detectare automată",
     "af": "Afrikaans",
     "sq": "Albaneză",
     "am": "Amharică",

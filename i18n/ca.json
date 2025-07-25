@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Detecció automàtica' només es permet com a idioma d'origen, no com a idioma de destinació."
+  },
     "START": {
   "error_user_info": "❌ Error en obtenir la informació de l'usuari.",
   "error_user_data": "❌ Error en inicialitzar les dades de l'usuari: {error}",
@@ -510,6 +513,7 @@
 },
 
 "LANGUAGES": {
+  "auto": "🔍 Detecció automàtica",
   "af": "Afrikàans",
   "sq": "Albanès",
   "am": "Amhàric",

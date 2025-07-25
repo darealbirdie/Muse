@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Aŭtomata detekto' estas permesata nur kiel fonta lingvo, ne kiel cela lingvo."
+  },
 "START": {
   "error_user_info": "❌ Eraro dum akiro de uzantaj informoj.",
   "error_user_data": "❌ Eraro dum inicializo de uzantaj datumoj: {error}",
@@ -513,6 +516,7 @@
   "footer_pro": "Vi estas en Pro nivelo (montrataj 20 entajoj)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Aŭtomata detekto",
   "af": "Afrikansa",
   "sq": "Albania",
   "am": "Amhara",

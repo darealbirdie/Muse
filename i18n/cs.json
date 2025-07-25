@@ -1,4 +1,7 @@
  {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automatická detekce' je povolena pouze jako zdrojový jazyk, nikoli jako cílový jazyk."
+  },
       "START": {
     "error_user_info": "❌ Chyba při získávání informací o uživateli.",
     "error_user_data": "❌ Chyba při inicializaci uživatelských dat: {error}",
@@ -528,6 +531,7 @@
   "footer_pro": "Máte úroveň Profi (zobrazeno 20 záznamů)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Automatická detekce",
   "af": "Afrikánština",
   "sq": "Albánština",
   "am": "Amharština",

@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Detectio automatica' tantum licet uti ut lingua fontis, non ut lingua destinatae."
+  },
 "START": {
   "error_user_info": "❌ Error accedendi informationes usoris.",
   "error_user_data": "❌ Error in initialisatione datorum usoris: {error}",
@@ -515,6 +518,7 @@
   "footer_pro": "In gradu Pro es (monstrantur 20 entradas)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Detectio automatica",
   "af": "Afrikaans",
   "sq": "Albanice",
   "am": "Amharice",

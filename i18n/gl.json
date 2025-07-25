@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ A 'detección automática' só está permitida como lingua de orixe, non como lingua destino."
+  },
       "START": {
     "error_user_info": "❌ Erro ao obter información do usuario.",
     "error_user_data": "❌ Erro ao inicializar datos do usuario: {error}",
@@ -537,6 +540,7 @@
     "footer_pro": "Estás no nivel Pro (mostrados 20 elementos)."
   },
     "LANGUAGES": {
+      "auto": "🔍 Detección automática",
     "af": "Afrikaans",
     "sq": "Albanés",
     "am": "Amhárico",

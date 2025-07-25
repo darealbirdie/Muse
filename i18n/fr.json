@@ -1,5 +1,7 @@
 {
-  
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ La détection automatique est autorisée uniquement comme langue source, pas comme langue cible."
+  },
   
   "START": {
     "error_user_info": "❌ Erreur lors de la récupération des informations utilisateur.",
@@ -546,6 +548,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Détection automatique",
     "af": "Afrikaans",
     "sq": "Albanais",
     "am": "Amharique",

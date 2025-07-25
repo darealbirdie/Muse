@@ -1,5 +1,7 @@
 {
-  
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Аутоматско откривање' је дозвољено само као изворни језик, не и као циљни језик."
+  },
   "START": {
     "error_user_info": "❌ Greška pri dobijanju informacija o korisniku.",
     "error_user_data": "❌ Greška pri inicijalizaciji korisničkih podataka: {error}",
@@ -544,6 +546,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Automatsko otkrivanje",
     "af": "Afrikans",
     "sq": "Albanski",
     "am": "Amharski",

@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Ogaanshaha tooska ah' waxaa loo oggol yahay oo kaliya luqadda isha, ma ahan luqadda bartilmaameedka."
+  },
 "START": {
   "error_user_info": "❌ Khalad ayaa dhacay marka la helayo macluumaadka isticmaale.",
   "error_user_data": "❌ Khalad ayaa dhacay marka la dejinayo xogta isticmaale: {error}",
@@ -524,6 +527,7 @@
   "footer_pro": "Waxaad ku jirtaa Heerka Pro (20 qodob ayaa la muujiyay)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Ogaanshaha otomaatiga ah",
   "af": "Afrikaans",
   "sq": "Albaaniyan",
   "am": "Amxaarik",

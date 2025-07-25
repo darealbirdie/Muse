@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'स्वचालित पहचान' केवल स्रोत भाषा के रूप में अनुमति है, लक्ष्य भाषा के रूप में नहीं।"
+  },
 "START": {
   "error_user_info": "❌ Yuav tsum tau txais ntaub ntawv txog tus neeg siv.",
   "error_user_data": "❌ Yuav tsum tau pib ntaub ntawv tus neeg siv: {error}",
@@ -527,6 +530,8 @@
   "footer_pro": "Koj tab tom siv Pro Qib (Qhia 20 zauv)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Kev Tshawb Nrhiav Tsis Siv Neeg",
+
   "af": "Afrikaans",
   "sq": "Albanian",
   "am": "Amharic",

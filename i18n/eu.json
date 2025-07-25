@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Detekzio automatikoa' iturburu hizkuntzatzat bakarrik onartzen da, helburu hizkuntzatzat ez."
+  },
     "START": {
   "error_user_info": "❌ Errorea erabiltzailearen informazioa lortzean.",
   "error_user_data": "❌ Errorea erabiltzaile datuak hasieratzean: {error}",
@@ -523,6 +526,7 @@
   "footer_pro": "Pro mailan zaude (20 sarrera ikusgai)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Detekzio automatikoa",
   "af": "Afrikaans",
   "sq": "Albaniera",
   "am": "Amharera",

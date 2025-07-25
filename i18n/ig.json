@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ A na-ekwe ka 'Nchọpụta akpaghị aka' naanị dị ka asụsụ isi, ọ bụghị dị ka asụsụ ebumnuche."
+  },
   "START": {
     "error_user_info": "❌ Njehie n'enweta ozi onye ọrụ.",
     "error_user_data": "❌ Njehie n'ịmalite data onye ọrụ: {error}",
@@ -540,6 +543,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Nchọpụta akpaka",
     "af": "Afrikaans",
     "sq": "Albanian",
     "am": "Amharic",

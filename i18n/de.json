@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automatische Erkennung' ist nur als Quellsprache erlaubt, nicht als Zielsprache."
+  },
   "START": {
     "error_user_info": "❌ Fehler beim Abrufen der Benutzerinformationen.",
     "error_user_data": "❌ Fehler beim Initialisieren der Benutzerdaten: {error}",
@@ -544,6 +547,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Automatische Erkennung",
     "af": "Afrikaans",
     "sq": "Albanisch",
     "am": "Amharisch",

@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Deteksyon otomatik' sèlman pèmèt kòm lang sous, pa kòm lang sib."
+  },
 "START": {
   "error_user_info": "❌ Erè pandan w ap jwenn enfòmasyon itilizatè a.",
   "error_user_data": "❌ Erè pandan inisyalizasyon done itilizatè a: {error}",
@@ -540,6 +543,7 @@
 },
 
 "LANGUAGES": {
+  "auto": "🔍 Deteksyon otomatik",
   "af": "Afriken",
   "sq": "Albanyè",
   "am": "Amharik",

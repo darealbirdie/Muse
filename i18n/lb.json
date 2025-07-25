@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automatesch Detektioun' ass nëmme wéi Quellsprooch erlaabt, net wéi Zilsprooch."
+  },
     "START": {
   "error_user_info": "❌ Feeler beim Ausléise vu Benotzerinformatioun.",
   "error_user_data": "❌ Feeler beim Initialiséieren vun dades Benotzerdaten: {error}",
@@ -522,6 +525,7 @@
 },
 
 "LANGUAGES": {
+  "auto": "🔍 Automatesch Detektioun",
   "af": "Afrikaans",
   "sq": "Albanesch",
   "am": "Amharesch",

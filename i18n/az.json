@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Avtomatik aşkarla' yalnız mənbə dili kimi istifadə oluna bilər, təyinat dili kimi deyil."
+  },
   "START": {
     "error_user_info": "❌ İstifadəçi məlumatları alınarkən xəta baş verdi.",
     "error_user_data": "❌ İstifadəçi məlumatları yaradılarkən xəta: {error}",
@@ -501,6 +504,7 @@
     "footer_pro": "Siz Pro səviyyədəsiniz (20 giriş göstərilir)."
   },
 "LANGUAGES": {
+  "auto": "🔍 Avtomatik aşkarlama",
   "af": "Afrikaans",
   "sq": "Albanian",
   "am": "Amharic",

@@ -1,4 +1,7 @@
 {  
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ Ana yarda da 'Gano ta atomatik' kawai a matsayin harshen tushe, ba a matsayin harshen manufa ba."
+  },
   "START": {
     "error_user_info": "❌ Kuskure wajen samun bayanin mai amfani.",
     "error_user_data": "❌ Kuskure wajen ƙirƙirar bayanan mai amfani: {error}",
@@ -530,6 +533,7 @@
     "footer_pro": "Kana cikin matakin Pro (ana nuna shigarwa 20)."
   },
     "LANGUAGES": {
+    "auto": "🔍 Gano ta atomatik",
     "af": "Afrikaans",
     "sq": "Albanian",
     "am": "Amharic",

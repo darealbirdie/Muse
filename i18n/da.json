@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automatisk registrering' er kun tilladt som kildesprog, ikke som målsprog."
+  },
     "START": {
   "error_user_info": "❌ Fejl ved hentning af brugerinformation.",
   "error_user_data": "❌ Fejl ved initialisering af brugerdata: {error}",
@@ -511,6 +514,7 @@
   "footer_pro": "Du er på Pro niveau (20 indlæg vist)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Automatisk registrering",
   "af": "Afrikaans",
   "sq": "Albansk",
   "am": "Amharisk",

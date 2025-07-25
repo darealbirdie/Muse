@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Otomatik algılama' yalnızca kaynak dil olarak izin verilir, hedef dil olarak değil."
+  },
   "START": {
     "error_user_info": "❌ Kullanıcı bilgileri alınırken hata oluştu.",
     "error_user_data": "❌ Kullanıcı verilerini başlatırken hata: {error}",
@@ -543,6 +546,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Otomatik algılama",
     "af": "Afrikanca",
     "sq": "Arnavutça",
     "am": "Amharca",

@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ Ang 'Awtomatik nga pagpangita' gitugotan lamang isip pinulongan nga gigikanan, dili isip target nga pinulongan."
+  },
 "START": {
   "error_user_info": "❌ Sayop sa pagkuha sa impormasyon sa tiggamit.",
   "error_user_data": "❌ Sayop sa pag-inisyalisa sa datos sa tiggamit: {error}",
@@ -520,6 +523,7 @@
   "footer_pro": "Estàs al nivell Pro (es mostren 20 entrades)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Awtomatikong Pag-ila",
   "af": "Afrikaans",
   "sq": "Albanian",
   "am": "Amharic",

@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Dîtina otomatik' tenê wekî zimanê çavkaniyê tê destûr dane, ne wekî zimanê hedefê."
+  },
 "START": {
   "error_user_info": "❌ Çewtiyeke di wergirtina agahiyên bikarhênerê de çêbû.",
   "error_user_data": "❌ Çewtiyeke di damezrandina daneyên bikarhênerê de: {error}",
@@ -502,6 +505,7 @@
   "footer_pro": "Hûn li Tierê Pro in (20 têkildanan)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Dîtina xweber bi xwe",
   "af": "Afrîkansî",
   "sq": "Albanya",
   "am": "Amharî",

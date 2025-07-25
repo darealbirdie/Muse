@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Deteksi otomatis' ngan ukur diidinan pikeun basa sumber, sanés basa tujuan."
+  },
 "START": {
   "error_user_info": "❌ Kasalahan dina nyokot informasi pamaké.",
   "error_user_data": "❌ Kasalahan nalika ngamimitian data pamaké: {error}",
@@ -519,6 +522,7 @@
   "footer_pro": "Anjeun aya dina tingkat Pro (20 éntri ditingalikeun)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Deteksi otomatis",
   "af": "Afrikaans",
   "sq": "Albania",
   "am": "Amharik",

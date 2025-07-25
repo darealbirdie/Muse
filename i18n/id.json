@@ -1,5 +1,8 @@
 
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Deteksi otomatis' hanya diizinkan sebagai bahasa sumber, bukan sebagai bahasa target."
+  },
 "START": {
   "error_user_info": "❌ Gagal mendapatkan informasi pengguna.",
   "error_user_data": "❌ Gagal menginisialisasi data pengguna: {error}",
@@ -526,6 +529,7 @@
   "footer_pro": "Anda berada di tier Pro (20 entri ditampilkan)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Deteksi otomatis",
   "af": "Afrikaans",
   "sq": "Albanian",
   "am": "Amharik",

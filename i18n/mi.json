@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ Ko te 'Aroturuki Aunoa' e whakaaetia ana hei reo puna anake, kāore hei reo whāinga."
+  },
 "START": {
   "error_user_info": "❌ Hapa i te tiki i ngā mōhiohio kaiwhakamahi.",
   "error_user_data": "❌ Hapa i te whakatū i ngā raraunga kaiwhakamahi: {error}",
@@ -550,6 +553,7 @@
   "footer_pro": "Kei te Tauira Pro koe (20 whakaaturanga)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Tautuhi aunoa",
   "af": "Afrikaans",
   "sq": "Albaniñ",
   "am": "Amarik",

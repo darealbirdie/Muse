@@ -1,4 +1,7 @@
 {
+  "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Outo-opsporing' word slegs as die brontaal toegelaat, nie as die teikentaal nie."
+  },
     "START": {
   "error_user_info": "❌ Fout om gebruikersinligting te kry.",
   "error_user_data": "❌ Fout om gebruikersdata te inisialiseer: {error}",
@@ -402,6 +405,7 @@
 },
 
 
+
 "FEEDBACK": {
   "rating_error": "❌ Gradering moet tussen 1 en 5 sterre wees!",
 
@@ -486,6 +490,7 @@
   "footer_pro": "Jy is op die Pro vlak (20 inskrywings gewys)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Outomatiese opsporing",
   "af": "Afrikaans",
   "sq": "Albanees",
   "am": "Amharies",

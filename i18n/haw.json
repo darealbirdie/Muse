@@ -1,4 +1,7 @@
  {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ ʻAe ʻia wale nō ke ʻano ʻōlelo kumu ʻo ka 'Hoʻohālike Akamai', ʻaʻole ke ʻano ʻōlelo pahuhopu."
+  },
  "START": {
     "error_user_info": "❌ He pilikia i ka loaʻa ʻana o ka ʻike mea hoʻohana.",
     "error_user_data": "❌ He pilikia i ka hoʻomaka ʻana i nā ʻike mea hoʻohana: {error}",
@@ -530,6 +533,7 @@
   "footer_pro": "Aia ʻoe ma ka papa Loaʻa nui (hoʻike ʻia 20 nā mea)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Hōʻike ʻakomi",
   "af": "ʻAfrikaans",
   "sq": "ʻAlapania",
   "am": "ʻAmarika",

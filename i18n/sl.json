@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Samodejno zaznavanje' je dovoljeno samo kot izvorni jezik, ne kot ciljni jezik."
+  },
   "START": {
     "error_user_info": "❌ Napaka pri pridobivanju informacij o uporabniku.",
     "error_user_data": "❌ Napaka pri inicializaciji uporabniških podatkov: {error}",
@@ -529,6 +532,7 @@
     "footer_pro": "Uporabljate pro nivo (prikazanih 20 zapisov)."
   },
     "LANGUAGES": {
+      "auto": "🔍 Samodejno zaznavanje",
     "af": "Afrikaščina",
     "sq": "Albanski",
     "am": "Amharščina",

@@ -1,5 +1,7 @@
 {
-  
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automatisk oppdagelse' er kun tillatt som kildespråk, ikke som målspråk."
+  },
   "START": {
     "error_user_info": "❌ Feil ved henting av brukerinformasjon.",
     "error_user_data": "❌ Feil ved initialisering av brukerdata: {error}",
@@ -544,6 +546,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Automatisk gjenkjenning",
     "af": "Afrikaans",
     "sq": "Albansk",
     "am": "Amharisk",

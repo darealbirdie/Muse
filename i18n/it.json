@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Rilevamento automatico' è consentito solo come lingua di origine, non come lingua di destinazione."
+  },
   "START": {
     "error_user_info": "❌ Errore nel recupero delle informazioni utente.",
     "error_user_data": "❌ Errore nell'inizializzazione dei dati utente: {error}",
@@ -544,6 +547,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Rilevamento automatico",
     "af": "Afrikaans",
     "sq": "Albanese",
     "am": "Amarico",

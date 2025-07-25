@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Utambuzi wa moja kwa moja' unaruhusiwa tu kama lugha chanzo, si lugha lengwa."
+  },
 "START": {
   "error_user_info": "❌ Hitilafu kupata taarifa za mtumiaji.",
   "error_user_data": "❌ Hitilafu kuanzisha data za mtumiaji: {error}",
@@ -546,6 +549,7 @@
   "footer": "Tumia /buy [reward_name] kununua • Pointi huongezwa kila siku kwa /daily"
 },
 "LANGUAGES": {
+  "auto": "🔍 Utambuzi otomatiki",
   "af": "Kiafrikana",
   "sq": "Albania",
   "am": "Kiamhari",

@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automatische detectie' is alleen toegestaan als brontaal, niet als doeltaal."
+  },
   "START": {
     "error_user_info": "❌ Fout bij het ophalen van gebruikersinformatie.",
     "error_user_data": "❌ Fout bij het initialiseren van gebruikersgegevens: {error}",
@@ -545,6 +548,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 Automatische detectie",
     "af": "Afrikaans",
     "sq": "Albanees",
     "am": "Amhaars",

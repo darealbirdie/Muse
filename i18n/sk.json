@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Automatické rozpoznávanie' je povolené len ako zdrojový jazyk, nie ako cieľový jazyk."
+  },
       "START": {
     "error_user_info": "❌ Chyba pri získavaní informácií o používateľovi.",
     "error_user_data": "❌ Chyba pri inicializácii používateľských dát: {error}",
@@ -531,6 +534,7 @@
   "footer_pro": "Používate úroveň Profesionálna (zobrazených 20 záznamov)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Automatická detekcia",
   "af": "Afrikánčina",
   "sq": "Albánčina",
   "am": "Amharčina",
