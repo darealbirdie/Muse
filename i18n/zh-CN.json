@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌“自动检测”只允许作为源语言，不能作为目标语言。"
+  },
   "START": {
     "error_user_info": "❌ 获取用户信息时出错。",
     "error_user_data": "❌ 初始化用户数据时出错：{error}",
@@ -542,6 +545,7 @@
   },
 
   "LANGUAGES": {
+    "auto": "🔍 自动检测",
     "af": "南非荷兰语",
     "sq": "阿尔巴尼亚语",
     "am": "阿姆哈拉语",
