@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Phát hiện tự động' chỉ được phép làm ngôn ngữ nguồn, không được làm ngôn ngữ đích."
+  },
   "START": {
     "error_user_info": "❌ Lỗi khi lấy thông tin người dùng.",
     "error_user_data": "❌ Lỗi khi khởi tạo dữ liệu người dùng: {error}",
@@ -540,6 +543,7 @@
 },
 
   "LANGUAGES": {
+    "auto": "🔍 Tự động phát hiện",
     "af": "Tiếng Afrikaans",
     "sq": "Tiếng Albania",
     "am": "Tiếng Amharic",
