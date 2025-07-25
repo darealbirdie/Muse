@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌「自動偵測」僅允許作為來源語言，不允許作為目標語言。"
+  },
 "START": {
   "error_user_info": "❌ 取得使用者資訊時出錯。",
   "error_user_data": "❌ 初始化使用者資料時出錯：{error}",
@@ -535,6 +538,7 @@
   "footer_pro": "你目前是專業方案（顯示 20 筆紀錄）。"
 },
 "LANGUAGES": {
+  "auto": "🔍 自動檢測",
   "af": "南非語",
   "sq": "阿爾巴尼亞語",
   "am": "阿姆哈拉語",
