@@ -1,4 +1,7 @@
 {
+    "AUTO": {
+    "error_auto_not_allowed_for_target": "❌ 'Ukutholwa ngokuzenzakalelayo' kuvunyelwe kuphela njengesizinda solimi, hhayi njengesizinda solimi okuhlosiwe."
+  },
 "START": {
   "error_user_info": "❌ Iphutha ekutholeni ulwazi lomsebenzisi.",
   "error_user_data": "❌ Iphutha ekuqaleni kwedatha yomsebenzisi: {error}",
@@ -526,6 +529,7 @@
   "footer_pro": "Usezingeni le-Pro (izinto ezi-20 ezikhonjisiwe)."
 },
 "LANGUAGES": {
+  "auto": "🔍 Ukuhlonza okuzenzakalelayo",
   "af": "IsiAfrikaans",
   "sq": "Isi-Albanian",
   "am": "Isi-Amharic",
