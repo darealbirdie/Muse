@@ -757,7 +757,7 @@ class TierHandler:
         self.usage_tracking = {}    # Track daily usage per user
         self.tiers = {
             'free': {
-                'text_limit': 50,    # 50 characters per translation
+                'text_limit': 50,    # 125 characters per translation
                 'voice_limit': 1800,  # 30 minutes in seconds
                 'daily_translations': 10,  # Added daily translation limit
                 'daily_points_min': 5,
@@ -6332,6 +6332,8 @@ translate_by_id.autocomplete('target_lang')(translated_language_autocomplete)
     name="readimage",
     description="Extract and translate text from an image file"
 )
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.describe(
     image="Image attachment to read text from",
     target_lang="Translate extracted text to this language (type to search)"
@@ -12130,6 +12132,7 @@ async def setup_hook():
     load_translations()
     print(f"Loaded translations for: {', '.join(SUPPORTED_UI_LANGUAGES)}")
 
+
 def safe_db_operation(operation, *args, **kwargs):
     """Safely execute database operations with error handling"""
     try:
@@ -12137,6 +12140,7 @@ def safe_db_operation(operation, *args, **kwargs):
     except Exception as e:
         logger.error(f"Database operation failed: {e}")
         return None
+
 if 'HOSTING' in os.environ:
     # Install dependencies when deploying to cloud
     system('pip install -r requirements.txt')
