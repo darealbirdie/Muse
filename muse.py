@@ -757,7 +757,7 @@ class TierHandler:
         self.usage_tracking = {}    # Track daily usage per user
         self.tiers = {
             'free': {
-                'text_limit': 50,    # 125 characters per translation
+                'text_limit': 125,    # 125 characters per translation
                 'voice_limit': 1800,  # 30 minutes in seconds
                 'daily_translations': 10,  # Added daily translation limit
                 'daily_points_min': 5,
@@ -9247,6 +9247,40 @@ async def shop(interaction: discord.Interaction):
     embed.set_footer(text=get_translation(ui_lang, "SHOP.footer"))
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
+# Assuming these dicts hold active features and multipliers keyed by user_id
+# Each entry: { reward_id: expires_at }
+user_features = {}
+user_multipliers = {}
+
+async def grant_feature(user_id: int, reward_id: str, expires_at):
+    """
+    Grants a feature reward to a user, with expiration.
+    """
+    # Initialize user's feature dict if missing
+    if user_id not in user_features:
+        user_features[user_id] = {}
+
+    # Add or update feature expiration
+    user_features[user_id][reward_id] = expires_at
+
+    # You can add more logic here to enable feature effects, e.g. update DB
+
+    return True, f"Feature '{reward_id}' granted until {expires_at.strftime('%Y-%m-%d %H:%M:%S')}"
+
+async def grant_multiplier(user_id: int, reward_id: str, expires_at):
+    """
+    Grants a multiplier reward to a user, with expiration.
+    """
+    # Initialize user's multiplier dict if missing
+    if user_id not in user_multipliers:
+        user_multipliers[user_id] = {}
+
+    # Add or update multiplier expiration
+    user_multipliers[user_id][reward_id] = expires_at
+
+    # Add logic here if needed to apply multiplier effects in your point calculations
+
+    return True, f"Multiplier '{reward_id}' granted until {expires_at.strftime('%Y-%m-%d %H:%M:%S')}"
 
 @tree.command(name="buy", description="Purchase a reward with points")
 @app_commands.describe(reward="The reward you want to purchase")
@@ -9258,7 +9292,7 @@ async def buy_reward(interaction: discord.Interaction, reward: str):
     user_id = interaction.user.id
     ui_lang = await get_user_ui_language(user_id)
     
-    # Find reward by name or ID
+    # Find reward by name or ID (case insensitive)
     reward_id = None
     for r_id, r_data in REWARDS.items():
         if reward.lower() in r_data['name'].lower() or reward.lower() == r_id.lower():
@@ -9274,51 +9308,92 @@ async def buy_reward(interaction: discord.Interaction, reward: str):
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
 
+    # Attempt purchase
     result = reward_db.purchase_reward(user_id, reward_id)
 
-    if result['success']:
-        reward_data = result['reward']
-        expires_at = result['expires_at']
-        
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "BUY.success_title"),
-            description=get_translation(ui_lang, "BUY.success_description", reward_name=reward_data['name']),
-            color=0x2ecc71
-        )
-
-        embed.add_field(
-            name=get_translation(ui_lang, "BUY.field_points_spent"),
-            value=f"{reward_data['cost']:,}",
-            inline=True
-        )
-
-        embed.add_field(
-            name=get_translation(ui_lang, "BUY.field_points_remaining"),
-            value=f"{result['points_remaining']:,}",
-            inline=True
-        )
-
-        embed.add_field(
-            name=get_translation(ui_lang, "BUY.field_expires"),
-            value=f"<t:{int(expires_at.timestamp())}:R>",
-            inline=True
-        )
-
-        embed.add_field(
-            name=get_translation(ui_lang, "BUY.field_description"),
-            value=reward_data['description'],
-            inline=False
-        )
-
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-    
-    else:
+    if not result['success']:
         embed = discord.Embed(
             title=get_translation(ui_lang, "BUY.error_failed_title"),
             description=get_translation(ui_lang, "BUY.error_failed_description", error=result['error']),
             color=0xe74c3c
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    reward_data = result['reward']
+    expires_at = result['expires_at']
+    reward_type = reward_data.get('type', '')
+
+    apply_success = True
+    apply_message = ""
+
+    # Apply reward effect based on type
+    if reward_type in ['basic', 'premium', 'pro']:
+        apply_success, apply_message = tier_handler.upgrade_user_tier(user_id, reward_type, expires_at)
+
+    elif reward_type in ['feature', 'beta_feature']:
+        # You need to implement grant_feature yourself; placeholder here:
+        apply_success, apply_message = await grant_feature(user_id, reward_id, expires_at)
+
+    elif reward_type == 'multiplier':
+        # You need to implement grant_multiplier yourself; placeholder here:
+        apply_success, apply_message = await grant_multiplier(user_id, reward_id, expires_at)
+
+    elif reward_type == 'bundle':
+        includes = reward_data.get('includes', [])
+        for included_reward_id in includes:
+            included_reward = REWARDS[included_reward_id]
+            inc_type = included_reward.get('type', '')
+            if inc_type in ['basic', 'premium', 'pro']:
+                success, msg = tier_handler.upgrade_user_tier(user_id, inc_type, expires_at)
+            elif inc_type in ['feature', 'beta_feature']:
+                success, msg = await grant_feature(user_id, included_reward_id, expires_at)
+            elif inc_type == 'multiplier':
+                success, msg = await grant_multiplier(user_id, included_reward_id, expires_at)
+            else:
+                success, msg = True, "Cosmetic or unsupported reward in bundle"
+            if not success:
+                apply_success = False
+                apply_message += f"\nFailed to apply {included_reward['name']}: {msg}"
+
+    else:
+        # Cosmetic reward - no backend action needed
+        apply_success = True
+        apply_message = "Cosmetic reward granted."
+
+    # Compose embed to send feedback
+    embed = discord.Embed(
+        title=get_translation(ui_lang, "BUY.success_title") if apply_success else get_translation(ui_lang, "BUY.error_failed_title"),
+        description=get_translation(ui_lang, "BUY.success_description", reward_name=reward_data['name']) if apply_success else apply_message,
+        color=0x2ecc71 if apply_success else 0xe74c3c
+    )
+
+    embed.add_field(
+        name=get_translation(ui_lang, "BUY.field_points_spent"),
+        value=f"{reward_data['cost']:,}",
+        inline=True
+    )
+
+    embed.add_field(
+        name=get_translation(ui_lang, "BUY.field_points_remaining"),
+        value=f"{result['points_remaining']:,}",
+        inline=True
+    )
+
+    if expires_at:
+        embed.add_field(
+            name=get_translation(ui_lang, "BUY.field_expires"),
+            value=f"<t:{int(expires_at.timestamp())}:R>",
+            inline=True
+        )
+
+    embed.add_field(
+        name=get_translation(ui_lang, "BUY.field_description"),
+        value=reward_data['description'],
+        inline=False
+    )
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # Add autocomplete for buy command
 async def reward_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
@@ -12131,7 +12206,6 @@ async def setup_hook():
     # Load translations
     load_translations()
     print(f"Loaded translations for: {', '.join(SUPPORTED_UI_LANGUAGES)}")
-
 
 def safe_db_operation(operation, *args, **kwargs):
     """Safely execute database operations with error handling"""
