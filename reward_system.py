@@ -439,7 +439,6 @@ ACHIEVEMENTS = {
     }
 # ...existing achievements...
 }
-# Update the REWARDS dictionary - replace bulk_translation with enhanced_voice
 REWARDS = {
     # === TIER UPGRADES ===
     'temp_basic_1d': {
@@ -491,15 +490,8 @@ REWARDS = {
         'duration_hours': 72,
         'type': 'pro'
     },
-    
-    # === INDIVIDUAL FEATURES ===
-    'translation_history': {
-        'name': '📚 Translation History',
-        'description': 'Access your translation history for 48 hours',
-        'cost': 40,
-        'duration_hours': 48,
-        'type': 'feature'
-    },
+
+
     'extended_limits': {
         'name': '📈 Extended Character Limit',
         'description': 'Increase your character limit to 1000 for 24 hours',
@@ -514,21 +506,8 @@ REWARDS = {
         'duration_hours': 24,
         'type': 'feature'
     },
-    'priority_processing': {
-        'name': '⚡ Priority Processing',
-        'description': 'Faster translation processing for 12 hours',
-        'cost': 35,
-        'duration_hours': 12,
-        'type': 'feature'
-    },
-    'auto_translate_access': {
-        'name': '🔄 Auto-Translate Feature',
-        'description': 'Access auto-translate feature for 24 hours',
-        'cost': 45,
-        'duration_hours': 24,
-        'type': 'feature'
-    },
-    
+   
+
     # === BETA & SPECIAL FEATURES ===
     'enhanced_voice_beta': {
         'name': '🚀 Enhanced Voice Chat V2 (Beta)',
@@ -548,27 +527,11 @@ REWARDS = {
         'name': '🚀 Enhanced Voice V2 (7 Days)', 
         'description': 'Unlock advanced bidirectional voice translation for 1 week',
         'cost': 300,
-        'duration_hours': 168,  # 7 days * 24 hours
+        'duration_hours': 168,
         'type': 'beta_feature'
     },
 
-    
-    # === COSMETIC & SOCIAL ===
-    'custom_badge': {
-        'name': '🎨 Custom Badge',
-        'description': 'Create a custom badge for your profile (permanent)',
-        'cost': 200,
-        'duration_hours': -1,  # Permanent
-        'type': 'cosmetic'
-    },
-    'profile_highlight': {
-        'name': '✨ Profile Highlight',
-        'description': 'Highlight your profile in leaderboards for 7 days',
-        'cost': 90,
-        'duration_hours': 168,
-        'type': 'cosmetic'
-    },
-    
+
     # === POINT MULTIPLIERS ===
     'point_multiplier_2x': {
         'name': '💰 2x Point Multiplier',
@@ -584,12 +547,12 @@ REWARDS = {
         'duration_hours': 12,
         'type': 'multiplier'
     },
-    
+
     # === SPECIAL BUNDLES ===
     'starter_bundle': {
         'name': '🎁 Starter Bundle',
         'description': 'Basic access + History + Extended limits for 24h',
-        'cost': 100,  # Discounted from 150
+        'cost': 100,
         'duration_hours': 24,
         'type': 'bundle',
         'includes': ['temp_basic_1d', 'translation_history', 'extended_limits']
@@ -597,7 +560,7 @@ REWARDS = {
     'premium_bundle': {
         'name': '🎉 Premium Bundle',
         'description': 'Premium access + Beta features + 2x multiplier for 24h',
-        'cost': 300,  # Discounted from 425
+        'cost': 300,
         'duration_hours': 24,
         'type': 'bundle',
         'includes': ['temp_premium_1d', 'beta_features', 'point_multiplier_2x']
@@ -605,12 +568,14 @@ REWARDS = {
     'ultimate_bundle': {
         'name': '👑 Ultimate Bundle',
         'description': 'Pro access + All features + Custom badge for 3 days',
-        'cost': 750,  # Discounted from 1000+
+        'cost': 750,
         'duration_hours': 72,
         'type': 'bundle',
         'includes': ['temp_pro_3d', 'beta_features', 'custom_badge', 'point_multiplier_2x']
     }
 }
+
+
 
 # Enhanced auto-badges with new tier system
 AUTO_BADGES = {
