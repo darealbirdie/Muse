@@ -48,6 +48,7 @@ from i18n.translate import t
 import pytesseract
 from PIL import Image
 
+
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 ffmpeg_path = r"C:\Users\shoub\Downloads\ffmpeg\ffmpeg-master-latest-win64-gpl-shared\bin\ffmpeg.exe"
 
