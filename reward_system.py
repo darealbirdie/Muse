@@ -532,21 +532,49 @@ REWARDS = {
     },
 
 
-    # === POINT MULTIPLIERS ===
-    'point_multiplier_2x': {
-        'name': '💰 2x Point Multiplier',
-        'description': 'Earn double points from all activities for 24 hours',
-        'cost': 75,
-        'duration_hours': 24,
-        'type': 'multiplier'
-    },
-    'point_multiplier_3x': {
-        'name': '💎 3x Point Multiplier',
-        'description': 'Earn triple points from all activities for 12 hours',
-        'cost': 150,
-        'duration_hours': 12,
-        'type': 'multiplier'
-    },
+# === POINT MULTIPLIERS ===
+'point_multiplier_1_5x': {
+    'name': '💵 1.5x Point Multiplier',
+    'description': 'Earn 50% more points from all activities for 48 hours',
+    'cost': 45,
+    'duration_hours': 48,
+    'type': 'multiplier'
+},
+'point_multiplier_2x': {
+    'name': '💰 2x Point Multiplier',
+    'description': 'Earn double points from all activities for 24 hours',
+    'cost': 75,
+    'duration_hours': 24,
+    'type': 'multiplier'
+},
+'point_multiplier_2x_12h': {
+    'name': '💰 2x Point Multiplier (12h)',
+    'description': 'Earn double points from all activities for 12 hours',
+    'cost': 50,
+    'duration_hours': 12,
+    'type': 'multiplier'
+},
+'point_multiplier_3x': {
+    'name': '💎 3x Point Multiplier',
+    'description': 'Earn triple points from all activities for 12 hours',
+    'cost': 150,
+    'duration_hours': 12,
+    'type': 'multiplier'
+},
+'point_multiplier_4x': {
+    'name': '🔥 4x Point Multiplier',
+    'description': 'Earn quadruple points from all activities for 6 hours',
+    'cost': 200,
+    'duration_hours': 6,
+    'type': 'multiplier'
+},
+'point_multiplier_5x': {
+    'name': '💥 5x Point Multiplier',
+    'description': 'Earn 5x points from all activities for 3 hours',
+    'cost': 250,
+    'duration_hours': 3,
+    'type': 'multiplier'
+},
 
     # === SPECIAL BUNDLES ===
     'starter_bundle': {
