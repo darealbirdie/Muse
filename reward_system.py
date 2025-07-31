@@ -579,11 +579,11 @@ REWARDS = {
     # === SPECIAL BUNDLES ===
     'starter_bundle': {
         'name': '🎁 Starter Bundle',
-        'description': 'Basic access + History + Extended limits for 24h',
+        'description': 'Basic access + Extended limits for 24h',
         'cost': 100,
         'duration_hours': 24,
         'type': 'bundle',
-        'includes': ['temp_basic_1d', 'translation_history', 'extended_limits']
+        'includes': ['temp_basic_1d', 'extended_limits']
     },
     'premium_bundle': {
         'name': '🎉 Premium Bundle',
@@ -679,7 +679,7 @@ REWARD_CATEGORIES = {
     'features': {
         'name': '🎯 Individual Features',
         'description': 'Unlock specific features temporarily',
-        'rewards': ['translation_history', 'extended_limits', 'extended_voice', 'priority_processing', 'auto_translate_access']
+        'rewards': [ 'extended_limits', 'extended_voice', 'priority_processing', 'auto_translate_access']
     },
     'beta': {
         'name': '🧪 Beta & Experimental',
@@ -832,7 +832,6 @@ REWARD_FEATURE_ACCESS = {
     'temp_premium_7d': ['history', 'auto_translate', 'priority_processing', 'enhanced_voice'],
     'temp_pro_1d': ['all_features', 'beta_access', 'priority_support'],
     'temp_pro_3d': ['all_features', 'beta_access', 'priority_support'],
-    'translation_history': ['history'],
     'auto_translate_access': ['auto_translate'],
     'enhanced_voice_beta': ['enhanced_voice'],
     'beta_features': ['beta_access'],
@@ -842,7 +841,7 @@ REWARD_FEATURE_ACCESS = {
 # Bundle contents mapping
 BUNDLE_CONTENTS = {
     'starter_bundle': {
-        'rewards': ['temp_basic_1d', 'translation_history', 'extended_limits'],
+        'rewards': ['temp_basic_1d', 'extended_limits'],
         'total_value': 150,
         'discount': 50,
         'savings': '33%'
@@ -902,7 +901,7 @@ REWARD_RARITY = {
     'common': {
         'color': 0x95a5a6,
         'emoji': '⚪',
-        'rewards': ['extended_limits', 'priority_processing', 'translation_history']
+        'rewards': ['extended_limits', 'priority_processing' ]
     },
     'uncommon': {
         'color': 0x2ecc71,
@@ -2222,6 +2221,7 @@ def increment_stat(self, user_id: int, stat_name: str, amount: int = 1) -> bool:
     except Exception as e:
         logger.error(f"Error incrementing stat {stat_name}: {e}")
         return False
+
 
 
 # Global reward database instance (to be imported by main bot file)
