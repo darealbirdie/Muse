@@ -1649,7 +1649,7 @@ async def start(interaction: discord.Interaction):
         embed = discord.Embed(
             title=get_translation(ui_lang, "START.new_user_title" if is_new_user else "START.returning_user_title", emoji=tier_info['emoji']),
             description=get_translation(ui_lang, "START.new_user_description" if is_new_user else "START.returning_user_description", username=interaction.user.display_name),
-            color=tier_info['color'] if not is_new_user else 0x2ecc71
+            color=tier_info['color'] 
         )
 
         text_limit_str = get_translation(ui_lang, "START.tier_unlimited") if limits['text_limit'] == float('inf') else str(limits['text_limit'])
