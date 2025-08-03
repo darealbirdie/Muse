@@ -2056,64 +2056,187 @@ async def text_translate(
         uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
         await notify_uncashed_achievements(user_id, interaction.user.display_name, uncashed_points)
 
-        source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
-        target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
-        source_flag = flag_mapping.get(source_code, '🌐')
-        target_flag = flag_mapping.get(target_code, '🌐')
-
-        def truncate_field(text: str, limit: int = 1024):
-            return text if len(text) <= limit else text[:limit - 3] + "..."
-
-        # Use the same tier colors as autotranslate command
-        tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
-        
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "TEXTTR.title")[:256],
-            color=tier_colors.get(tier, discord.Color.greyple())
+        # Create and send the translation embeds
+        await create_and_send_translation_embeds(
+            interaction=interaction,
+            original_text=text,
+            translated_text=translated,
+            source_code=source_code,
+            target_code=target_code,
+            tier=tier,
+            points_awarded=points_awarded,
+            limits=limits,
+            ui_lang=ui_lang,
+            user_id=user_id
         )
-
-        if user_id not in hidden_sessions:
-            embed.add_field(
-                name=get_translation(ui_lang, "TEXTTR.original_field", flag=source_flag, language=source_name)[:256],
-                value=truncate_field(text),
-                inline=False
-            )
-
-        embed.add_field(
-            name=get_translation(ui_lang, "TEXTTR.translation_field", flag=target_flag, language=target_name)[:256],
-            value=truncate_field(translated),
-            inline=False
-        )
-
-        embed.add_field(
-            name=get_translation(ui_lang, "TEXTTR.points_field")[:256],
-            value=get_translation(ui_lang, "TEXTTR.points_value", points=points_awarded)[:1024],
-            inline=True
-        )
-
-        # Use the same footer logic as autotranslate command
-        if tier == 'free':
-            footer_text = get_translation(ui_lang, "TEXTTR.footer_free", current=len(text), limit=limits['text_limit'])
-        elif tier == 'basic':
-            footer_text = get_translation(ui_lang, "TEXTTR.footer_basic", current=len(text), limit=limits['text_limit'])
-        elif tier == 'premium':
-            footer_text = get_translation(ui_lang, "TEXTTR.footer_premium")
-        else:  # pro tier
-            footer_text = get_translation(ui_lang, "TEXTTR.footer_pro")
-
-        if interaction.guild:
-            footer_text += " " + get_translation(ui_lang, "TEXTTR.footer_server", server=interaction.guild.name)
-        else:
-            footer_text += " " + get_translation(ui_lang, "TEXTTR.footer_dm")
-
-        embed.set_footer(text=footer_text[:2048])
-        await interaction.followup.send(embed=embed, ephemeral=False)
 
     except Exception as e:
         await interaction.followup.send(
             get_translation(ui_lang, "TEXTTR.error_translation_failed", error=str(e)),
             ephemeral=True
         )
+
+
+async def create_and_send_translation_embeds(
+    interaction: discord.Interaction,
+    original_text: str,
+    translated_text: str,
+    source_code: str,
+    target_code: str,
+    tier: str,
+    points_awarded: int,
+    limits: dict,
+    ui_lang: str,
+    user_id: int
+):
+    """Create and send translation embeds with proper truncation and splitting"""
+    
+    # Get language names and flags
+    source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+    target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
+    source_flag = flag_mapping.get(source_code, '🌐')
+    target_flag = flag_mapping.get(target_code, '🌐')
+    
+    # Use the same tier colors as autotranslate command
+    tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
+    embed_color = tier_colors.get(tier, discord.Color.greyple())
+    
+    # Calculate footer text
+    if tier == 'free':
+        footer_text = get_translation(ui_lang, "TEXTTR.footer_free", current=len(original_text), limit=limits['text_limit'])
+    elif tier == 'basic':
+        footer_text = get_translation(ui_lang, "TEXTTR.footer_basic", current=len(original_text), limit=limits['text_limit'])
+    elif tier == 'premium':
+        footer_text = get_translation(ui_lang, "TEXTTR.footer_premium")
+    else:  # pro tier
+        footer_text = get_translation(ui_lang, "TEXTTR.footer_pro")
+
+    if interaction.guild:
+        footer_text += " " + get_translation(ui_lang, "TEXTTR.footer_server", server=interaction.guild.name)
+    else:
+        footer_text += " " + get_translation(ui_lang, "TEXTTR.footer_dm")
+    
+    footer_text = footer_text[:2048]  # Discord footer limit
+    
+    # Field names (truncated to Discord's 256 character limit)
+    original_field_name = get_translation(ui_lang, "TEXTTR.original_field", flag=source_flag, language=source_name)[:256]
+    translation_field_name = get_translation(ui_lang, "TEXTTR.translation_field", flag=target_flag, language=target_name)[:256]
+    points_field_name = get_translation(ui_lang, "TEXTTR.points_field")[:256]
+    points_field_value = get_translation(ui_lang, "TEXTTR.points_value", points=points_awarded)[:1024]
+    
+    # Helper function to add field and handle embed limits
+    def add_field_to_embed(embed_obj, field_name, field_value, field_counter):
+        """Helper function to add field and handle embed limits"""
+        # Check if current embed can hold another field (Discord limit is 25 fields per embed)
+        if field_counter >= 25:
+            return None, field_counter  # Signal that we need a new embed
+        
+        embed_obj.add_field(
+            name=field_name,
+            value=field_value,
+            inline=False
+        )
+        return embed_obj, field_counter + 1
+    
+    # Split texts into chunks that fit Discord's 1024 character field limit
+    def split_text_for_fields(text, max_length=1020):  # Leave some room for safety
+        """Split text into chunks that fit in Discord embed fields"""
+        if len(text) <= max_length:
+            return [text]
+        
+        chunks = []
+        current_pos = 0
+        
+        while current_pos < len(text):
+            if current_pos + max_length >= len(text):
+                # Last chunk
+                chunks.append(text[current_pos:])
+                break
+            
+            # Find a good breaking point (prefer word boundaries)
+            chunk_end = current_pos + max_length
+            
+            # Look for word boundary within last 100 characters
+            best_break = chunk_end
+            for i in range(chunk_end - 100, chunk_end):
+                if i > current_pos and text[i] in [' ', '\n', '\t', '.', ',', '!', '?', ';']:
+                    best_break = i + 1
+                    break
+            
+            chunks.append(text[current_pos:best_break])
+            current_pos = best_break
+        
+        return chunks
+    
+    # Create the main embed
+    main_embed = discord.Embed(
+        title=get_translation(ui_lang, "TEXTTR.title")[:256],
+        color=embed_color
+    )
+    
+    embeds_to_send = [main_embed]
+    current_embed = main_embed
+    field_count = 0
+    
+    # Add original text fields (if not hidden)
+    if user_id not in hidden_sessions:
+        original_chunks = split_text_for_fields(original_text)
+        for i, chunk in enumerate(original_chunks):
+            field_name = original_field_name if i == 0 else f"{original_field_name} (continued {i+1})"
+            
+            result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+            if result is None:
+                # Need a new embed
+                new_embed = discord.Embed(
+                    title=f"{get_translation(ui_lang, 'TEXTTR.title')} (continued)",
+                    color=embed_color
+                )
+                embeds_to_send.append(new_embed)
+                current_embed = new_embed
+                field_count = 0
+                current_embed.add_field(name=field_name, value=chunk, inline=False)
+                field_count += 1
+    
+    # Add translation fields
+    translation_chunks = split_text_for_fields(translated_text)
+    for i, chunk in enumerate(translation_chunks):
+        field_name = translation_field_name if i == 0 else f"{translation_field_name} (continued {i+1})"
+        
+        result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+        if result is None:
+            # Need a new embed
+            new_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'TEXTTR.title')} (continued)",
+                color=embed_color
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=field_name, value=chunk, inline=False)
+            field_count += 1
+    
+    # Add points field to the last embed
+    result, field_count = add_field_to_embed(current_embed, points_field_name, points_field_value, field_count)
+    if result is None:
+        # Need a new embed for points field
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'TEXTTR.title')} (continued)",
+            color=embed_color
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        current_embed.add_field(name=points_field_name, value=points_field_value, inline=True)
+    
+    # Set footer on the last embed
+    embeds_to_send[-1].set_footer(text=footer_text)
+    
+    # Send all embeds
+    await interaction.followup.send(embed=embeds_to_send[0], ephemeral=False)
+    
+    # Send additional embeds as followups if needed
+    for additional_embed in embeds_to_send[1:]:
+        await interaction.followup.send(embed=additional_embed, ephemeral=False)
+
 
 @text_translate.autocomplete('source_lang')
 async def source_lang_autocomplete(interaction: discord.Interaction, current: str):
@@ -2147,7 +2270,6 @@ text_translate.autocomplete('source_lang')(translated_language_autocomplete)
 text_translate.autocomplete('target_lang')(translated_language_autocomplete)
 
 
-# Also update your /voice command to match the same pattern
 @tree.command(name="voice", description="Translate text and convert to speech")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -2184,14 +2306,6 @@ async def translate_and_speak(
             is_premium = False
                
         limits = tier_handler.get_limits(user_id)
-        
-        # Handle both contexts
-        if interaction.guild:
-            # Server context - existing logic
-            pass
-        else:
-            # User context (DM) - just create audio file, no voice channel
-            pass
         
         # Convert language inputs to codes
         source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
@@ -2285,64 +2399,19 @@ async def translate_and_speak(
         tts = gTTS(text=translated_text, lang=target_code)
         tts.write_to_fp(mp3_fp)
         mp3_fp.seek(0)
-                   
-        # Get language names and flags
-        source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
-        target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
-        source_flag = flag_mapping.get(source_code, '🌐')
-        target_flag = flag_mapping.get(target_code, '🌐')
-                   
-        # Create embed with tier-based colors
-        tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "VOICE.title"),
-            color=tier_colors[tier]
-        )
-                   
-        embed.add_field(
-            name=get_translation(ui_lang, "VOICE.original_field", 
-                               flag=source_flag, language=source_name),
-            value=text,
-            inline=False
-        )
-                   
-        embed.add_field(
-            name=get_translation(ui_lang, "VOICE.translation_field", 
-                               flag=target_flag, language=target_name),
-            value=translated_text,
-            inline=False
-        )
-               
-        # Add points earned indicator
-        embed.add_field(
-            name=get_translation(ui_lang, "VOICE.points_field"),
-            value=get_translation(ui_lang, "VOICE.points_value", points=points_awarded),
-            inline=True
-        )
-               
-        # Add tier-specific footer
-        if tier == 'free':
-            footer_text = get_translation(ui_lang, "VOICE.footer_free")
-        elif tier == 'basic':
-            footer_text = get_translation(ui_lang, "VOICE.footer_basic")
-        elif tier == 'premium':
-            footer_text = get_translation(ui_lang, "VOICE.footer_premium")
-        else:  # pro
-            footer_text = get_translation(ui_lang, "VOICE.footer_pro")
-               
-        # Add context info
-        if interaction.guild:
-            footer_text += " " + get_translation(ui_lang, "VOICE.footer_server", 
-                                                server=interaction.guild.name)
-        else:
-            footer_text += " " + get_translation(ui_lang, "VOICE.footer_dm")
         
-        embed.set_footer(text=footer_text)
-                   
-        # Send the embed as ephemeral
-        await interaction.followup.send(
-            embed=embed,
-            ephemeral=True
+        # Create and send the voice translation embeds
+        await create_and_send_voice_embeds(
+            interaction=interaction,
+            original_text=text,
+            translated_text=translated_text,
+            source_code=source_code,
+            target_code=target_code,
+            tier=tier,
+            points_awarded=points_awarded,
+            limits=limits,
+            ui_lang=ui_lang,
+            user_id=user_id
         )
         
         # Send the audio file
@@ -2378,10 +2447,173 @@ async def translate_and_speak(
                 ephemeral=True
             )
 
+
+async def create_and_send_voice_embeds(
+    interaction: discord.Interaction,
+    original_text: str,
+    translated_text: str,
+    source_code: str,
+    target_code: str,
+    tier: str,
+    points_awarded: int,
+    limits: dict,
+    ui_lang: str,
+    user_id: int
+):
+    """Create and send voice translation embeds with proper truncation and splitting"""
+    
+    # Get language names and flags
+    source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+    target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
+    source_flag = flag_mapping.get(source_code, '🌐')
+    target_flag = flag_mapping.get(target_code, '🌐')
+    
+    # Tier colors
+    tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
+    embed_color = tier_colors.get(tier, discord.Color.greyple())
+    
+    # Calculate footer text
+    if tier == 'free':
+        footer_text = get_translation(ui_lang, "VOICE.footer_free")
+    elif tier == 'basic':
+        footer_text = get_translation(ui_lang, "VOICE.footer_basic")
+    elif tier == 'premium':
+        footer_text = get_translation(ui_lang, "VOICE.footer_premium")
+    else:  # pro
+        footer_text = get_translation(ui_lang, "VOICE.footer_pro")
+
+    # Add context info
+    if interaction.guild:
+        footer_text += " " + get_translation(ui_lang, "VOICE.footer_server", 
+                                            server=interaction.guild.name)
+    else:
+        footer_text += " " + get_translation(ui_lang, "VOICE.footer_dm")
+    
+    footer_text = footer_text[:2048]  # Discord footer limit
+    
+    # Field names (truncated to Discord's 256 character limit)
+    original_field_name = get_translation(ui_lang, "VOICE.original_field", flag=source_flag, language=source_name)[:256]
+    translation_field_name = get_translation(ui_lang, "VOICE.translation_field", flag=target_flag, language=target_name)[:256]
+    points_field_name = get_translation(ui_lang, "VOICE.points_field")[:256]
+    points_field_value = get_translation(ui_lang, "VOICE.points_value", points=points_awarded)[:1024]
+    
+    # Helper function to add field and handle embed limits
+    def add_field_to_embed(embed_obj, field_name, field_value, field_counter):
+        """Helper function to add field and handle embed limits"""
+        # Check if current embed can hold another field (Discord limit is 25 fields per embed)
+        if field_counter >= 25:
+            return None, field_counter  # Signal that we need a new embed
+        
+        embed_obj.add_field(
+            name=field_name,
+            value=field_value,
+            inline=False
+        )
+        return embed_obj, field_counter + 1
+    
+    # Split texts into chunks that fit Discord's 1024 character field limit
+    def split_text_for_fields(text, max_length=1020):  # Leave some room for safety
+        """Split text into chunks that fit in Discord embed fields"""
+        if len(text) <= max_length:
+            return [text]
+        
+        chunks = []
+        current_pos = 0
+        
+        while current_pos < len(text):
+            if current_pos + max_length >= len(text):
+                # Last chunk
+                chunks.append(text[current_pos:])
+                break
+            
+            # Find a good breaking point (prefer word boundaries)
+            chunk_end = current_pos + max_length
+            
+            # Look for word boundary within last 100 characters
+            best_break = chunk_end
+            for i in range(chunk_end - 100, chunk_end):
+                if i > current_pos and text[i] in [' ', '\n', '\t', '.', ',', '!', '?', ';']:
+                    best_break = i + 1
+                    break
+            
+            chunks.append(text[current_pos:best_break])
+            current_pos = best_break
+        
+        return chunks
+    
+    # Create the main embed
+    main_embed = discord.Embed(
+        title=get_translation(ui_lang, "VOICE.title")[:256],
+        color=embed_color
+    )
+    
+    embeds_to_send = [main_embed]
+    current_embed = main_embed
+    field_count = 0
+    
+    # Add original text fields (if not hidden)
+    if user_id not in hidden_sessions:
+        original_chunks = split_text_for_fields(original_text)
+        for i, chunk in enumerate(original_chunks):
+            field_name = original_field_name if i == 0 else f"{original_field_name} (continued {i+1})"
+            
+            result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+            if result is None:
+                # Need a new embed
+                new_embed = discord.Embed(
+                    title=f"{get_translation(ui_lang, 'VOICE.title')} (continued)",
+                    color=embed_color
+                )
+                embeds_to_send.append(new_embed)
+                current_embed = new_embed
+                field_count = 0
+                current_embed.add_field(name=field_name, value=chunk, inline=False)
+                field_count += 1
+    
+    # Add translation fields
+    translation_chunks = split_text_for_fields(translated_text)
+    for i, chunk in enumerate(translation_chunks):
+        field_name = translation_field_name if i == 0 else f"{translation_field_name} (continued {i+1})"
+        
+        result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+        if result is None:
+            # Need a new embed
+            new_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'VOICE.title')} (continued)",
+                color=embed_color
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=field_name, value=chunk, inline=False)
+            field_count += 1
+    
+    # Add points field to the last embed
+    result, field_count = add_field_to_embed(current_embed, points_field_name, points_field_value, field_count)
+    if result is None:
+        # Need a new embed for points field
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'VOICE.title')} (continued)",
+            color=embed_color
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        current_embed.add_field(name=points_field_name, value=points_field_value, inline=True)
+    
+    # Set footer on the last embed
+    embeds_to_send[-1].set_footer(text=footer_text)
+    
+    # Send all embeds
+    await interaction.followup.send(embed=embeds_to_send[0], ephemeral=True)
+    
+    # Send additional embeds as followups if needed
+    for additional_embed in embeds_to_send[1:]:
+        await interaction.followup.send(embed=additional_embed, ephemeral=True)
+
+
 # Add autocomplete to voice command
 translate_and_speak.autocomplete('source_lang')(translated_language_autocomplete)
 translate_and_speak.autocomplete('target_lang')(translated_language_autocomplete)
-
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('muse')
@@ -4586,52 +4818,20 @@ async def translate_and_speak_voice(
             temp_filename = temp_file.name
             mp3_fp.seek(0)
             temp_file.write(mp3_fp.read())
-            
-        # Get language names and flags
-        source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
-        target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
-        source_flag = flag_mapping.get(source_code, '🌐')
-        target_flag = flag_mapping.get(target_code, '🌐')
         
-        # Create embed with tier-based colors
-        tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "SPEAK.title"),
-            color=tier_colors[tier]
+        # Create and send the speak translation embeds
+        await create_and_send_speak_embeds(
+            interaction=interaction,
+            original_text=text,
+            translated_text=translated_text,
+            source_code=source_code,
+            target_code=target_code,
+            tier=tier,
+            points_awarded=points_awarded,
+            limits=limits,
+            ui_lang=ui_lang,
+            user_id=user_id
         )
-        
-        embed.add_field(
-            name=get_translation(ui_lang, "SPEAK.original_field", 
-                               flag=source_flag, language=source_name),
-            value=text,
-            inline=False
-        )
-        
-        embed.add_field(
-            name=get_translation(ui_lang, "SPEAK.translation_field",
-                               flag=target_flag, language=target_name),
-            value=translated_text,
-            inline=False
-        )
-        
-        # Add points earned indicator
-        embed.add_field(
-            name=get_translation(ui_lang, "SPEAK.points_field"),
-            value=get_translation(ui_lang, "SPEAK.points_value", points=points_awarded),
-            inline=True
-        )
-        
-        # Add tier-specific footer
-        footer_key = f"SPEAK.footer_{tier}"
-        if interaction.guild:
-            footer_text = get_translation(ui_lang, footer_key) + get_translation(ui_lang, "SPEAK.footer_server", server=interaction.guild.name)
-        else:
-            footer_text = get_translation(ui_lang, footer_key) + get_translation(ui_lang, "SPEAK.footer_dm")
-        
-        embed.set_footer(text=footer_text)
-        
-        # Send the embed as ephemeral
-        await interaction.followup.send(embed=embed, ephemeral=True)
         
         # Connect to voice channel and play audio
         try:
@@ -4747,6 +4947,160 @@ async def translate_and_speak_voice(
                 get_translation(ui_lang, "SPEAK.error_general", error=str(e)),
                 ephemeral=True
             )
+
+
+async def create_and_send_speak_embeds(
+    interaction: discord.Interaction,
+    original_text: str,
+    translated_text: str,
+    source_code: str,
+    target_code: str,
+    tier: str,
+    points_awarded: int,
+    limits: dict,
+    ui_lang: str,
+    user_id: int
+):
+    """Create and send speak translation embeds with proper truncation and splitting"""
+    
+    # Get language names and flags
+    source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+    target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
+    source_flag = flag_mapping.get(source_code, '🌐')
+    target_flag = flag_mapping.get(target_code, '🌐')
+    
+    # Tier colors
+    tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
+    embed_color = tier_colors.get(tier, discord.Color.greyple())
+    
+    # Calculate footer text
+    footer_key = f"SPEAK.footer_{tier}"
+    if interaction.guild:
+        footer_text = get_translation(ui_lang, footer_key) + " " + get_translation(ui_lang, "SPEAK.footer_server", server=interaction.guild.name)
+    else:
+        footer_text = get_translation(ui_lang, footer_key) + " " + get_translation(ui_lang, "SPEAK.footer_dm")
+    
+    footer_text = footer_text[:2048]  # Discord footer limit
+    
+    # Field names (truncated to Discord's 256 character limit)
+    original_field_name = get_translation(ui_lang, "SPEAK.original_field", flag=source_flag, language=source_name)[:256]
+    translation_field_name = get_translation(ui_lang, "SPEAK.translation_field", flag=target_flag, language=target_name)[:256]
+    points_field_name = get_translation(ui_lang, "SPEAK.points_field")[:256]
+    points_field_value = get_translation(ui_lang, "SPEAK.points_value", points=points_awarded)[:1024]
+    
+    # Helper function to add field and handle embed limits
+    def add_field_to_embed(embed_obj, field_name, field_value, field_counter):
+        """Helper function to add field and handle embed limits"""
+        # Check if current embed can hold another field (Discord limit is 25 fields per embed)
+        if field_counter >= 25:
+            return None, field_counter  # Signal that we need a new embed
+        
+        embed_obj.add_field(
+            name=field_name,
+            value=field_value,
+            inline=False
+        )
+        return embed_obj, field_counter + 1
+    
+    # Split texts into chunks that fit Discord's 1024 character field limit
+    def split_text_for_fields(text, max_length=1020):  # Leave some room for safety
+        """Split text into chunks that fit in Discord embed fields"""
+        if len(text) <= max_length:
+            return [text]
+        
+        chunks = []
+        current_pos = 0
+        
+        while current_pos < len(text):
+            if current_pos + max_length >= len(text):
+                # Last chunk
+                chunks.append(text[current_pos:])
+                break
+            
+            # Find a good breaking point (prefer word boundaries)
+            chunk_end = current_pos + max_length
+            
+            # Look for word boundary within last 100 characters
+            best_break = chunk_end
+            for i in range(chunk_end - 100, chunk_end):
+                if i > current_pos and text[i] in [' ', '\n', '\t', '.', ',', '!', '?', ';']:
+                    best_break = i + 1
+                    break
+            
+            chunks.append(text[current_pos:best_break])
+            current_pos = best_break
+        
+        return chunks
+    
+    # Create the main embed
+    main_embed = discord.Embed(
+        title=get_translation(ui_lang, "SPEAK.title")[:256],
+        color=embed_color
+    )
+    
+    embeds_to_send = [main_embed]
+    current_embed = main_embed
+    field_count = 0
+    
+    # Add original text fields (if not hidden)
+    if user_id not in hidden_sessions:
+        original_chunks = split_text_for_fields(original_text)
+        for i, chunk in enumerate(original_chunks):
+            field_name = original_field_name if i == 0 else f"{original_field_name} (continued {i+1})"
+            
+            result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+            if result is None:
+                # Need a new embed
+                new_embed = discord.Embed(
+                    title=f"{get_translation(ui_lang, 'SPEAK.title')} (continued)",
+                    color=embed_color
+                )
+                embeds_to_send.append(new_embed)
+                current_embed = new_embed
+                field_count = 0
+                current_embed.add_field(name=field_name, value=chunk, inline=False)
+                field_count += 1
+    
+    # Add translation fields
+    translation_chunks = split_text_for_fields(translated_text)
+    for i, chunk in enumerate(translation_chunks):
+        field_name = translation_field_name if i == 0 else f"{translation_field_name} (continued {i+1})"
+        
+        result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+        if result is None:
+            # Need a new embed
+            new_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'SPEAK.title')} (continued)",
+                color=embed_color
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=field_name, value=chunk, inline=False)
+            field_count += 1
+    
+    # Add points field to the last embed
+    result, field_count = add_field_to_embed(current_embed, points_field_name, points_field_value, field_count)
+    if result is None:
+        # Need a new embed for points field
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'SPEAK.title')} (continued)",
+            color=embed_color
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        current_embed.add_field(name=points_field_name, value=points_field_value, inline=True)
+    
+    # Set footer on the last embed
+    embeds_to_send[-1].set_footer(text=footer_text)
+    
+    # Send all embeds
+    await interaction.followup.send(embed=embeds_to_send[0], ephemeral=True)
+    
+    # Send additional embeds as followups if needed
+    for additional_embed in embeds_to_send[1:]:
+        await interaction.followup.send(embed=additional_embed, ephemeral=True)
+
 
 # Add autocomplete
 translate_and_speak_voice.autocomplete('source_lang')(translated_language_autocomplete)
@@ -5359,108 +5713,15 @@ async def auto_translate(
             'channel_id': interaction.channel_id
         }
         
-        # Get proper language names and flags for display
-        source_display = get_translation(ui_lang, "AUTOTRANSLATE.auto_detect") if source_code == "auto" else languages.get(source_code, source_code)
-        target_display = languages.get(target_code, target_code)
-        source_flag = '🔍' if source_code == "auto" else flag_mapping.get(source_code, '🌐')
-        target_flag = flag_mapping.get(target_code, '🌐')
-        
-        # Get user tier and limits
-        current_tier = tier_handler.get_user_tier(user_id)
-        limits = tier_handler.get_limits(user_id)
-        
-        # Create success embed
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "AUTOTRANSLATE.enabled_title"),
-            description=get_translation(ui_lang, "AUTOTRANSLATE.enabled_desc"),
-            color=0x00FF00,
-            timestamp=datetime.utcnow()
+        # Create and send autotranslate setup embed
+        await create_and_send_autotranslate_embed(
+            interaction=interaction,
+            source_code=source_code,
+            target_code=target_code,
+            already_enabled=already_enabled,
+            ui_lang=ui_lang,
+            user_id=user_id
         )
-        
-        # Translation flow
-        embed.add_field(
-            name=get_translation(ui_lang, "AUTOTRANSLATE.translation_flow_field"),
-            value=f"{source_flag} **{source_display}** ➜ {target_flag} **{target_display}**",
-            inline=False
-        )
-        
-        # Channel info
-        embed.add_field(
-            name=get_translation(ui_lang, "AUTOTRANSLATE.active_channel_field"),
-            value=f"#{interaction.channel.name}",
-            inline=True
-        )
-        
-        # Your tier with limits
-        tier_emojis = {'free': '🆓', 'basic': '🥉', 'premium': '🥈', 'pro': '🥇'}
-        
-        if current_tier == 'pro':
-            limit_text = get_translation(ui_lang, "AUTOTRANSLATE.unlimited_limit")
-        else:
-            limit_text = get_translation(ui_lang, "AUTOTRANSLATE.character_limit", 
-                                       limit=limits['text_limit'])
-        
-        embed.add_field(
-            name=get_translation(ui_lang, "AUTOTRANSLATE.your_tier_field"),
-            value=f"{tier_emojis[current_tier]} **{current_tier.title()}**\n{limit_text}",
-            inline=True
-        )
-        
-        # Points earning
-        points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
-        points_per_message = points_map[current_tier]
-        
-        embed.add_field(
-            name=get_translation(ui_lang, "AUTOTRANSLATE.points_earning_field"),
-            value=get_translation(ui_lang, "AUTOTRANSLATE.points_earning_value", 
-                                points=points_per_message),
-            inline=True
-        )
-        
-        # How it works
-        embed.add_field(
-            name=get_translation(ui_lang, "AUTOTRANSLATE.how_it_works_field"),
-            value=get_translation(ui_lang, "AUTOTRANSLATE.how_it_works_value"),
-            inline=False
-        )
-        
-        # Important notes based on tier
-        if current_tier in ['free', 'basic']:
-            embed.add_field(
-                name=get_translation(ui_lang, "AUTOTRANSLATE.important_notes_field"),
-                value=get_translation(ui_lang, "AUTOTRANSLATE.important_notes_limited", 
-                                    limit=limits['text_limit'], tier=current_tier),
-                inline=False
-            )
-        else:
-            embed.add_field(
-                name=get_translation(ui_lang, "AUTOTRANSLATE.important_notes_field"),
-                value=get_translation(ui_lang, "AUTOTRANSLATE.important_notes_unlimited"),
-                inline=False
-            )
-        
-        # Status info
-        status_text = get_translation(ui_lang, "AUTOTRANSLATE.status_updated") if already_enabled else get_translation(ui_lang, "AUTOTRANSLATE.status_enabled")
-        embed.add_field(
-            name=get_translation(ui_lang, "AUTOTRANSLATE.status_field"),
-            value=f"🟢 {status_text}\n⏹️ {get_translation(ui_lang, 'AUTOTRANSLATE.stop_instruction')}",
-            inline=False
-        )
-        
-        # Footer with tier-specific info
-        tier_footers = {
-            'free': get_translation(ui_lang, "AUTOTRANSLATE.footer_free"),
-            'basic': get_translation(ui_lang, "AUTOTRANSLATE.footer_basic"),
-            'premium': get_translation(ui_lang, "AUTOTRANSLATE.footer_premium"),
-            'pro': get_translation(ui_lang, "AUTOTRANSLATE.footer_pro")
-        }
-        
-        embed.set_footer(
-            text=tier_footers[current_tier],
-            icon_url=interaction.user.display_avatar.url
-        )
-        
-        await interaction.response.send_message(embed=embed, ephemeral=True)
         
     except Exception as e:
         logger.error(f"Error in autotranslate command: {e}")
@@ -5482,9 +5743,404 @@ async def auto_translate(
         else:
             await interaction.followup.send(embed=error_embed, ephemeral=True)
 
+
+async def create_and_send_autotranslate_embed(
+    interaction: discord.Interaction,
+    source_code: str,
+    target_code: str,
+    already_enabled: bool,
+    ui_lang: str,
+    user_id: int
+):
+    """Create and send autotranslate setup embed with proper truncation and splitting"""
+    
+    # Get proper language names and flags for display
+    source_display = get_translation(ui_lang, "AUTOTRANSLATE.auto_detect") if source_code == "auto" else languages.get(source_code, source_code)
+    target_display = languages.get(target_code, target_code)
+    source_flag = '🔍' if source_code == "auto" else flag_mapping.get(source_code, '🌐')
+    target_flag = flag_mapping.get(target_code, '🌐')
+    
+    # Get user tier and limits
+    current_tier = tier_handler.get_user_tier(user_id)
+    limits = tier_handler.get_limits(user_id)
+    
+    # Helper function to add field and handle embed limits
+    def add_field_to_embed(embed_obj, field_name, field_value, field_counter):
+        """Helper function to add field and handle embed limits"""
+        # Check if current embed can hold another field (Discord limit is 25 fields per embed)
+        if field_counter >= 25:
+            return None, field_counter  # Signal that we need a new embed
+        
+        embed_obj.add_field(
+            name=field_name[:256],  # Discord field name limit
+            value=field_value[:1024],  # Discord field value limit
+            inline=False
+        )
+        return embed_obj, field_counter + 1
+    
+    # Create the main embed
+    main_embed = discord.Embed(
+        title=get_translation(ui_lang, "AUTOTRANSLATE.enabled_title")[:256],
+        description=get_translation(ui_lang, "AUTOTRANSLATE.enabled_desc")[:4096],
+        color=0x00FF00,
+        timestamp=datetime.utcnow()
+    )
+    
+    embeds_to_send = [main_embed]
+    current_embed = main_embed
+    field_count = 0
+    
+    # Translation flow field
+    translation_flow_value = f"{source_flag} **{source_display}** ➜ {target_flag} **{target_display}**"
+    result, field_count = add_field_to_embed(
+        current_embed,
+        get_translation(ui_lang, "AUTOTRANSLATE.translation_flow_field"),
+        translation_flow_value,
+        field_count
+    )
+    if result is None:
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'AUTOTRANSLATE.enabled_title')} (continued)",
+            color=0x00FF00
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        field_count = 0
+        current_embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.translation_flow_field")[:256],
+            value=translation_flow_value[:1024],
+            inline=False
+        )
+        field_count += 1
+    
+    # Channel info field
+    channel_value = f"#{interaction.channel.name}"
+    result, field_count = add_field_to_embed(
+        current_embed,
+        get_translation(ui_lang, "AUTOTRANSLATE.active_channel_field"),
+        channel_value,
+        field_count
+    )
+    if result is None:
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'AUTOTRANSLATE.enabled_title')} (continued)",
+            color=0x00FF00
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        field_count = 0
+        current_embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.active_channel_field")[:256],
+            value=channel_value[:1024],
+            inline=True
+        )
+        field_count += 1
+    
+    # Your tier field
+    tier_emojis = {'free': '🆓', 'basic': '🥉', 'premium': '🥈', 'pro': '🥇'}
+    
+    if current_tier == 'pro':
+        limit_text = get_translation(ui_lang, "AUTOTRANSLATE.unlimited_limit")
+    else:
+        limit_text = get_translation(ui_lang, "AUTOTRANSLATE.character_limit", limit=limits['text_limit'])
+    
+    tier_value = f"{tier_emojis[current_tier]} **{current_tier.title()}**\n{limit_text}"
+    result, field_count = add_field_to_embed(
+        current_embed,
+        get_translation(ui_lang, "AUTOTRANSLATE.your_tier_field"),
+        tier_value,
+        field_count
+    )
+    if result is None:
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'AUTOTRANSLATE.enabled_title')} (continued)",
+            color=0x00FF00
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        field_count = 0
+        current_embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.your_tier_field")[:256],
+            value=tier_value[:1024],
+            inline=True
+        )
+        field_count += 1
+    
+    # Points earning field
+    points_map = {'free': 1, 'basic': 2, 'premium': 3, 'pro': 4}
+    points_per_message = points_map[current_tier]
+    points_value = get_translation(ui_lang, "AUTOTRANSLATE.points_earning_value", points=points_per_message)
+    
+    result, field_count = add_field_to_embed(
+        current_embed,
+        get_translation(ui_lang, "AUTOTRANSLATE.points_earning_field"),
+        points_value,
+        field_count
+    )
+    if result is None:
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'AUTOTRANSLATE.enabled_title')} (continued)",
+            color=0x00FF00
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        field_count = 0
+        current_embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.points_earning_field")[:256],
+            value=points_value[:1024],
+            inline=True
+        )
+        field_count += 1
+    
+    # How it works field
+    how_it_works_value = get_translation(ui_lang, "AUTOTRANSLATE.how_it_works_value")
+    result, field_count = add_field_to_embed(
+        current_embed,
+        get_translation(ui_lang, "AUTOTRANSLATE.how_it_works_field"),
+        how_it_works_value,
+        field_count
+    )
+    if result is None:
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'AUTOTRANSLATE.enabled_title')} (continued)",
+            color=0x00FF00
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        field_count = 0
+        current_embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.how_it_works_field")[:256],
+            value=how_it_works_value[:1024],
+            inline=False
+        )
+        field_count += 1
+    
+    # Important notes field
+    if current_tier in ['free', 'basic']:
+        notes_value = get_translation(ui_lang, "AUTOTRANSLATE.important_notes_limited", 
+                                    limit=limits['text_limit'], tier=current_tier)
+    else:
+        notes_value = get_translation(ui_lang, "AUTOTRANSLATE.important_notes_unlimited")
+    
+    result, field_count = add_field_to_embed(
+        current_embed,
+        get_translation(ui_lang, "AUTOTRANSLATE.important_notes_field"),
+        notes_value,
+        field_count
+    )
+    if result is None:
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'AUTOTRANSLATE.enabled_title')} (continued)",
+            color=0x00FF00
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        field_count = 0
+        current_embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.important_notes_field")[:256],
+            value=notes_value[:1024],
+            inline=False
+        )
+        field_count += 1
+    
+    # Status field
+    status_text = get_translation(ui_lang, "AUTOTRANSLATE.status_updated") if already_enabled else get_translation(ui_lang, "AUTOTRANSLATE.status_enabled")
+    status_value = f"🟢 {status_text}\n⏹️ {get_translation(ui_lang, 'AUTOTRANSLATE.stop_instruction')}"
+    
+    result, field_count = add_field_to_embed(
+        current_embed,
+        get_translation(ui_lang, "AUTOTRANSLATE.status_field"),
+        status_value,
+        field_count
+    )
+    if result is None:
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'AUTOTRANSLATE.enabled_title')} (continued)",
+            color=0x00FF00
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        field_count = 0
+        current_embed.add_field(
+            name=get_translation(ui_lang, "AUTOTRANSLATE.status_field")[:256],
+            value=status_value[:1024],
+            inline=False
+        )
+        field_count += 1
+    
+    # Footer with tier-specific info (only on the last embed)
+    tier_footers = {
+        'free': get_translation(ui_lang, "AUTOTRANSLATE.footer_free"),
+        'basic': get_translation(ui_lang, "AUTOTRANSLATE.footer_basic"),
+        'premium': get_translation(ui_lang, "AUTOTRANSLATE.footer_premium"),
+        'pro': get_translation(ui_lang, "AUTOTRANSLATE.footer_pro")
+    }
+    
+    embeds_to_send[-1].set_footer(
+        text=tier_footers[current_tier][:2048],
+        icon_url=interaction.user.display_avatar.url
+    )
+    
+    # Send all embeds
+    await interaction.response.send_message(embed=embeds_to_send[0], ephemeral=True)
+    
+    # Send additional embeds as followups if needed
+    for additional_embed in embeds_to_send[1:]:
+        await interaction.followup.send(embed=additional_embed, ephemeral=True)
+
+
+async def create_and_send_autotranslate_message_embed(
+    message: discord.Message,
+    original_text: str,
+    translated_text: str,
+    source_code: str,
+    target_code: str,
+    ui_lang: str,
+    user_id: int,
+    current_tier: str,
+    limits: dict,
+    points_awarded: int
+):
+    """Create and send auto-translate message embed with proper truncation and splitting"""
+    
+    # Get proper language names and flags
+    source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+    target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
+    source_flag = flag_mapping.get(source_code, '🌐')
+    target_flag = flag_mapping.get(target_code, '🌐')
+    
+    # Split texts into chunks that fit Discord's 1024 character field limit
+    def split_text_for_fields(text, max_length=1020):
+        """Split text into chunks that fit in Discord embed fields"""
+        if len(text) <= max_length:
+            return [text]
+        
+        chunks = []
+        current_pos = 0
+        
+        while current_pos < len(text):
+            if current_pos + max_length >= len(text):
+                chunks.append(text[current_pos:])
+                break
+            
+            # Find a good breaking point (prefer word boundaries)
+            chunk_end = current_pos + max_length
+            best_break = chunk_end
+            for i in range(chunk_end - 100, chunk_end):
+                if i > current_pos and text[i] in [' ', '\n', '\t', '.', ',', '!', '?', ';']:
+                    best_break = i + 1
+                    break
+            
+            chunks.append(text[current_pos:best_break])
+            current_pos = best_break
+        
+        return chunks
+    
+    # Helper function to add field and handle embed limits
+    def add_field_to_embed(embed_obj, field_name, field_value, field_counter):
+        """Helper function to add field and handle embed limits"""
+        if field_counter >= 25:
+            return None, field_counter
+        
+        embed_obj.add_field(
+            name=field_name[:256],
+            value=field_value[:1024],
+            inline=False
+        )
+        return embed_obj, field_counter + 1
+    
+    # Create tier-based colors
+    tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
+    embed_color = tier_colors[current_tier]
+    
+    # Create the main embed
+    main_embed = discord.Embed(
+        title=get_translation(ui_lang, "AUTOTRANSLATE.message_title")[:256],
+        color=embed_color
+    )
+    
+    embeds_to_send = [main_embed]
+    current_embed = main_embed
+    field_count = 0
+    
+    # Add original text fields (if not hidden)
+    if user_id not in hidden_sessions:
+        original_chunks = split_text_for_fields(original_text)
+        original_field_name = get_translation(ui_lang, "AUTOTRANSLATE.original_field", flag=source_flag, language=source_name)
+        
+        for i, chunk in enumerate(original_chunks):
+            field_name = original_field_name if i == 0 else f"{original_field_name} (continued {i+1})"
+            
+            result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+            if result is None:
+                new_embed = discord.Embed(
+                    title=f"{get_translation(ui_lang, 'AUTOTRANSLATE.message_title')} (continued)",
+                    color=embed_color
+                )
+                embeds_to_send.append(new_embed)
+                current_embed = new_embed
+                field_count = 0
+                current_embed.add_field(name=field_name[:256], value=chunk[:1024], inline=False)
+                field_count += 1
+    
+    # Add translation fields
+    translation_chunks = split_text_for_fields(translated_text)
+    translation_field_name = get_translation(ui_lang, "AUTOTRANSLATE.translation_field", flag=target_flag, language=target_name)
+    
+    for i, chunk in enumerate(translation_chunks):
+        field_name = translation_field_name if i == 0 else f"{translation_field_name} (continued {i+1})"
+        
+        result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+        if result is None:
+            new_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'AUTOTRANSLATE.message_title')} (continued)",
+                color=embed_color
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=field_name[:256], value=chunk[:1024], inline=False)
+            field_count += 1
+    
+    # Add points field to the last embed
+    points_field_name = get_translation(ui_lang, "AUTOTRANSLATE.points_field")
+    points_field_value = get_translation(ui_lang, "AUTOTRANSLATE.points_value", points=points_awarded)
+    
+    result, field_count = add_field_to_embed(current_embed, points_field_name, points_field_value, field_count)
+    if result is None:
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'AUTOTRANSLATE.message_title')} (continued)",
+            color=embed_color
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        current_embed.add_field(name=points_field_name[:256], value=points_field_value[:1024], inline=True)
+    
+    # Add tier-specific footer to the last embed
+    tier_footers = {
+        'free': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_free", 
+                              current=len(original_text), limit=limits['text_limit']),
+        'basic': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_basic", 
+                               current=len(original_text), limit=limits['text_limit']),
+        'premium': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_premium"),
+        'pro': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_pro")
+    }
+    
+    embeds_to_send[-1].set_footer(text=tier_footers[current_tier][:2048])
+    
+    # Send all embeds
+    await message.channel.send(embed=embeds_to_send[0])
+    
+    # Send additional embeds if needed
+    for additional_embed in embeds_to_send[1:]:
+        await message.channel.send(embed=additional_embed)
+
+
 # Add autocomplete
 auto_translate.autocomplete('source_lang')(translated_language_autocomplete)
 auto_translate.autocomplete('target_lang')(translated_language_autocomplete)
+
+
 @client.event
 async def on_message(message):
     # Ignore messages from bots to prevent loops
@@ -5586,69 +6242,31 @@ async def on_message(message):
                 if new_achievements:
                     await send_achievement_notification(client, user_id, new_achievements)
                 
-                # Get proper language names and flags
-                source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
-                target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
-                source_flag = flag_mapping.get(source_code, '🌐')
-                target_flag = flag_mapping.get(target_code, '🌐')
-                
                 username = message.author.display_name
                 
                 # Check for uncashed achievements
                 uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
                 await notify_uncashed_achievements(user_id, username, uncashed_points)
                 
-                # Create embed with tier-based colors
-                tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
-                embed = discord.Embed(
-                    title=get_translation(ui_lang, "AUTOTRANSLATE.message_title"),
-                    color=tier_colors[current_tier]
+                # Create and send the translation embed with proper truncation
+                await create_and_send_autotranslate_message_embed(
+                    message=message,
+                    original_text=message.content,
+                    translated_text=translated,
+                    source_code=source_code,
+                    target_code=target_code,
+                    ui_lang=ui_lang,
+                    user_id=user_id,
+                    current_tier=current_tier,
+                    limits=limits,
+                    points_awarded=points_awarded
                 )
-                
-                # Check if user wants to hide original text
-                if user_id not in hidden_sessions:
-                    embed.add_field(
-                        name=get_translation(ui_lang, "AUTOTRANSLATE.original_field", 
-                                           flag=source_flag, language=source_name),
-                        value=message.content[:1024],  # Discord embed field limit
-                        inline=False
-                    )
-                
-                embed.add_field(
-                    name=get_translation(ui_lang, "AUTOTRANSLATE.translation_field", 
-                                       flag=target_flag, language=target_name),
-                    value=translated[:1024],  # Discord embed field limit
-                    inline=False
-                )
-                
-                # Add points earned indicator
-                embed.add_field(
-                    name=get_translation(ui_lang, "AUTOTRANSLATE.points_field"),
-                    value=get_translation(ui_lang, "AUTOTRANSLATE.points_value", points=points_awarded),
-                    inline=True
-                )
-                
-                # Add tier-specific footer
-                tier_footers = {
-                    'free': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_free", 
-                                          current=len(message.content), limit=limits['text_limit']),
-                    'basic': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_basic", 
-                                           current=len(message.content), limit=limits['text_limit']),
-                    'premium': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_premium"),
-                    'pro': get_translation(ui_lang, "AUTOTRANSLATE.message_footer_pro")
-                }
-                
-                embed.set_footer(text=tier_footers[current_tier])
-                
-                # Send the translation
-                await message.channel.send(embed=embed)
                 
             except Exception as e:
                 logger.error(f"Auto-translation error for user {user_id}: {e}")
                 # Don't send error messages to avoid spam, just log it
     
     return
-
 
 @tree.command(name="dmtr", description="Translate and send a message to another user")
 @app_commands.describe(
@@ -5871,108 +6489,46 @@ async def dm_translate(
             logger.error(f"DM_TRANSLATE: Error getting recipient UI language: {e}")
             recipient_ui_lang = 'en'
 
-        logger.info(f"DM_TRANSLATE: Creating recipient embed")
-        recipient_embed = discord.Embed(
-            title=get_translation(recipient_ui_lang, "DMTR.recipient_title", sender=interaction.user.display_name),
-            description=get_translation(recipient_ui_lang, "DMTR.recipient_desc"),
-            color=0x3498db,
-            timestamp=datetime.utcnow()
+        # Create and send recipient embed with proper truncation
+        logger.info(f"DM_TRANSLATE: Creating recipient embeds")
+        dm_sent = await create_and_send_recipient_embed(
+            user=user,
+            interaction=interaction,
+            text=text,
+            translated_text=translated_text,
+            source_code=source_code,
+            target_code=target_code,
+            source_name=source_name,
+            target_name=target_name,
+            source_flag=source_flag,
+            target_flag=target_flag,
+            source_lang=source_lang,
+            detected_message=detected_message,
+            same_language=same_language,
+            recipient_ui_lang=recipient_ui_lang
         )
 
-        source_field_name = get_translation(recipient_ui_lang, "DMTR.original_field", flag=source_flag, language=source_name)
-        if source_lang.lower() == "auto":
-            source_field_name += detected_message
-
-        recipient_embed.add_field(name=source_field_name, value=text[:1024], inline=False)
-
-        if same_language:
-            recipient_embed.add_field(
-                name=get_translation(recipient_ui_lang, "DMTR.same_language_field", flag=target_flag, language=target_name),
-                value=get_translation(recipient_ui_lang, "DMTR.same_language_value"),
-                inline=False
-            )
-        else:
-            recipient_embed.add_field(
-                name=get_translation(recipient_ui_lang, "DMTR.translation_field", flag=target_flag, language=target_name),
-                value=translated_text[:1024],
-                inline=False
-            )
-
-        if interaction.guild:
-            recipient_embed.add_field(
-                name=get_translation(recipient_ui_lang, "DMTR.server_context_field"),
-                value=get_translation(recipient_ui_lang, "DMTR.server_context_value", server=interaction.guild.name, channel=interaction.channel.name),
-                inline=True
-            )
-
-        recipient_embed.set_footer(
-            text=get_translation(recipient_ui_lang, "DMTR.recipient_footer"),
-            icon_url=interaction.user.display_avatar.url
+        # Create and send sender embed with proper truncation
+        logger.info(f"DM_TRANSLATE: Creating sender embeds")
+        await create_and_send_sender_embed(
+            interaction=interaction,
+            user=user,
+            text=text,
+            translated_text=translated_text,
+            source_code=source_code,
+            target_code=target_code,
+            source_name=source_name,
+            target_name=target_name,
+            source_flag=source_flag,
+            target_flag=target_flag,
+            same_language=same_language,
+            points_awarded=points_awarded,
+            current_tier=current_tier,
+            limits=limits,
+            dm_sent=dm_sent,
+            ui_lang=ui_lang
         )
 
-        logger.info(f"DM_TRANSLATE: Attempting to send DM to user {user.id}")
-        try:
-            dm_channel = await user.create_dm()
-            await dm_channel.send(embed=recipient_embed)
-            dm_sent = True
-            logger.info(f"DM_TRANSLATE: DM sent successfully")
-        except discord.Forbidden:
-            dm_sent = False
-            logger.warning(f"DM_TRANSLATE: DM forbidden - user has DMs disabled")
-        except Exception as e:
-            logger.error(f"DM_TRANSLATE: Error sending DM: {e}")
-            dm_sent = False
-
-        logger.info(f"DM_TRANSLATE: Creating sender embed")
-        sender_embed = discord.Embed(
-            title=get_translation(ui_lang, "DMTR.success_title" if dm_sent else "DMTR.failed_title", user=user.display_name),
-            description=get_translation(ui_lang, "DMTR.success_desc" if dm_sent else "DMTR.failed_desc"),
-            color=0x2ecc71 if dm_sent else 0xFFA500,
-            timestamp=datetime.utcnow()
-        )
-
-        sender_embed.add_field(
-            name=get_translation(ui_lang, "DMTR.original_field", flag=source_flag, language=source_name),
-            value=text[:1024],
-            inline=False
-        )
-
-        if same_language:
-            sender_embed.add_field(
-                name=get_translation(ui_lang, "DMTR.same_language_field", flag=target_flag, language=target_name),
-                value=get_translation(ui_lang, "DMTR.same_language_value"),
-                inline=False
-            )
-        else:
-            sender_embed.add_field(
-                name=get_translation(ui_lang, "DMTR.translation_field", flag=target_flag, language=target_name),
-                value=translated_text[:1024],
-                inline=False
-            )
-
-        sender_embed.add_field(
-            name=get_translation(ui_lang, "DMTR.points_field"),
-            value=get_translation(ui_lang, "DMTR.points_value", points=points_awarded),
-            inline=True
-        )
-
-        if current_tier in ['free', 'basic']:
-            sender_embed.add_field(
-                name=get_translation(ui_lang, "DMTR.usage_field"),
-                value=get_translation(ui_lang, "DMTR.usage_value", current=len(text), limit=limits['text_limit']),
-                inline=True
-            )
-
-        tier_footers = {
-            'free': get_translation(ui_lang, "DMTR.footer_free", current=len(text), limit=limits['text_limit']),
-            'basic': get_translation(ui_lang, "DMTR.footer_basic", current=len(text), limit=limits['text_limit']),
-            'premium': get_translation(ui_lang, "DMTR.footer_premium"),
-            'pro': get_translation(ui_lang, "DMTR.footer_pro")
-        }
-        sender_embed.set_footer(text=tier_footers[current_tier])
-
-        logger.info(f"DM_TRANSLATE: Sending response to user")
-        await interaction.followup.send(embed=sender_embed, ephemeral=True)
         logger.info(f"DM_TRANSLATE: Command completed successfully")
 
     except Exception as e:
@@ -6003,10 +6559,355 @@ async def dm_translate(
         except Exception as response_e:
             logger.error(f"DM_TRANSLATE: Error sending error response: {response_e}")
 
+
+async def create_and_send_recipient_embed(
+    user: discord.Member,
+    interaction: discord.Interaction,
+    text: str,
+    translated_text: str,
+    source_code: str,
+    target_code: str,
+    source_name: str,
+    target_name: str,
+    source_flag: str,
+    target_flag: str,
+    source_lang: str,
+    detected_message: str,
+    same_language: bool,
+    recipient_ui_lang: str
+) -> bool:
+    """Create and send recipient DM embed with proper truncation and splitting"""
+    
+    # Split texts into chunks that fit Discord's 1024 character field limit
+    def split_text_for_fields(text, max_length=1020):
+        """Split text into chunks that fit in Discord embed fields"""
+        if len(text) <= max_length:
+            return [text]
+        
+        chunks = []
+        current_pos = 0
+        
+        while current_pos < len(text):
+            if current_pos + max_length >= len(text):
+                chunks.append(text[current_pos:])
+                break
+            
+            # Find a good breaking point (prefer word boundaries)
+            chunk_end = current_pos + max_length
+            best_break = chunk_end
+            for i in range(chunk_end - 100, chunk_end):
+                if i > current_pos and text[i] in [' ', '\n', '\t', '.', ',', '!', '?', ';']:
+                    best_break = i + 1
+                    break
+            
+            chunks.append(text[current_pos:best_break])
+            current_pos = best_break
+        
+        return chunks
+    
+    # Helper function to add field and handle embed limits
+    def add_field_to_embed(embed_obj, field_name, field_value, field_counter):
+        """Helper function to add field and handle embed limits"""
+        if field_counter >= 25:
+            return None, field_counter
+        
+        embed_obj.add_field(
+            name=field_name[:256],
+            value=field_value[:1024],
+            inline=False
+        )
+        return embed_obj, field_counter + 1
+    
+    # Create the main recipient embed
+    main_embed = discord.Embed(
+        title=get_translation(recipient_ui_lang, "DMTR.recipient_title", sender=interaction.user.display_name)[:256],
+        description=get_translation(recipient_ui_lang, "DMTR.recipient_desc")[:4096],
+        color=0x3498db,
+        timestamp=datetime.utcnow()
+    )
+    
+    embeds_to_send = [main_embed]
+    current_embed = main_embed
+    field_count = 0
+    
+    # Add original text fields
+    original_chunks = split_text_for_fields(text)
+    source_field_name = get_translation(recipient_ui_lang, "DMTR.original_field", flag=source_flag, language=source_name)
+    if source_lang.lower() == "auto":
+        source_field_name += detected_message
+    
+    for i, chunk in enumerate(original_chunks):
+        field_name = source_field_name if i == 0 else f"{source_field_name} (continued {i+1})"
+        
+        result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+        if result is None:
+            new_embed = discord.Embed(
+                title=f"{get_translation(recipient_ui_lang, 'DMTR.recipient_title', sender=interaction.user.display_name)} (continued)",
+                color=0x3498db
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=field_name[:256], value=chunk[:1024], inline=False)
+            field_count += 1
+    
+    # Add translation fields
+    if same_language:
+        same_lang_field_name = get_translation(recipient_ui_lang, "DMTR.same_language_field", flag=target_flag, language=target_name)
+        same_lang_field_value = get_translation(recipient_ui_lang, "DMTR.same_language_value")
+        
+        result, field_count = add_field_to_embed(current_embed, same_lang_field_name, same_lang_field_value, field_count)
+        if result is None:
+            new_embed = discord.Embed(
+                title=f"{get_translation(recipient_ui_lang, 'DMTR.recipient_title', sender=interaction.user.display_name)} (continued)",
+                color=0x3498db
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=same_lang_field_name[:256], value=same_lang_field_value[:1024], inline=False)
+            field_count += 1
+    else:
+        translation_chunks = split_text_for_fields(translated_text)
+        translation_field_name = get_translation(recipient_ui_lang, "DMTR.translation_field", flag=target_flag, language=target_name)
+        
+        for i, chunk in enumerate(translation_chunks):
+            field_name = translation_field_name if i == 0 else f"{translation_field_name} (continued {i+1})"
+            
+            result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+            if result is None:
+                new_embed = discord.Embed(
+                    title=f"{get_translation(recipient_ui_lang, 'DMTR.recipient_title', sender=interaction.user.display_name)} (continued)",
+                    color=0x3498db
+                )
+                embeds_to_send.append(new_embed)
+                current_embed = new_embed
+                field_count = 0
+                current_embed.add_field(name=field_name[:256], value=chunk[:1024], inline=False)
+                field_count += 1
+    
+    # Add server context field if in a guild
+    if interaction.guild:
+        context_field_name = get_translation(recipient_ui_lang, "DMTR.server_context_field")
+        context_field_value = get_translation(recipient_ui_lang, "DMTR.server_context_value", 
+                                            server=interaction.guild.name, channel=interaction.channel.name)
+        
+        result, field_count = add_field_to_embed(current_embed, context_field_name, context_field_value, field_count)
+        if result is None:
+            new_embed = discord.Embed(
+                title=f"{get_translation(recipient_ui_lang, 'DMTR.recipient_title', sender=interaction.user.display_name)} (continued)",
+                color=0x3498db
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=context_field_name[:256], value=context_field_value[:1024], inline=True)
+            field_count += 1
+    
+    # Set footer on the last embed
+    embeds_to_send[-1].set_footer(
+        text=get_translation(recipient_ui_lang, "DMTR.recipient_footer")[:2048],
+        icon_url=interaction.user.display_avatar.url
+    )
+    
+    # Try to send the DM
+    try:
+        dm_channel = await user.create_dm()
+        await dm_channel.send(embed=embeds_to_send[0])
+        
+        # Send additional embeds if needed
+        for additional_embed in embeds_to_send[1:]:
+            await dm_channel.send(embed=additional_embed)
+        
+        return True
+    except discord.Forbidden:
+        logger.warning(f"DM_TRANSLATE: DM forbidden - user has DMs disabled")
+        return False
+    except Exception as e:
+        logger.error(f"DM_TRANSLATE: Error sending DM: {e}")
+        return False
+
+
+async def create_and_send_sender_embed(
+    interaction: discord.Interaction,
+    user: discord.Member,
+    text: str,
+    translated_text: str,
+    source_code: str,
+    target_code: str,
+    source_name: str,
+    target_name: str,
+    source_flag: str,
+    target_flag: str,
+    same_language: bool,
+    points_awarded: int,
+    current_tier: str,
+    limits: dict,
+    dm_sent: bool,
+    ui_lang: str
+):
+    """Create and send sender response embed with proper truncation and splitting"""
+    
+    # Split texts into chunks that fit Discord's 1024 character field limit
+    def split_text_for_fields(text, max_length=1020):
+        """Split text into chunks that fit in Discord embed fields"""
+        if len(text) <= max_length:
+            return [text]
+        
+        chunks = []
+        current_pos = 0
+        
+        while current_pos < len(text):
+            if current_pos + max_length >= len(text):
+                chunks.append(text[current_pos:])
+                break
+            
+            # Find a good breaking point (prefer word boundaries)
+            chunk_end = current_pos + max_length
+            best_break = chunk_end
+            for i in range(chunk_end - 100, chunk_end):
+                if i > current_pos and text[i] in [' ', '\n', '\t', '.', ',', '!', '?', ';']:
+                    best_break = i + 1
+                    break
+            
+            chunks.append(text[current_pos:best_break])
+            current_pos = best_break
+        
+        return chunks
+    
+    # Helper function to add field and handle embed limits
+    def add_field_to_embed(embed_obj, field_name, field_value, field_counter, inline=False):
+        """Helper function to add field and handle embed limits"""
+        if field_counter >= 25:
+            return None, field_counter
+        
+        embed_obj.add_field(
+            name=field_name[:256],
+            value=field_value[:1024],
+            inline=inline
+        )
+        return embed_obj, field_counter + 1
+    
+    # Create the main sender embed
+    embed_color = 0x2ecc71 if dm_sent else 0xFFA500
+    main_embed = discord.Embed(
+        title=get_translation(ui_lang, "DMTR.success_title" if dm_sent else "DMTR.failed_title", user=user.display_name)[:256],
+        description=get_translation(ui_lang, "DMTR.success_desc" if dm_sent else "DMTR.failed_desc")[:4096],
+        color=embed_color,
+        timestamp=datetime.utcnow()
+    )
+    
+    embeds_to_send = [main_embed]
+    current_embed = main_embed
+    field_count = 0
+    
+    # Add original text fields
+    original_chunks = split_text_for_fields(text)
+    original_field_name = get_translation(ui_lang, "DMTR.original_field", flag=source_flag, language=source_name)
+    
+    for i, chunk in enumerate(original_chunks):
+        field_name = original_field_name if i == 0 else f"{original_field_name} (continued {i+1})"
+        
+        result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+        if result is None:
+            new_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'DMTR.success_title' if dm_sent else 'DMTR.failed_title', user=user.display_name)} (continued)",
+                color=embed_color
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=field_name[:256], value=chunk[:1024], inline=False)
+            field_count += 1
+    
+    # Add translation fields
+    if same_language:
+        same_lang_field_name = get_translation(ui_lang, "DMTR.same_language_field", flag=target_flag, language=target_name)
+        same_lang_field_value = get_translation(ui_lang, "DMTR.same_language_value")
+        
+        result, field_count = add_field_to_embed(current_embed, same_lang_field_name, same_lang_field_value, field_count)
+        if result is None:
+            new_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'DMTR.success_title' if dm_sent else 'DMTR.failed_title', user=user.display_name)} (continued)",
+                color=embed_color
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=same_lang_field_name[:256], value=same_lang_field_value[:1024], inline=False)
+            field_count += 1
+    else:
+        translation_chunks = split_text_for_fields(translated_text)
+        translation_field_name = get_translation(ui_lang, "DMTR.translation_field", flag=target_flag, language=target_name)
+        
+        for i, chunk in enumerate(translation_chunks):
+            field_name = translation_field_name if i == 0 else f"{translation_field_name} (continued {i+1})"
+            
+            result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+            if result is None:
+                new_embed = discord.Embed(
+                    title=f"{get_translation(ui_lang, 'DMTR.success_title' if dm_sent else 'DMTR.failed_title', user=user.display_name)} (continued)",
+                    color=embed_color
+                )
+                embeds_to_send.append(new_embed)
+                current_embed = new_embed
+                field_count = 0
+                current_embed.add_field(name=field_name[:256], value=chunk[:1024], inline=False)
+                field_count += 1
+    
+    # Add points field
+    points_field_name = get_translation(ui_lang, "DMTR.points_field")
+    points_field_value = get_translation(ui_lang, "DMTR.points_value", points=points_awarded)
+    
+    result, field_count = add_field_to_embed(current_embed, points_field_name, points_field_value, field_count, inline=True)
+    if result is None:
+        new_embed = discord.Embed(
+            title=f"{get_translation(ui_lang, 'DMTR.success_title' if dm_sent else 'DMTR.failed_title', user=user.display_name)} (continued)",
+            color=embed_color
+        )
+        embeds_to_send.append(new_embed)
+        current_embed = new_embed
+        field_count = 0
+        current_embed.add_field(name=points_field_name[:256], value=points_field_value[:1024], inline=True)
+        field_count += 1
+    
+    # Add usage field for free/basic tiers
+    if current_tier in ['free', 'basic']:
+        usage_field_name = get_translation(ui_lang, "DMTR.usage_field")
+        usage_field_value = get_translation(ui_lang, "DMTR.usage_value", current=len(text), limit=limits['text_limit'])
+        
+        result, field_count = add_field_to_embed(current_embed, usage_field_name, usage_field_value, field_count, inline=True)
+        if result is None:
+            new_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'DMTR.success_title' if dm_sent else 'DMTR.failed_title', user=user.display_name)} (continued)",
+                color=embed_color
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=usage_field_name[:256], value=usage_field_value[:1024], inline=True)
+            field_count += 1
+    
+    # Set footer on the last embed
+    tier_footers = {
+        'free': get_translation(ui_lang, "DMTR.footer_free", current=len(text), limit=limits['text_limit']),
+        'basic': get_translation(ui_lang, "DMTR.footer_basic", current=len(text), limit=limits['text_limit']),
+        'premium': get_translation(ui_lang, "DMTR.footer_premium"),
+        'pro': get_translation(ui_lang, "DMTR.footer_pro")
+    }
+    embeds_to_send[-1].set_footer(text=tier_footers[current_tier][:2048])
+    
+    # Send all embeds
+    await interaction.followup.send(embed=embeds_to_send[0], ephemeral=True)
+    
+    # Send additional embeds as followups if needed
+    for additional_embed in embeds_to_send[1:]:
+        await interaction.followup.send(embed=additional_embed, ephemeral=True)
+
+
 # Add autocomplete
 dm_translate.autocomplete('source_lang')(translated_language_autocomplete)
 dm_translate.autocomplete('target_lang')(translated_language_autocomplete)
-
 
 @tree.command(name="read", description="Translate a message by ID")
 @app_commands.allowed_installs(guilds=True, users=True)
@@ -6251,85 +7152,32 @@ async def translate_by_id(
         if new_achievements:
             await send_achievement_notification(client, user_id, new_achievements)
         
-        # Get proper language names and flags
-        source_name = get_translation(ui_lang, f"LANGUAGES.{source_lang}", default=languages.get(source_lang, source_lang))
-        target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
-        source_flag = flag_mapping.get(source_lang, '🌐')
-        target_flag = flag_mapping.get(target_code, '🌐')
-        
-        # Create embed with tier-based colors
-        tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
-        embed = discord.Embed(
-            title=get_translation(ui_lang, "READ.translation_title"),
-            color=tier_colors[current_tier],
-            timestamp=datetime.utcnow()
+        await safe_track_translation_achievement(
+            user_id=user_id,
+            username=interaction.user.display_name,
+            source_lang=source_lang,
+            target_lang=target_code
         )
+
+        uncashed_points, _ = reward_db.get_uncashed_achievement_points(user_id)
+        await notify_uncashed_achievements(user_id, interaction.user.display_name, uncashed_points)
         
-        # Add original message field
-        source_field_name = get_translation(ui_lang, "READ.original_field", 
-                                          flag=source_flag, language=source_name)
-        if not detection_successful:
-            source_field_name += get_translation(ui_lang, "READ.detection_failed_suffix")
-        
-        embed.add_field(
-            name=source_field_name,
-            value=message_to_translate.content[:1024],  # Discord embed field limit
-            inline=False
+        # Create and send the translation embeds using the chunked system
+        await create_and_send_read_translation_embeds(
+            interaction=interaction,
+            original_text=message_to_translate.content,
+            translated_text=translated,
+            source_code=source_lang,
+            target_code=target_code,
+            tier=current_tier,
+            points_awarded=points_awarded,
+            limits=limits,
+            ui_lang=ui_lang,
+            user_id=user_id,
+            message_author=message_to_translate.author.display_name,
+            message_timestamp=message_to_translate.created_at,
+            detection_successful=detection_successful
         )
-        
-        # Add translation field
-        embed.add_field(
-            name=get_translation(ui_lang, "READ.translation_field", 
-                               flag=target_flag, language=target_name),
-            value=translated[:1024],
-            inline=False
-        )
-        
-        # Add message info
-        embed.add_field(
-            name=get_translation(ui_lang, "READ.message_author_field"),
-            value=message_to_translate.author.display_name,
-            inline=True
-        )
-        
-        embed.add_field(
-            name=get_translation(ui_lang, "READ.message_time_field"),
-            value=f"<t:{int(message_to_translate.created_at.timestamp())}:R>",
-            inline=True
-        )
-        
-        # Add points earned indicator
-        embed.add_field(
-            name=get_translation(ui_lang, "READ.points_field"),
-            value=get_translation(ui_lang, "READ.points_value", points=points_awarded),
-            inline=True
-        )
-        
-        # Add character usage for limited tiers
-        if current_tier in ['free', 'basic']:
-            embed.add_field(
-                name=get_translation(ui_lang, "READ.usage_field"),
-                value=get_translation(ui_lang, "READ.usage_value", 
-                                    current=len(message_to_translate.content), 
-                                    limit=limits['text_limit']),
-                inline=True
-            )
-        
-        # Add tier-specific footer
-        tier_footers = {
-            'free': get_translation(ui_lang, "READ.footer_free", 
-                                  current=len(message_to_translate.content), 
-                                  limit=limits['text_limit']),
-            'basic': get_translation(ui_lang, "READ.footer_basic", 
-                                   current=len(message_to_translate.content), 
-                                   limit=limits['text_limit']),
-            'premium': get_translation(ui_lang, "READ.footer_premium"),
-            'pro': get_translation(ui_lang, "READ.footer_pro")
-        }
-        
-        embed.set_footer(text=tier_footers[current_tier])
-        
-        await interaction.followup.send(embed=embed, ephemeral=True)
         
     except Exception as e:
         logger.error(f"Read command error: {e}")
@@ -6350,6 +7198,213 @@ async def translate_by_id(
             await interaction.response.send_message(embed=error_embed, ephemeral=True)
         else:
             await interaction.followup.send(embed=error_embed, ephemeral=True)
+
+
+async def create_and_send_read_translation_embeds(
+    interaction: discord.Interaction,
+    original_text: str,
+    translated_text: str,
+    source_code: str,
+    target_code: str,
+    tier: str,
+    points_awarded: int,
+    limits: dict,
+    ui_lang: str,
+    user_id: int,
+    message_author: str,
+    message_timestamp,
+    detection_successful: bool
+):
+    """Create and send read translation embeds with proper truncation and splitting"""
+    
+    # Get language names and flags
+    source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+    target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
+    source_flag = flag_mapping.get(source_code, '🌐')
+    target_flag = flag_mapping.get(target_code, '🌐')
+    
+    # Use the same tier colors as texttr command
+    tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
+    embed_color = tier_colors.get(tier, discord.Color.greyple())
+    
+    # Calculate footer text
+    tier_footers = {
+        'free': get_translation(ui_lang, "READ.footer_free", 
+                              current=len(original_text), 
+                              limit=limits['text_limit']),
+        'basic': get_translation(ui_lang, "READ.footer_basic", 
+                               current=len(original_text), 
+                               limit=limits['text_limit']),
+        'premium': get_translation(ui_lang, "READ.footer_premium"),
+        'pro': get_translation(ui_lang, "READ.footer_pro")
+    }
+    
+    footer_text = tier_footers[tier]
+    if interaction.guild:
+        footer_text += " " + get_translation(ui_lang, "READ.footer_server", server=interaction.guild.name)
+    else:
+        footer_text += " " + get_translation(ui_lang, "READ.footer_dm")
+    
+    footer_text = footer_text[:2048]  # Discord footer limit
+    
+    # Field names (truncated to Discord's 256 character limit)
+    source_field_name = get_translation(ui_lang, "READ.original_field", 
+                                      flag=source_flag, language=source_name)
+    if not detection_successful:
+        source_field_name += get_translation(ui_lang, "READ.detection_failed_suffix")
+    source_field_name = source_field_name[:256]
+    
+    translation_field_name = get_translation(ui_lang, "READ.translation_field", 
+                                           flag=target_flag, language=target_name)[:256]
+    points_field_name = get_translation(ui_lang, "READ.points_field")[:256]
+    points_field_value = get_translation(ui_lang, "READ.points_value", points=points_awarded)[:1024]
+    
+    # Helper function to add field and handle embed limits
+    def add_field_to_embed(embed_obj, field_name, field_value, field_counter):
+        """Helper function to add field and handle embed limits"""
+        # Check if current embed can hold another field (Discord limit is 25 fields per embed)
+        if field_counter >= 25:
+            return None, field_counter  # Signal that we need a new embed
+        
+        embed_obj.add_field(
+            name=field_name,
+            value=field_value,
+            inline=False
+        )
+        return embed_obj, field_counter + 1
+    
+    # Split texts into chunks that fit Discord's 1024 character field limit
+    def split_text_for_fields(text, max_length=1020):  # Leave some room for safety
+        """Split text into chunks that fit in Discord embed fields"""
+        if len(text) <= max_length:
+            return [text]
+        
+        chunks = []
+        current_pos = 0
+        
+        while current_pos < len(text):
+            if current_pos + max_length >= len(text):
+                # Last chunk
+                chunks.append(text[current_pos:])
+                break
+            
+            # Find a good breaking point (prefer word boundaries)
+            chunk_end = current_pos + max_length
+            
+            # Look for word boundary within last 100 characters
+            best_break = chunk_end
+            for i in range(chunk_end - 100, chunk_end):
+                if i > current_pos and text[i] in [' ', '\n', '\t', '.', ',', '!', '?', ';']:
+                    best_break = i + 1
+                    break
+            
+            chunks.append(text[current_pos:best_break])
+            current_pos = best_break
+        
+        return chunks
+    
+    # Create the main embed
+    main_embed = discord.Embed(
+        title=get_translation(ui_lang, "READ.translation_title")[:256],
+        color=embed_color,
+        timestamp=datetime.utcnow()
+    )
+    
+    embeds_to_send = [main_embed]
+    current_embed = main_embed
+    field_count = 0
+    
+    # Add original text fields (if not hidden)
+    if user_id not in hidden_sessions:
+        original_chunks = split_text_for_fields(original_text)
+        for i, chunk in enumerate(original_chunks):
+            field_name = source_field_name if i == 0 else f"{source_field_name} (continued {i+1})"
+            
+            result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+            if result is None:
+                # Need a new embed
+                new_embed = discord.Embed(
+                    title=f"{get_translation(ui_lang, 'READ.translation_title')} (continued)",
+                    color=embed_color
+                )
+                embeds_to_send.append(new_embed)
+                current_embed = new_embed
+                field_count = 0
+                current_embed.add_field(name=field_name, value=chunk, inline=False)
+                field_count += 1
+    
+    # Add translation fields
+    translation_chunks = split_text_for_fields(translated_text)
+    for i, chunk in enumerate(translation_chunks):
+        field_name = translation_field_name if i == 0 else f"{translation_field_name} (continued {i+1})"
+        
+        result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+        if result is None:
+            # Need a new embed
+            new_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'READ.translation_title')} (continued)",
+                color=embed_color
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=field_name, value=chunk, inline=False)
+            field_count += 1
+    
+    # Only add the metadata fields to the LAST embed to match texttr behavior
+    last_embed = embeds_to_send[-1]
+    
+    # Count fields in the last embed to ensure we don't exceed limits
+    last_embed_field_count = len(last_embed.fields)
+    
+    # Helper to add fields only to the last embed
+    def add_metadata_field(embed_obj, field_name, field_value, inline=True):
+        nonlocal last_embed_field_count
+        if last_embed_field_count >= 25:
+            # Create a new embed if we're at the limit
+            new_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'READ.translation_title')} (continued)",
+                color=embed_color
+            )
+            embeds_to_send.append(new_embed)
+            new_embed.add_field(name=field_name, value=field_value, inline=inline)
+            return new_embed
+        else:
+            embed_obj.add_field(name=field_name, value=field_value, inline=inline)
+            last_embed_field_count += 1
+            return embed_obj
+    
+    # Add metadata fields (author, time, points, usage) to the last embed
+    author_field_name = get_translation(ui_lang, "READ.message_author_field")[:256]
+    last_embed = add_metadata_field(last_embed, author_field_name, message_author, inline=True)
+    
+    time_field_name = get_translation(ui_lang, "READ.message_time_field")[:256]
+    time_field_value = f"<t:{int(message_timestamp.timestamp())}:R>"
+    last_embed = add_metadata_field(last_embed, time_field_name, time_field_value, inline=True)
+    
+    # Add points field
+    last_embed = add_metadata_field(last_embed, points_field_name, points_field_value, inline=True)
+    
+    # Add character usage for limited tiers
+    if tier in ['free', 'basic']:
+        usage_field_name = get_translation(ui_lang, "READ.usage_field")[:256]
+        usage_field_value = get_translation(ui_lang, "READ.usage_value", 
+                                          current=len(original_text), 
+                                          limit=limits['text_limit'])[:1024]
+        last_embed = add_metadata_field(last_embed, usage_field_name, usage_field_value, inline=True)
+    
+    # Set footer and timestamp on the final last embed
+    embeds_to_send[-1].set_footer(text=footer_text)
+    embeds_to_send[-1].timestamp = datetime.utcnow()
+    
+    # Send all embeds
+    await interaction.followup.send(embed=embeds_to_send[0], ephemeral=True)
+    
+    # Send additional embeds as followups if needed
+    for additional_embed in embeds_to_send[1:]:
+        await interaction.followup.send(embed=additional_embed, ephemeral=True)
+
+
 translate_by_id.autocomplete('target_lang')(translated_language_autocomplete)
             
 @tree.command(
@@ -6669,73 +7724,32 @@ async def translate_message_context(interaction: discord.Interaction, message: d
                 if new_achievements:
                     await send_achievement_notification(client, self.user_id, new_achievements)
                 
-                source_name = languages.get(source_lang, source_lang)
-                target_name = languages.get(target_code, target_code)
-                source_flag = flag_mapping.get(source_lang, '🌐')
-                target_flag = flag_mapping.get(target_code, '🌐')
-                
-                tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
-                embed = discord.Embed(
-                    title=get_translation(self.ui_lang, "CONTEXT.translation_title"),
-                    color=tier_colors.get(self.user_tier, 0x3498db),
-                    timestamp=datetime.utcnow()
+                await safe_track_translation_achievement(
+                    user_id=self.user_id,
+                    username=modal_interaction.user.display_name,
+                    source_lang=source_lang,
+                    target_lang=target_code
                 )
+
+                uncashed_points, _ = reward_db.get_uncashed_achievement_points(self.user_id)
+                await notify_uncashed_achievements(self.user_id, modal_interaction.user.display_name, uncashed_points)
                 
-                source_field_name = get_translation(self.ui_lang, "CONTEXT.original_field", flag=source_flag, language=source_name)
-                if not detection_successful:
-                    source_field_name += get_translation(self.ui_lang, "CONTEXT.detection_failed_suffix")
-                embed.add_field(
-                    name=source_field_name,
-                    value=self.message_to_translate.content[:1024],
-                    inline=False
+                # Create and send the translation embeds using the chunked system
+                await create_and_send_context_translation_embeds(
+                    interaction=modal_interaction,
+                    original_text=self.message_to_translate.content,
+                    translated_text=translated,
+                    source_code=source_lang,
+                    target_code=target_code,
+                    tier=self.user_tier,
+                    points_awarded=points_awarded,
+                    limits=tier_handler.get_limits(self.user_id),
+                    ui_lang=self.ui_lang,
+                    user_id=self.user_id,
+                    message_author=self.message_to_translate.author.display_name,
+                    message_timestamp=self.message_to_translate.created_at,
+                    detection_successful=detection_successful
                 )
-                
-                embed.add_field(
-                    name=get_translation(self.ui_lang, "CONTEXT.translation_field", flag=target_flag, language=target_name),
-                    value=translated[:1024],
-                    inline=False
-                )
-                
-                embed.add_field(
-                    name=get_translation(self.ui_lang, "CONTEXT.message_author_field"),
-                    value=self.message_to_translate.author.display_name,
-                    inline=True
-                )
-                embed.add_field(
-                    name=get_translation(self.ui_lang, "CONTEXT.message_time_field"),
-                    value=f"<t:{int(self.message_to_translate.created_at.timestamp())}:R>",
-                    inline=True
-                )
-                
-                embed.add_field(
-                    name=get_translation(self.ui_lang, "CONTEXT.points_field"),
-                    value=get_translation(self.ui_lang, "CONTEXT.points_value", points=points_awarded),
-                    inline=True
-                )
-                
-                if self.user_tier in ['free', 'basic']:
-                    limits = tier_handler.get_limits(self.user_id)
-                    embed.add_field(
-                        name=get_translation(self.ui_lang, "CONTEXT.usage_field"),
-                        value=get_translation(self.ui_lang, "CONTEXT.usage_value", current=len(self.message_to_translate.content), limit=limits['text_limit']),
-                        inline=True
-                    )
-                
-                tier_footers = {
-                    'free': get_translation(self.ui_lang, "CONTEXT.footer_free"),
-                    'basic': get_translation(self.ui_lang, "CONTEXT.footer_basic"),
-                    'premium': get_translation(self.ui_lang, "CONTEXT.footer_premium"),
-                    'pro': get_translation(self.ui_lang, "CONTEXT.footer_pro")
-                }
-                
-                if modal_interaction.guild:
-                    footer_text = get_translation(self.ui_lang, "CONTEXT.footer_guild", tier_footer=tier_footers.get(self.user_tier, ""), author=self.message_to_translate.author.display_name)
-                else:
-                    footer_text = get_translation(self.ui_lang, "CONTEXT.footer_dm", tier_footer=tier_footers.get(self.user_tier, ""), author=self.message_to_translate.author.display_name)
-                
-                embed.set_footer(text=footer_text)
-                
-                await modal_interaction.followup.send(embed=embed, ephemeral=True)
             
             async def on_error(self, modal_interaction: discord.Interaction, error: Exception):
                 error_embed = discord.Embed(
@@ -6785,6 +7799,209 @@ async def translate_message_context(interaction: discord.Interaction, message: d
         if not interaction.response.is_done():
             await interaction.response.send_message(embed=error_embed, ephemeral=True)
 
+
+async def create_and_send_context_translation_embeds(
+    interaction: discord.Interaction,
+    original_text: str,
+    translated_text: str,
+    source_code: str,
+    target_code: str,
+    tier: str,
+    points_awarded: int,
+    limits: dict,
+    ui_lang: str,
+    user_id: int,
+    message_author: str,
+    message_timestamp,
+    detection_successful: bool
+):
+    """Create and send context translation embeds with proper truncation and splitting"""
+    
+    # Get language names and flags
+    source_name = get_translation(ui_lang, f"LANGUAGES.{source_code}", default=languages.get(source_code, source_code))
+    target_name = get_translation(ui_lang, f"LANGUAGES.{target_code}", default=languages.get(target_code, target_code))
+    source_flag = flag_mapping.get(source_code, '🌐')
+    target_flag = flag_mapping.get(target_code, '🌐')
+    
+    # Use the same tier colors as texttr command
+    tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
+    embed_color = tier_colors.get(tier, discord.Color.greyple())
+    
+    # Calculate footer text
+    tier_footers = {
+        'free': get_translation(ui_lang, "CONTEXT.footer_free"),
+        'basic': get_translation(ui_lang, "CONTEXT.footer_basic"),
+        'premium': get_translation(ui_lang, "CONTEXT.footer_premium"),
+        'pro': get_translation(ui_lang, "CONTEXT.footer_pro")
+    }
+    
+    if interaction.guild:
+        footer_text = get_translation(ui_lang, "CONTEXT.footer_guild", 
+                                    tier_footer=tier_footers.get(tier, ""), 
+                                    author=message_author)
+    else:
+        footer_text = get_translation(ui_lang, "CONTEXT.footer_dm", 
+                                    tier_footer=tier_footers.get(tier, ""), 
+                                    author=message_author)
+    
+    footer_text = footer_text[:2048]  # Discord footer limit
+    
+    # Field names (truncated to Discord's 256 character limit)
+    source_field_name = get_translation(ui_lang, "CONTEXT.original_field", 
+                                      flag=source_flag, language=source_name)
+    if not detection_successful:
+        source_field_name += get_translation(ui_lang, "CONTEXT.detection_failed_suffix")
+    source_field_name = source_field_name[:256]
+    
+    translation_field_name = get_translation(ui_lang, "CONTEXT.translation_field", 
+                                           flag=target_flag, language=target_name)[:256]
+    points_field_name = get_translation(ui_lang, "CONTEXT.points_field")[:256]
+    points_field_value = get_translation(ui_lang, "CONTEXT.points_value", points=points_awarded)[:1024]
+    
+    # Helper function to add field and handle embed limits
+    def add_field_to_embed(embed_obj, field_name, field_value, field_counter):
+        """Helper function to add field and handle embed limits"""
+        # Check if current embed can hold another field (Discord limit is 25 fields per embed)
+        if field_counter >= 25:
+            return None, field_counter  # Signal that we need a new embed
+        
+        embed_obj.add_field(
+            name=field_name,
+            value=field_value,
+            inline=False
+        )
+        return embed_obj, field_counter + 1
+    
+    # Split texts into chunks that fit Discord's 1024 character field limit
+    def split_text_for_fields(text, max_length=1020):  # Leave some room for safety
+        """Split text into chunks that fit in Discord embed fields"""
+        if len(text) <= max_length:
+            return [text]
+        
+        chunks = []
+        current_pos = 0
+        
+        while current_pos < len(text):
+            if current_pos + max_length >= len(text):
+                # Last chunk
+                chunks.append(text[current_pos:])
+                break
+            
+            # Find a good breaking point (prefer word boundaries)
+            chunk_end = current_pos + max_length
+            
+            # Look for word boundary within last 100 characters
+            best_break = chunk_end
+            for i in range(chunk_end - 100, chunk_end):
+                if i > current_pos and text[i] in [' ', '\n', '\t', '.', ',', '!', '?', ';']:
+                    best_break = i + 1
+                    break
+            
+            chunks.append(text[current_pos:best_break])
+            current_pos = best_break
+        
+        return chunks
+    
+    # Create the main embed
+    main_embed = discord.Embed(
+        title=get_translation(ui_lang, "CONTEXT.translation_title")[:256],
+        color=embed_color,
+        timestamp=datetime.utcnow()
+    )
+    
+    embeds_to_send = [main_embed]
+    current_embed = main_embed
+    field_count = 0
+    
+    # Add original text fields (if not hidden)
+    if user_id not in hidden_sessions:
+        original_chunks = split_text_for_fields(original_text)
+        for i, chunk in enumerate(original_chunks):
+            field_name = source_field_name if i == 0 else f"{source_field_name} (continued {i+1})"
+            
+            result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+            if result is None:
+                # Need a new embed
+                new_embed = discord.Embed(
+                    title=f"{get_translation(ui_lang, 'CONTEXT.translation_title')} (continued)",
+                    color=embed_color
+                )
+                embeds_to_send.append(new_embed)
+                current_embed = new_embed
+                field_count = 0
+                current_embed.add_field(name=field_name, value=chunk, inline=False)
+                field_count += 1
+    
+    # Add translation fields
+    translation_chunks = split_text_for_fields(translated_text)
+    for i, chunk in enumerate(translation_chunks):
+        field_name = translation_field_name if i == 0 else f"{translation_field_name} (continued {i+1})"
+        
+        result, field_count = add_field_to_embed(current_embed, field_name, chunk, field_count)
+        if result is None:
+            # Need a new embed
+            new_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'CONTEXT.translation_title')} (continued)",
+                color=embed_color
+            )
+            embeds_to_send.append(new_embed)
+            current_embed = new_embed
+            field_count = 0
+            current_embed.add_field(name=field_name, value=chunk, inline=False)
+            field_count += 1
+    
+    # Only add the metadata fields to the LAST embed to match texttr behavior
+    last_embed = embeds_to_send[-1]
+    
+    # Count fields in the last embed to ensure we don't exceed limits
+    last_embed_field_count = len(last_embed.fields)
+    
+    # Helper to add fields only to the last embed
+    def add_metadata_field(embed_obj, field_name, field_value, inline=True):
+        nonlocal last_embed_field_count
+        if last_embed_field_count >= 25:
+            # Create a new embed if we're at the limit
+            new_embed = discord.Embed(
+                title=f"{get_translation(ui_lang, 'CONTEXT.translation_title')} (continued)",
+                color=embed_color
+            )
+            embeds_to_send.append(new_embed)
+            new_embed.add_field(name=field_name, value=field_value, inline=inline)
+            return new_embed
+        else:
+            embed_obj.add_field(name=field_name, value=field_value, inline=inline)
+            last_embed_field_count += 1
+            return embed_obj
+    
+    # Add metadata fields (author, time, points, usage) to the last embed
+    author_field_name = get_translation(ui_lang, "CONTEXT.message_author_field")[:256]
+    last_embed = add_metadata_field(last_embed, author_field_name, message_author, inline=True)
+    
+    time_field_name = get_translation(ui_lang, "CONTEXT.message_time_field")[:256]
+    time_field_value = f"<t:{int(message_timestamp.timestamp())}:R>"
+    last_embed = add_metadata_field(last_embed, time_field_name, time_field_value, inline=True)
+    
+    # Add points field
+    last_embed = add_metadata_field(last_embed, points_field_name, points_field_value, inline=True)
+    
+    # Add character usage for limited tiers
+    if tier in ['free', 'basic']:
+        usage_field_name = get_translation(ui_lang, "CONTEXT.usage_field")[:256]
+        usage_field_value = get_translation(ui_lang, "CONTEXT.usage_value", 
+                                          current=len(original_text), 
+                                          limit=limits['text_limit'])[:1024]
+        last_embed = add_metadata_field(last_embed, usage_field_name, usage_field_value, inline=True)
+    
+    # Set footer and timestamp on the final last embed
+    embeds_to_send[-1].set_footer(text=footer_text)
+    embeds_to_send[-1].timestamp = datetime.utcnow()
+    
+    # Send all embeds
+    await interaction.followup.send(embed=embeds_to_send[0], ephemeral=True)
+    
+    # Send additional embeds as followups if needed
+    for additional_embed in embeds_to_send[1:]:
+        await interaction.followup.send(embed=additional_embed, ephemeral=True)
 
 class AchievementView(discord.ui.View):
     def __init__(self, user_id: int, ui_lang: str):
