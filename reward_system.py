@@ -469,13 +469,6 @@ REWARDS = {
         'duration_hours': 72,
         'type': 'premium'
     },
-    'temp_premium_7d': {
-        'name': '🥈 7-Day Premium Access',
-        'description': 'Unlock Premium tier features for 1 week',
-        'cost': 800,
-        'duration_hours': 168,
-        'type': 'premium'
-    },
     'temp_pro_1d': {
         'name': '🥇 1-Day Pro Access',
         'description': 'Unlock Pro tier features for 24 hours (unlimited everything + beta access)',
@@ -2221,6 +2214,7 @@ def increment_stat(self, user_id: int, stat_name: str, amount: int = 1) -> bool:
     except Exception as e:
         logger.error(f"Error incrementing stat {stat_name}: {e}")
         return False
+
 
 
 
