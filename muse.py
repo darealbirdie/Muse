@@ -7409,7 +7409,7 @@ translate_by_id.autocomplete('target_lang')(translated_language_autocomplete)
             
 @tree.command(
     name="readimage",
-    description="Extract and translate text from an image file"
+    description="Extract and translate text from an image file(hardcapped at 1024 characters)"
 )
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
