@@ -1969,7 +1969,6 @@ async def text_translate(
 ):
     user_id = interaction.user.id
     ui_lang = await get_user_ui_language(user_id)
-
     await db.get_or_create_user(user_id, interaction.user.display_name)
 
     if user_id in tier_handler.pro_users:
@@ -1989,13 +1988,13 @@ async def text_translate(
 
     source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
     target_code = get_language_code(target_lang)
+
     if target_code == "auto":
         await interaction.response.send_message(
             get_translation(ui_lang, "AUTO.error_auto_not_allowed_for_target"),
             ephemeral=True
         )
         return
-
 
     if interaction.guild:
         allowed = await db.is_translation_allowed(
@@ -2073,28 +2072,30 @@ async def text_translate(
         source_flag = flag_mapping.get(source_code, '🌐')
         target_flag = flag_mapping.get(target_code, '🌐')
 
-        tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
+        def truncate_field(text: str, limit: int = 1024):
+            return text if len(text) <= limit else text[:limit - 3] + "..."
+
         embed = discord.Embed(
-            title=get_translation(ui_lang, "TEXTTR.title"),
-            color=tier_colors[tier]
+            title=get_translation(ui_lang, "TEXTTR.title")[:256],
+            color=TIER_COLORS.get(tier, discord.Color.greyple())
         )
 
         if user_id not in hidden_sessions:
             embed.add_field(
-                name=get_translation(ui_lang, "TEXTTR.original_field", flag=source_flag, language=source_name),
-                value=text,
+                name=get_translation(ui_lang, "TEXTTR.original_field", flag=source_flag, language=source_name)[:256],
+                value=truncate_field(text),
                 inline=False
             )
 
         embed.add_field(
-            name=get_translation(ui_lang, "TEXTTR.translation_field", flag=target_flag, language=target_name),
-            value=translated,
+            name=get_translation(ui_lang, "TEXTTR.translation_field", flag=target_flag, language=target_name)[:256],
+            value=truncate_field(translated),
             inline=False
         )
 
         embed.add_field(
-            name=get_translation(ui_lang, "TEXTTR.points_field"),
-            value=get_translation(ui_lang, "TEXTTR.points_value", points=points_awarded),
+            name=get_translation(ui_lang, "TEXTTR.points_field")[:256],
+            value=get_translation(ui_lang, "TEXTTR.points_value", points=points_awarded)[:1024],
             inline=True
         )
 
@@ -2112,8 +2113,7 @@ async def text_translate(
         else:
             footer_text += " " + get_translation(ui_lang, "TEXTTR.footer_dm")
 
-        embed.set_footer(text=footer_text)
-
+        embed.set_footer(text=footer_text[:2048])
         await interaction.followup.send(embed=embed, ephemeral=False)
 
     except Exception as e:
