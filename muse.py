@@ -1952,7 +1952,6 @@ async def language_name_autocomplete(
 set_channel.autocomplete('languages')(language_name_autocomplete)
 
 
-
 @tree.command(name="texttr", description="Translate text between languages")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -1971,19 +1970,9 @@ async def text_translate(
     ui_lang = await get_user_ui_language(user_id)
     await db.get_or_create_user(user_id, interaction.user.display_name)
 
-    if user_id in tier_handler.pro_users:
-        tier = 'pro'
-        is_premium = True
-    elif user_id in tier_handler.premium_users:
-        tier = 'premium'
-        is_premium = True
-    elif user_id in tier_handler.basic_users:
-        tier = 'basic'
-        is_premium = False
-    else:
-        tier = 'free'
-        is_premium = False
-
+    # Use the same tier detection logic as autotranslate command
+    tier = tier_handler.get_user_tier(user_id)
+    is_premium = tier in ['premium', 'pro']
     limits = tier_handler.get_limits(user_id)
 
     source_code = "auto" if source_lang.lower() == "auto" else get_language_code(source_lang)
@@ -2075,9 +2064,12 @@ async def text_translate(
         def truncate_field(text: str, limit: int = 1024):
             return text if len(text) <= limit else text[:limit - 3] + "..."
 
+        # Use the same tier colors as autotranslate command
+        tier_colors = {'free': 0x95a5a6, 'basic': 0x3498db, 'premium': 0xf39c12, 'pro': 0x9b59b6}
+        
         embed = discord.Embed(
             title=get_translation(ui_lang, "TEXTTR.title")[:256],
-            color=TIER_COLORS.get(tier, discord.Color.greyple())
+            color=tier_colors.get(tier, discord.Color.greyple())
         )
 
         if user_id not in hidden_sessions:
@@ -2099,13 +2091,14 @@ async def text_translate(
             inline=True
         )
 
+        # Use the same footer logic as autotranslate command
         if tier == 'free':
             footer_text = get_translation(ui_lang, "TEXTTR.footer_free", current=len(text), limit=limits['text_limit'])
         elif tier == 'basic':
             footer_text = get_translation(ui_lang, "TEXTTR.footer_basic", current=len(text), limit=limits['text_limit'])
         elif tier == 'premium':
             footer_text = get_translation(ui_lang, "TEXTTR.footer_premium")
-        else:
+        else:  # pro tier
             footer_text = get_translation(ui_lang, "TEXTTR.footer_pro")
 
         if interaction.guild:
