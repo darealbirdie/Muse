@@ -1382,6 +1382,36 @@ class TierHandler:
             
         except Exception as e:
             return False, f"Failed to import tier data: {str(e)}"
+    def get_tier_type_from_reward_id(self, reward_id: str) -> str | None:
+        """
+        Map a reward_id like 'temp_pro_1d' to the tier type ('pro', 'premium', 'basic').
+        Returns None if reward_id does not correspond to a tier.
+        """
+        # This assumes your reward IDs start with 'temp_{tier}_...'
+        if reward_id.startswith('temp_pro'):
+            return 'pro'
+        elif reward_id.startswith('temp_premium'):
+            return 'premium'
+        elif reward_id.startswith('temp_basic'):
+            return 'basic'
+        else:
+            return None
+
+    async def upgrade_user_tier(self, user_id: int, reward_id: str, expires_at):
+        """
+        Upgrade the user tier based on reward_id, with expiration.
+        Returns (success: bool, message: str)
+        """
+        tier_type = self.get_tier_type_from_reward_id(reward_id)
+        if tier_type is None:
+            return False, f"Reward '{reward_id}' is not a tier upgrade."
+
+        # Set the user tier with expiration
+        success = self.set_user_tier(user_id, tier_type, expires_at)
+        if success:
+            return True, f"User upgraded to {tier_type.title()} tier until {expires_at.strftime('%Y-%m-%d %H:%M:%S')}"
+        else:
+            return False, "Failed to upgrade user tier."
 
 # Update tier_handler instance
 tier_handler = TierHandler()
@@ -9231,7 +9261,7 @@ async def shop(interaction: discord.Interaction):
     
     for reward_id, reward in REWARDS.items():
         status = ""
-        if reward_db.has_active_reward(user_id, reward['type']):
+        if reward_db.has_active_reward(user_id, reward_id):
             status = get_translation(ui_lang, "SHOP.status_active")
         elif user_data['points'] < reward['cost']:
             status = get_translation(ui_lang, "SHOP.status_not_enough")
@@ -9330,7 +9360,9 @@ async def buy_reward(interaction: discord.Interaction, reward: str):
 
     # Apply reward effect based on type
     if reward_type in ['basic', 'premium', 'pro']:
-        apply_success, apply_message = tier_handler.upgrade_user_tier(user_id, reward_type, expires_at)
+        # Pass reward_id instead of reward_type, since your new method extracts tier from reward_id
+        apply_success, apply_message = await tier_handler.upgrade_user_tier(user_id, reward_id, expires_at)
+
 
     elif reward_type in ['feature', 'beta_feature']:
         # You need to implement grant_feature yourself; placeholder here:
