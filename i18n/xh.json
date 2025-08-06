@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Ukufikelela kwe-1 yoSuku esiSiseko",
+    "description": "Vula iimpawu zeSiseko ngexesha leeyure ezingama-24 (iimpawu ezili-500, imizuzu engama-30 yelizwi, imbali)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Ukufikelela kwe-3 yeeMihla eziSiseko",
+    "description": "Vula iimpawu zeSiseko ngexesha leentsuku ezintathu"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Ukufikelela kwe-1 yoSuku lwePremium",
+    "description": "Vula iimpawu zePremium ngexesha leeyure ezingama-24 (iimpawu ezili-2000, iiyure ezi-2 zelizwi, inkqubo yokubaluleka)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Ukufikelela kwe-3 yeeMihla zePremium",
+    "description": "Vula iimpawu zePremium ngexesha leentsuku ezintathu"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Ukufikelela kwe-1 yoSuku lwePro",
+    "description": "Vula iimpawu zePro ngexesha leeyure ezingama-24 (zonke izinto ezingunqamlezo + ukufikelela kwi-beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Ukufikelela kwe-3 yeeMihla zePro",
+    "description": "Vula iimpawu zePro ngexesha leentsuku ezintathu"
+  },
+  "extended_limits": {
+    "name": "📈 Umda woBude oWandisiweyo",
+    "description": "Yandisa umda wakho wezimpawu ube yi-1000 kwiiyure ezingama-24"
+  },
+  "extended_voice": {
+    "name": "🎤 Ixesha eliWandisiweyo loLizwi",
+    "description": "Fumana iiyure ezi-1 zongezelelweyo zokuguqulela ilizwi"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Ingxoxo yeLizwi ePhucukileyo V2 (Beta)",
+    "description": "Fikelela kutolikwa lolwimi lwezilimi ezimbini oluphucukileyo kwiiyure ezingama-48"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Ingxoxo yeLizwi ePhucukileyo V2 (1 uSuku)",
+    "description": "Vula utolikwa lolwimi lwezilimi ezimbini oluphucukileyo kwiiyure ezingama-24"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Ingxoxo yeLizwi ePhucukileyo V2 (7 iiMihla)",
+    "description": "Vula utolikwa lolwimi lwezilimi ezimbini oluphucukileyo kwiiveki ezisi-1"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Imultipli yesi-1.5x yamaphuzu",
+    "description": "Fumana amaphuzu angama-50% ngakumbi kuwo onke amasimi kwiiyure ezingama-48"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Imultipli yesi-2x yamaphuzu",
+    "description": "Fumana amaphuzu aphindwe kabini kuwo onke amasimi kwiiyure ezingama-24"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Imultipli yesi-2x yamaphuzu (12 iiyure)",
+    "description": "Fumana amaphuzu aphindwe kabini kuwo onke amasimi kwiiyure ezili-12"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Imultipli yesi-3x yamaphuzu",
+    "description": "Fumana amaphuzu aphindwe kathathu kuwo onke amasimi kwiiyure ezili-12"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Imultipli yesi-4x yamaphuzu",
+    "description": "Fumana amaphuzu aphindwe kane kuwo onke amasimi kwiiyure ezi-6"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Imultipli yesi-5x yamaphuzu",
+    "description": "Fumana amaphuzu aphindwe amashumi amahlanu kuwo onke amasimi kwiiyure ezi-3"
+  },
+  "starter_bundle": {
+    "name": "🎁 Iphekheji yokuQala",
+    "description": "Ukufikelela okusemgangathweni + Imida eyandisiweyo kwiiyure ezingama-24"
+  },
+  "premium_bundle": {
+    "name": "🎉 Iphekheji yePremium",
+    "description": "Ukufikelela kwePremium + Iimpawu zeBeta + Multipli ye-2x kwiiyure ezingama-24"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Iphekheji yoGqibelelo",
+    "description": "Ukufikelela kwePro + Zonke iimpawu + Ibhajethi yoQobo kwiintsuku ezi-3"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Ukufumanisa ngokuzenzekelayo' kuvunyelwe kuphela njengolwimi lomthombo, hayi njengolwimi olujolise kulo."
   },
