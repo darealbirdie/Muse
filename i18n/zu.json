@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Ukufinyelela Okuyisisekelo (1 usuku)",
+    "description": "Vula izici eziyisisekelo izinsuku eziyi-1 (500 izinhlamvu, imizuzu engama-30 yomsindo, umlando wokusetshenziswa)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Ukufinyelela Okuyisisekelo (3 izinsuku)",
+    "description": "Vula izici eziyisisekelo izinsuku ezi-3"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Ukufinyelela kwePremium (1 usuku)",
+    "description": "Vula izici zePremium izinsuku eziyi-1 (2000 izinhlamvu, amahora angu-2 womsindo, ukuqhubeka)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Ukufinyelela kwePremium (3 izinsuku)",
+    "description": "Vula izici zePremium izinsuku ezi-3"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Ukufinyelela kwePro (1 usuku)",
+    "description": "Vula zonke izici zePro usuku olulodwa (izici eziphelele, akukho mingcele + ukufinyelela kweBeta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Ukufinyelela kwePro (3 izinsuku)",
+    "description": "Vula zonke izici zePro izinsuku ezi-3"
+  },
+  "extended_limits": {
+    "name": "📈 Ukwandiswa Kwemingcele Yezinhlamvu",
+    "description": "Khuphula umkhawulo wakho wezinhlamvu ufinyelele ku-1000 izinsuku eziyi-1"
+  },
+  "extended_voice": {
+    "name": "🎤 Isikhathi Esengeziwe Sokusakaza",
+    "description": "Thola ihora elengeziwe lokuhumusha ngomsindo"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Ukuhumusha Komsindo kwezilimi eziningi V2 (Beta)",
+    "description": "Finyelela kuhlelo lwe-Beta lwezwi lwezilimi eziningi (izinsuku ezi-2)"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Ukuhumusha Komsindo kwezilimi eziningi V2 (1 usuku)",
+    "description": "Finyelela kuhlelo lwezwi lwezilimi eziningi (usuku olu-1)"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Ukuhumusha Komsindo kwezilimi eziningi V2 (7 izinsuku)",
+    "description": "Finyelela kuhlelo lwezwi lwezilimi eziningi (izinsuku ezi-7)"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Inani Lamanqaku Eliphindwe ka-1.5",
+    "description": "Thola u-50% wamanqaku engeziwe kuzo zonke izenzo (izinsuku ezi-2)"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Inani Lamanqaku Eliphindwe kabili",
+    "description": "Thola amanqaku aphindwe kabili kuzo zonke izenzo (usuku olu-1)"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Inani Lamanqaku Eliphindwe kabili (12h)",
+    "description": "Thola amanqaku aphindwe kabili kuzo zonke izenzo (amahora angu-12)"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Inani Lamanqaku Eliphindwe kathathu",
+    "description": "Thola amanqaku aphindwe kathathu kuzo zonke izenzo (amahora angu-12)"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Inani Lamanqaku Eliphindwe kane",
+    "description": "Thola amanqaku aphindwe kane kuzo zonke izenzo (amahora angu-6)"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Inani Lamanqaku Eliphindwe kasihlanu",
+    "description": "Thola amanqaku aphindwe kasihlanu kuzo zonke izenzo (amahora angu-3)"
+  },
+  "starter_bundle": {
+    "name": "🎁 Iphakheji Yokuqala",
+    "description": "Ukufinyelela Okuyisisekelo + Ukwandiswa Kwemingcele Yezinhlamvu (usuku olulodwa)"
+  },
+  "premium_bundle": {
+    "name": "🎉 Iphakheji yePremium",
+    "description": "Ukufinyelela kwePremium + Izici zeBeta + Inani Lamanqaku Eliphindwe kabili (usuku olu-1)"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Iphakheji Ephelele",
+    "description": "Ukufinyelela kwePro + Zonke izici + Ibhajethi ekhethekile (izinsuku ezi-3)"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Ukutholwa ngokuzenzakalelayo' kuvunyelwe kuphela njengesizinda solimi, hhayi njengesizinda solimi okuhlosiwe."
   },
