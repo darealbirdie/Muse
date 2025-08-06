@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1 kunlik Basic kirish",
+    "description": "Basic darajadagi funksiyalarni 24 soatga oching (500 belgidan iborat, 30 daqiqa ovoz, tarix)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3 kunlik Basic kirish",
+    "description": "Basic darajadagi funksiyalarni 3 kunga oching"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1 kunlik Premium kirish",
+    "description": "Premium darajadagi funksiyalarni 24 soatga oching (2000 belgidan iborat, 2 soat ovoz, ustuvorlik)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3 kunlik Premium kirish",
+    "description": "Premium darajadagi funksiyalarni 3 kunga oching"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1 kunlik Pro kirish",
+    "description": "Pro darajadagi funksiyalarni 24 soatga oching (cheksiz hamma narsa + beta kirish)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3 kunlik Pro kirish",
+    "description": "Pro darajadagi funksiyalarni 3 kunga oching"
+  },
+  "extended_limits": {
+    "name": "📈 Belgilar chegarasini oshirish",
+    "description": "Belgilar chegarangizni 24 soatga 1000 taga oshiring"
+  },
+  "extended_voice": {
+    "name": "🎤 Ovoz vaqtini oshirish",
+    "description": "1 soat qo'shimcha ovoz tarjimasi vaqti oling"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Takomillashtirilgan ovoz chat V2 (Beta)",
+    "description": "48 soat davomida ilg‘or ikki tomonlama ovoz tarjimasiga kirish"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Takomillashtirilgan ovoz V2 (1 kun)",
+    "description": "24 soat davomida ilg‘or ikki tomonlama ovoz tarjimasining qulfini oching"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Takomillashtirilgan ovoz V2 (7 kun)",
+    "description": "1 hafta davomida ilg‘or ikki tomonlama ovoz tarjimasining qulfini oching"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x Ball ko‘paytirgichi",
+    "description": "48 soat davomida barcha faoliyatlardan 50% ko‘proq ball oling"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Ball ko‘paytirgichi",
+    "description": "24 soat davomida barcha faoliyatlardan ikki barobar ball oling"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Ball ko‘paytirgichi (12 soat)",
+    "description": "12 soat davomida barcha faoliyatlardan ikki barobar ball oling"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Ball ko‘paytirgichi",
+    "description": "12 soat davomida barcha faoliyatlardan uch barobar ball oling"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Ball ko‘paytirgichi",
+    "description": "6 soat davomida barcha faoliyatlardan to‘rt barobar ball oling"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Ball ko‘paytirgichi",
+    "description": "3 soat davomida barcha faoliyatlardan besh barobar ball oling"
+  },
+  "starter_bundle": {
+    "name": "🎁 Boshlang‘ich to‘plam",
+    "description": "Basic kirish + kengaytirilgan chegaralar 24 soatga"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium to‘plam",
+    "description": "Premium kirish + Beta funksiyalar + 2x ko‘paytirgichi 24 soatga"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimate to‘plam",
+    "description": "Pro kirish + barcha funksiyalar + maxsus badge 3 kunga"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Avtomatik aniqlash' faqat manba tili sifatida ruxsat etiladi, maqsad tili sifatida emas."
   },
