@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-Hnub Basic Nkag",
+    "description": "Qhib Basic txheej txheem nta rau 24 teev (500 cim, 30 feeb suab, keeb kwm)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-Hnub Basic Nkag",
+    "description": "Qhib Basic txheej txheem nta rau 3 hnub"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-Hnub Premium Nkag",
+    "description": "Qhib Premium txheej txheem nta rau 24 teev (2000 cim, 2 teev suab, kev pab thawj)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-Hnub Premium Nkag",
+    "description": "Qhib Premium txheej txheem nta rau 3 hnub"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-Hnub Pro Nkag",
+    "description": "Qhib Pro txheej txheem nta rau 24 teev (txhua yam tsis txwv + beta nkag)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-Hnub Pro Nkag",
+    "description": "Qhib Pro txheej txheem nta rau 3 hnub"
+  },
+  "extended_limits": {
+    "name": "📈 Nqi Cim Ntxiv",
+    "description": "Nce koj cov cim txwv mus txog 1000 rau 24 teev"
+  },
+  "extended_voice": {
+    "name": "🎤 Lub Sijhawm Suab Ntxiv",
+    "description": "Tau 1 teev ntxiv rau suab txhais lus"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Hloov Suab Sib Tham V2 (Beta)",
+    "description": "Tau kev nkag mus rau kev txhais lus suab sib ob txoj hauv kev rau 48 teev"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Hloov Suab V2 (1 Hnub)",
+    "description": "Qhib kev txhais lus suab sib ob txoj hauv kev rau 24 teev"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Hloov Suab V2 (7 Hnub)",
+    "description": "Qhib kev txhais lus suab sib ob txoj hauv kev rau ib lub lis piam"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Ntxiv Cov Ntawv Qhia 1.5x",
+    "description": "Tau 50% ntau cov ntsiab lus ntawm txhua yam haujlwm rau 48 teev"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Ntxiv Cov Ntawv Qhia 2x",
+    "description": "Tau ob npaug cov ntsiab lus ntawm txhua yam haujlwm rau 24 teev"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Ntxiv Cov Ntawv Qhia 2x (12 teev)",
+    "description": "Tau ob npaug cov ntsiab lus ntawm txhua yam haujlwm rau 12 teev"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Ntxiv Cov Ntawv Qhia 3x",
+    "description": "Tau peb npaug cov ntsiab lus ntawm txhua yam haujlwm rau 12 teev"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Ntxiv Cov Ntawv Qhia 4x",
+    "description": "Tau plaub npaug cov ntsiab lus ntawm txhua yam haujlwm rau 6 teev"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Ntxiv Cov Ntawv Qhia 5x",
+    "description": "Tau tsib npaug cov ntsiab lus ntawm txhua yam haujlwm rau 3 teev"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pib Pob",
+    "description": "Basic nkag + Nqi Cim Ntxiv rau 24 teev"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium Pob",
+    "description": "Premium nkag + Beta nta + 2x ntsiab lus ntau rau 24 teev"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Qhov Zoo Tshaj Plaws Pob",
+    "description": "Pro nkag + Txhua yam nta + Kho badge rau 3 hnub"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'स्वचालित पहचान' केवल स्रोत भाषा के रूप में अनुमति है, लक्ष्य भाषा के रूप में नहीं।"
   },

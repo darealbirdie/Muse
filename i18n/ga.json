@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Rochtain Bhunúsach 1 Lá",
+    "description": "Díghlasáil gnéithe leibhéal Bunúsach ar feadh 24 uair an chloig (500 carachtar, 30 nóiméad guth, stair)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Rochtain Bhunúsach 3 Lá",
+    "description": "Díghlasáil gnéithe leibhéal Bunúsach ar feadh 3 lá"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Rochtain Préimhe 1 Lá",
+    "description": "Díghlasáil gnéithe leibhéal Préimhe ar feadh 24 uair an chloig (2000 carachtar, 2 uair an chloig guth, tosaíocht)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Rochtain Préimhe 3 Lá",
+    "description": "Díghlasáil gnéithe leibhéal Préimhe ar feadh 3 lá"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Rochtain Pro 1 Lá",
+    "description": "Díghlasáil gnéithe leibhéal Pro ar feadh 24 uair an chloig (gan teorainn ar gach rud + rochtain béite)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Rochtain Pro 3 Lá",
+    "description": "Díghlasáil gnéithe leibhéal Pro ar feadh 3 lá"
+  },
+  "extended_limits": {
+    "name": "📈 Teorainn Carachtar Leathnaithe",
+    "description": "Méadaigh do theorainn carachtar go 1000 ar feadh 24 uair an chloig"
+  },
+  "extended_voice": {
+    "name": "🎤 Am Guth Leathnaithe",
+    "description": "Faigh 1 uair an chloig bhreise d’ama aistrithe guth"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Comhrá Guth Feabhsaithe V2 (Béite)",
+    "description": "Rochtain ar aistriúchán guth dá bhealach chun cinn ar feadh 48 uair an chloig"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Guth Feabhsaithe V2 (1 Lá)",
+    "description": "Díghlasáil aistriúchán guth dá bhealach chun cinn ar feadh 24 uair an chloig"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Guth Feabhsaithe V2 (7 Lá)",
+    "description": "Díghlasáil aistriúchán guth dá bhealach chun cinn ar feadh seachtaine"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Iolraí Poinntí 1.5x",
+    "description": "Faigh 50% níos mó pointí ó gach gníomhaíocht ar feadh 48 uair an chloig"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Iolraí Poinntí 2x",
+    "description": "Faigh an dúbailt pointí ó gach gníomhaíocht ar feadh 24 uair an chloig"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Iolraí Poinntí 2x (12h)",
+    "description": "Faigh an dúbailt pointí ó gach gníomhaíocht ar feadh 12 uair an chloig"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Iolraí Poinntí 3x",
+    "description": "Faigh trí oiread pointí ó gach gníomhaíocht ar feadh 12 uair an chloig"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Iolraí Poinntí 4x",
+    "description": "Faigh ceithre oiread pointí ó gach gníomhaíocht ar feadh 6 uair an chloig"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Iolraí Poinntí 5x",
+    "description": "Faigh cúig oiread pointí ó gach gníomhaíocht ar feadh 3 uair an chloig"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pacáiste Tosaigh",
+    "description": "Rochtain bhunúsach + teorainneacha leathnaithe ar feadh 24 uair an chloig"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pacáiste Préimhe",
+    "description": "Rochtain préimhe + gnéithe béite + iolraí 2x ar feadh 24 uair an chloig"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pacáiste Uilechumhachtach",
+    "description": "Rochtain pro + gach gné + lógó saincheaptha ar feadh 3 lá"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ Ní cheadaítear ‘Aimsitheoir Uathoibríoch’ ach mar theanga foinse, ní mar theanga sprioc."
   },

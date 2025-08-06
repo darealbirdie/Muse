@@ -1,4 +1,87 @@
 {  
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Samun Izinin Asali na Rana 1",
+    "description": "Bude fasalulluka na matakin Asali na tsawon awanni 24 (haruffa 500, mintuna 30 na murya, tarihi)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Samun Izinin Asali na Kwana 3",
+    "description": "Bude fasalulluka na matakin Asali na tsawon kwanaki 3"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Samun Izinin Premium na Rana 1",
+    "description": "Bude fasalulluka na matakin Premium na tsawon awanni 24 (haruffa 2000, awanni 2 na murya, fifiko)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Samun Izinin Premium na Kwana 3",
+    "description": "Bude fasalulluka na matakin Premium na tsawon kwanaki 3"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Samun Izinin Pro na Rana 1",
+    "description": "Bude fasalulluka na matakin Pro na tsawon awanni 24 (ba iyaka komai + samun damar beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Samun Izinin Pro na Kwana 3",
+    "description": "Bude fasalulluka na matakin Pro na tsawon kwanaki 3"
+  },
+  "extended_limits": {
+    "name": "📈 Iyakokin Haruffa Masu Tsawo",
+    "description": "Kara iyakar haruffa zuwa 1000 na tsawon awanni 24"
+  },
+  "extended_voice": {
+    "name": "🎤 Karin Lokacin Murya",
+    "description": "Samu karin awa 1 na lokaci don fassarar murya"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Tattaunawar Murya Mai Inganci V2 (Beta)",
+    "description": "Samun damar fassarar murya mai ci gaba mai hanyoyi biyu na tsawon awanni 48"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Murya Mai Inganci V2 (Rana 1)",
+    "description": "Bude fassarar murya mai hanyoyi biyu na ci gaba na tsawon awanni 24"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Murya Mai Inganci V2 (Kwana 7)",
+    "description": "Bude fassarar murya mai hanyoyi biyu na ci gaba na tsawon mako guda"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Ninki Mak'i 1.5x",
+    "description": "Samu kashi 50% karin mak'i daga duk ayyuka na tsawon awanni 48"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Ninki Mak'i 2x",
+    "description": "Samu ninki biyu na mak'i daga duk ayyuka na tsawon awanni 24"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Ninki Mak'i 2x (Awanni 12)",
+    "description": "Samu ninki biyu na mak'i daga duk ayyuka na tsawon awanni 12"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Ninki Mak'i 3x",
+    "description": "Samu ninki uku na mak'i daga duk ayyuka na tsawon awanni 12"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Ninki Mak'i 4x",
+    "description": "Samu ninki hudu na mak'i daga duk ayyuka na tsawon awanni 6"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Ninki Mak'i 5x",
+    "description": "Samu ninki biyar na mak'i daga duk ayyuka na tsawon awanni 3"
+  },
+  "starter_bundle": {
+    "name": "🎁 Kunshin Fara",
+    "description": "Samun izinin asali + iyakokin tsawo na tsawon awanni 24"
+  },
+  "premium_bundle": {
+    "name": "🎉 Kunshin Premium",
+    "description": "Samun izinin premium + fasalulluka beta + ninki 2x na tsawon awanni 24"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Kunshin Karshe",
+    "description": "Samun izinin pro + duk fasalulluka + alamar musamman na tsawon kwanaki 3"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ Ana yarda da 'Gano ta atomatik' kawai a matsayin harshen tushe, ba a matsayin harshen manufa ba."
   },

@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-dags Grunnleggande Tilgang",
+    "description": "Lås opp grunnleggjande funksjonar i 24 timar (500 teikn, 30 minutt tale, historikk)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-dagars Grunnleggande Tilgang",
+    "description": "Lås opp grunnleggjande funksjonar i 3 dagar"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-dags Premium Tilgang",
+    "description": "Lås opp premium funksjonar i 24 timar (2000 teikn, 2 timar tale, prioritet)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-dagars Premium Tilgang",
+    "description": "Lås opp premium funksjonar i 3 dagar"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-dags Pro Tilgang",
+    "description": "Lås opp pro funksjonar i 24 timar (ubegrensa alt + beta tilgang)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-dagars Pro Tilgang",
+    "description": "Lås opp pro funksjonar i 3 dagar"
+  },
+  "extended_limits": {
+    "name": "📈 Utvida Tegngrense",
+    "description": "Auka teikngrensa di til 1000 i 24 timar"
+  },
+  "extended_voice": {
+    "name": "🎤 Forlengd Taletid",
+    "description": "Få 1 ekstra time med stemmeomsetjing"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Forbetra Talecall V2 (Beta)",
+    "description": "Tilgang til avansert tovegstemmeomsetjing i 48 timar"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Forbetra Tale V2 (1 Dag)",
+    "description": "Lås opp avansert tovegstemmeomsetjing i 24 timar"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Forbetra Tale V2 (7 Dagar)",
+    "description": "Lås opp avansert tovegstemmeomsetjing i 1 veke"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x Poengmultiplikator",
+    "description": "Tjen 50 % fleire poeng frå alle aktivitetar i 48 timar"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Poengmultiplikator",
+    "description": "Tjen dobbelt poeng frå alle aktivitetar i 24 timar"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Poengmultiplikator (12t)",
+    "description": "Tjen dobbelt poeng frå alle aktivitetar i 12 timar"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Poengmultiplikator",
+    "description": "Tjen tredobbel poeng frå alle aktivitetar i 12 timar"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Poengmultiplikator",
+    "description": "Tjen firedobbel poeng frå alle aktivitetar i 6 timar"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Poengmultiplikator",
+    "description": "Tjen femdobbel poeng frå alle aktivitetar i 3 timar"
+  },
+  "starter_bundle": {
+    "name": "🎁 Startpakke",
+    "description": "Grunnleggande tilgang + utvida grenser i 24 timar"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premiumpakke",
+    "description": "Premium tilgang + beta-funksjonar + 2x multiplikator i 24 timar"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimatpakke",
+    "description": "Pro-tilgang + alle funksjonar + tilpassa merke i 3 dagar"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Kuzindikira zokha' kumalola kokha ngati chinenero choyambirira, osati chinenero chofunikira."
   },

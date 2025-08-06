@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Phihlello ea Motheo bakeng sa Letsatsi le le leng",
+    "description": "Bula likarolo tsa maemo a Motheo bakeng sa lihora tse 24 (litlhaku tse 500, motsotso o 30 oa lentsoe, nalane)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Phihlello ea Motheo bakeng sa Matsatsi a 3",
+    "description": "Bula likarolo tsa maemo a Motheo bakeng sa matsatsi a 3"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Phihlello ea Premium bakeng sa Letsatsi le le leng",
+    "description": "Bula likarolo tsa maemo a Premium bakeng sa lihora tse 24 (litlhaku tse 2000, lihora tse 2 tsa lentsoe, maemo a pele)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Phihlello ea Premium bakeng sa Matsatsi a 3",
+    "description": "Bula likarolo tsa maemo a Premium bakeng sa matsatsi a 3"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Phihlello ea Pro bakeng sa Letsatsi le le leng",
+    "description": "Bula likarolo tsohle tsa maemo a Pro bakeng sa lihora tse 24 (ha ho na meeli + phihlello ea beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Phihlello ea Pro bakeng sa Matsatsi a 3",
+    "description": "Bula likarolo tsohle tsa maemo a Pro bakeng sa matsatsi a 3"
+  },
+  "extended_limits": {
+    "name": "📈 Meeli e Holisitsoeng ea Mela",
+    "description": "Eketsa moeli oa litlhaku ho fihlela ho 1000 bakeng sa lihora tse 24"
+  },
+  "extended_voice": {
+    "name": "🎤 Nako e Eketsitsoeng ea Lentsoe",
+    "description": "Fumana hora e eketsehileng ea nako ea phetolelo ea lentsoe"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Lentsoe le Ntlafalitsoeng V2 (Beta)",
+    "description": "Phihlello ea phetolelo ea lentsoe e ntlafalitsoeng e shebaneng ka mahlakore ka bobeli bakeng sa lihora tse 48"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Lentsoe le Ntlafalitsoeng V2 (Letsatsi le le leng)",
+    "description": "Bula phetolelo ea lentsoe e ntlafalitsoeng bakeng sa lihora tse 24"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Lentsoe le Ntlafalitsoeng V2 (Matsatsi a 7)",
+    "description": "Bula phetolelo ea lentsoe e ntlafalitsoeng bakeng sa beke e le 'ngoe"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Mocheso oa Mefuta ea 1.5x",
+    "description": "Fumana lintlha tse 50% tse ekelitsoeng mesebetsing eohle bakeng sa lihora tse 48"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Mocheso oa Mefuta ea 2x",
+    "description": "Fumana lintlha tse habeli mesebetsing eohle bakeng sa lihora tse 24"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Mocheso oa Mefuta ea 2x (lih. tse 12)",
+    "description": "Fumana lintlha tse habeli mesebetsing eohle bakeng sa lihora tse 12"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Mocheso oa Mefuta ea 3x",
+    "description": "Fumana lintlha tse tharo mesebetsing eohle bakeng sa lihora tse 12"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Mocheso oa Mefuta ea 4x",
+    "description": "Fumana lintlha tse nne mesebetsing eohle bakeng sa lihora tse 6"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Mocheso oa Mefuta ea 5x",
+    "description": "Fumana lintlha tse hlano mesebetsing eohle bakeng sa lihora tse 3"
+  },
+  "starter_bundle": {
+    "name": "🎁 Sephutheloana sa Qalo",
+    "description": "Phihlello ea maemo a motheo + meeli e atolositsoeng bakeng sa lihora tse 24"
+  },
+  "premium_bundle": {
+    "name": "🎉 Sephutheloana sa Premium",
+    "description": "Phihlello ea maemo a premium + likarolo tsa beta + mocheso oa lintlha oa 2x bakeng sa lihora tse 24"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Sephutheloana se Felletseng",
+    "description": "Phihlello ea maemo a pro + likarolo tsohle + lets'oao le ikhethileng bakeng sa matsatsi a 3"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Ho iketsa ho ipona' ho lumelloa feela e le puo ea mohloli, eseng puo eo u e lebellang."
   },

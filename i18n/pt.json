@@ -1,5 +1,87 @@
 {
-  
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Acesso Básico por 1 Dia",
+    "description": "Desbloqueia os recursos do nível Básico por 24 horas (500 caracteres, 30 min de voz, histórico)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Acesso Básico por 3 Dias",
+    "description": "Desbloqueia os recursos do nível Básico por 3 dias"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Acesso Premium por 1 Dia",
+    "description": "Desbloqueia os recursos Premium por 24 horas (2000 caracteres, 2h de voz, prioridade)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Acesso Premium por 3 Dias",
+    "description": "Desbloqueia os recursos Premium por 3 dias"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Acesso Pro por 1 Dia",
+    "description": "Desbloqueia todos os recursos Pro por 24 horas (sem limites + acesso Beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Acesso Pro por 3 Dias",
+    "description": "Desbloqueia todos os recursos Pro por 3 dias"
+  },
+  "extended_limits": {
+    "name": "📈 Limite de Caracteres Estendido",
+    "description": "Aumenta o limite de caracteres para 1000 por 24 horas"
+  },
+  "extended_voice": {
+    "name": "🎤 Tempo de Voz Extra",
+    "description": "Ganha uma hora extra de tradução por voz"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Voz Avançada V2 (Beta)",
+    "description": "Acesso à tradução de voz avançada por 48 horas"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Voz Avançada V2 (1 Dia)",
+    "description": "Desbloqueia a Voz Avançada V2 por 24 horas"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Voz Avançada V2 (7 Dias)",
+    "description": "Desbloqueia a Voz Avançada V2 por 7 dias"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Multiplicador de Pontos 1.5x",
+    "description": "Ganha 50% mais pontos de todas as atividades por 48 horas"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Multiplicador de Pontos 2x",
+    "description": "Ganha o dobro de pontos por 24 horas"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Multiplicador de Pontos 2x (12h)",
+    "description": "Ganha o dobro de pontos por 12 horas"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Multiplicador de Pontos 3x",
+    "description": "Ganha 3x mais pontos por 12 horas"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Multiplicador de Pontos 4x",
+    "description": "Ganha 4x mais pontos por 6 horas"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Multiplicador de Pontos 5x",
+    "description": "Ganha 5x mais pontos por 3 horas"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pacote Inicial",
+    "description": "Acesso Básico + limites estendidos por 24 horas"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pacote Premium",
+    "description": "Acesso Premium + recursos Beta + 2x multiplicador por 24 horas"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pacote Supremo",
+    "description": "Acesso Pro + todos os recursos + distintivo personalizado por 3 dias"
+  }
+},
+
   
   "START": {
     "error_user_info": "❌ Erro ao obter informações do usuário.",

@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1 Eguneko Oinarrizko Sarbidea",
+    "description": "Desblokeatu oinarrizko mailako ezaugarriak 24 orduz (500 karaktere, 30 minutu ahotsa, historia)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3 Eguneko Oinarrizko Sarbidea",
+    "description": "Desblokeatu oinarrizko mailako ezaugarriak 3 egunetan"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1 Eguneko Premium Sarbidea",
+    "description": "Desblokeatu premium mailako ezaugarriak 24 orduz (2000 karaktere, 2 ordu ahotsa, lehentasuna)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3 Eguneko Premium Sarbidea",
+    "description": "Desblokeatu premium mailako ezaugarriak 3 egunetan"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1 Eguneko Pro Sarbidea",
+    "description": "Desblokeatu pro mailako ezaugarriak 24 orduz (mugagabe dena + beta sarbidea)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3 Eguneko Pro Sarbidea",
+    "description": "Desblokeatu pro mailako ezaugarriak 3 egunetan"
+  },
+  "extended_limits": {
+    "name": "📈 Karaktere Muga Handitua",
+    "description": "Handitu zure karaktere muga 1000ra 24 ordutan"
+  },
+  "extended_voice": {
+    "name": "🎤 Ahots Denbora Luzatua",
+    "description": "Lortu 1 orduko ahots itzulpen denbora gehigarria"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Ahots Txat Aurreratua V2 (Beta)",
+    "description": "Sarbidea ahots itzulpen bi noranzkoko aurreratuarako 48 ordutan"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Ahotsa Aurreratua V2 (1 Eguna)",
+    "description": "Desblokeatu ahots itzulpen bi noranzkoko aurreratua 24 ordutan"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Ahotsa Aurreratua V2 (7 Egun)",
+    "description": "Desblokeatu ahots itzulpen bi noranzkoko aurreratua 1 astez"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x Puntu Biderkatzailea",
+    "description": "Lortu 50% puntu gehiago jarduera guztietatik 48 ordutan"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Puntu Biderkatzailea",
+    "description": "Lortu bikoitza puntu jarduera guztietatik 24 ordutan"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Puntu Biderkatzailea (12h)",
+    "description": "Lortu bikoitza puntu jarduera guztietatik 12 ordutan"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Puntu Biderkatzailea",
+    "description": "Lortu hirukoitza puntu jarduera guztietatik 12 ordutan"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Puntu Biderkatzailea",
+    "description": "Lortu laukoitza puntu jarduera guztietatik 6 ordutan"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Puntu Biderkatzailea",
+    "description": "Lortu bosteko puntu jarduera guztietatik 3 ordutan"
+  },
+  "starter_bundle": {
+    "name": "🎁 Hasierako Paketea",
+    "description": "Oinarrizko sarbidea + Muga handituak 24 ordutan"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium Paketea",
+    "description": "Premium sarbidea + Beta ezaugarriak + 2x biderkatzailea 24 ordutan"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Azken Paketea",
+    "description": "Pro sarbidea + Ezaugarri guztiak + Pertsonalizatutako ikurra 3 egunetan"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Detekzio automatikoa' iturburu hizkuntzatzat bakarrik onartzen da, helburu hizkuntzatzat ez."
   },

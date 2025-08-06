@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1 dagur af Basic",
+    "description": "Virkja Basic áætlun í 24 klst (500 textaskilaboð, 30 mínútur hljóð, saga)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3 dagar af Basic",
+    "description": "Virkja Basic áætlun í 3 daga"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1 dagur af Premium",
+    "description": "Virkja Premium áætlun í 24 klst (2000 textaskilaboð, 2 klst hljóð, hámarksforgangur)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3 dagar af Premium",
+    "description": "Virkja Premium áætlun í 3 daga"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1 dagur af Pro",
+    "description": "Virkja Pro áætlun í 24 klst (allar aðgerðir + beta aðgangur)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3 dagar af Pro",
+    "description": "Virkja Pro áætlun í 3 daga"
+  },
+  "extended_limits": {
+    "name": "📈 Útvíkkuð mörk",
+    "description": "Auka hámark textaskilaboða í 1000 í 24 klst"
+  },
+  "extended_voice": {
+    "name": "🎤 Auka hljóðtími",
+    "description": "Bæta við 1 klst í hljóðþýðingar"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Rofin hljóð V2 (Beta)",
+    "description": "Virkja tvíhliða hljóðþýðingar í 48 klst"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Rofin hljóð V2 (1 dagur)",
+    "description": "Virkja tvíhliða hljóðþýðingar í 24 klst"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Rofin hljóð V2 (7 dagar)",
+    "description": "Virkja tvíhliða hljóðþýðingar í 7 daga"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x stigamargfaldari",
+    "description": "Fáðu 50% fleiri stig fyrir allar aðgerðir í 48 klst"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x stigamargfaldari",
+    "description": "Tvöfalda stig fyrir allar aðgerðir í 24 klst"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x stigamargfaldari (12 klst)",
+    "description": "Tvöfalda stig fyrir allar aðgerðir í 12 klst"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x stigamargfaldari",
+    "description": "Þreföld stig fyrir allar aðgerðir í 12 klst"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x stigamargfaldari",
+    "description": "Fjórföld stig fyrir allar aðgerðir í 6 klst"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x stigamargfaldari",
+    "description": "Fimmföld stig fyrir allar aðgerðir í 3 klst"
+  },
+  "starter_bundle": {
+    "name": "🎁 Byrjendapakki",
+    "description": "Fáðu Basic + útvíkkuð mörk í 24 klst"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium pakki",
+    "description": "Fáðu Premium + beta eiginleika + 2x stig í 24 klst"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Endanlegur pakki",
+    "description": "Fáðu Pro + alla eiginleika + sérstakan merkimiða í 3 daga"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Sjálfvirk uppgötvun' er aðeins leyfð sem upphafsmál, ekki sem markmál."
   },

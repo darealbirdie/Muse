@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Akses Asas 1 Hari",
+    "description": "Buka ciri-ciri tahap Asas selama 24 jam (500 aksara, 30 minit suara, sejarah)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Akses Asas 3 Hari",
+    "description": "Buka ciri-ciri tahap Asas selama 3 hari"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Akses Premium 1 Hari",
+    "description": "Buka ciri-ciri tahap Premium selama 24 jam (2000 aksara, 2 jam suara, keutamaan)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Akses Premium 3 Hari",
+    "description": "Buka ciri-ciri tahap Premium selama 3 hari"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Akses Pro 1 Hari",
+    "description": "Buka ciri-ciri tahap Pro selama 24 jam (semua tanpa had + akses beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Akses Pro 3 Hari",
+    "description": "Buka ciri-ciri tahap Pro selama 3 hari"
+  },
+  "extended_limits": {
+    "name": "📈 Had Aksara Diperluaskan",
+    "description": "Tingkatkan had aksara anda kepada 1000 selama 24 jam"
+  },
+  "extended_voice": {
+    "name": "🎤 Masa Suara Diperluaskan",
+    "description": "Dapatkan 1 jam masa terjemahan suara tambahan"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Sembang Suara Dipertingkat V2 (Beta)",
+    "description": "Akses terjemahan suara dwarah advanced selama 48 jam"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Suara Dipertingkat V2 (1 Hari)",
+    "description": "Buka terjemahan suara dwarah advanced selama 24 jam"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Suara Dipertingkat V2 (7 Hari)",
+    "description": "Buka terjemahan suara dwarah advanced selama 1 minggu"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Pendaraban Mata 1.5x",
+    "description": "Peroleh 50% lebih mata daripada semua aktiviti selama 48 jam"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Pendaraban Mata 2x",
+    "description": "Peroleh dua kali ganda mata daripada semua aktiviti selama 24 jam"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Pendaraban Mata 2x (12j)",
+    "description": "Peroleh dua kali ganda mata daripada semua aktiviti selama 12 jam"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Pendaraban Mata 3x",
+    "description": "Peroleh tiga kali ganda mata daripada semua aktiviti selama 12 jam"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Pendaraban Mata 4x",
+    "description": "Peroleh empat kali ganda mata daripada semua aktiviti selama 6 jam"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Pendaraban Mata 5x",
+    "description": "Peroleh lima kali ganda mata daripada semua aktiviti selama 3 jam"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pek Permulaan",
+    "description": "Akses asas + had diperluaskan selama 24 jam"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pek Premium",
+    "description": "Akses premium + ciri beta + pendaraban 2x selama 24 jam"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pek Ultimate",
+    "description": "Akses pro + semua ciri + lencana khas selama 3 hari"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Pengesanan automatik' hanya dibenarkan sebagai bahasa sumber, bukan sebagai bahasa sasaran."
   },

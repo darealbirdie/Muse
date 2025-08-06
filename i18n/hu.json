@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1 napos alap hozzáférés",
+    "description": "24 órán át feloldja az alap szintű funkciókat (500 karakter, 30 perc hang, előzmények)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3 napos alap hozzáférés",
+    "description": "3 napig feloldja az alap szintű funkciókat"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1 napos prémium hozzáférés",
+    "description": "24 órán át feloldja a prémium szintű funkciókat (2000 karakter, 2 óra hang, elsőbbség)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3 napos prémium hozzáférés",
+    "description": "3 napig feloldja a prémium szintű funkciókat"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1 napos pro hozzáférés",
+    "description": "24 órán át feloldja a pro szintű funkciókat (korlátlan minden + béta hozzáférés)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3 napos pro hozzáférés",
+    "description": "3 napig feloldja a pro szintű funkciókat"
+  },
+  "extended_limits": {
+    "name": "📈 Megnövelt karakterlimit",
+    "description": "24 órára növeld meg a karakterlimit-ed 1000-re"
+  },
+  "extended_voice": {
+    "name": "🎤 Meghosszabbított hangidő",
+    "description": "Szerezz plusz 1 óra hangfordítási időt"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Fejlett hangcsevegés V2 (Béta)",
+    "description": "Hozzáférés fejlett kétirányú hangfordításhoz 48 órán át"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Fejlett hang V2 (1 nap)",
+    "description": "24 órán át feloldja a fejlett kétirányú hangfordítást"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Fejlett hang V2 (7 nap)",
+    "description": "1 hétig feloldja a fejlett kétirányú hangfordítást"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1,5x pontszorzó",
+    "description": "Minden tevékenységből 48 órán át 50%-kal több pontot szerezz"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x pontszorzó",
+    "description": "Minden tevékenységből 24 órán át kétszer annyi pontot szerezz"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x pontszorzó (12 óra)",
+    "description": "Minden tevékenységből 12 órán át kétszer annyi pontot szerezz"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x pontszorzó",
+    "description": "Minden tevékenységből 12 órán át háromszoros pontot szerezz"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x pontszorzó",
+    "description": "Minden tevékenységből 6 órán át négyszeres pontot szerezz"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x pontszorzó",
+    "description": "Minden tevékenységből 3 órán át ötszörös pontot szerezz"
+  },
+  "starter_bundle": {
+    "name": "🎁 Kezdő csomag",
+    "description": "Alap hozzáférés + megnövelt limitek 24 órára"
+  },
+  "premium_bundle": {
+    "name": "🎉 Prémium csomag",
+    "description": "Prémium hozzáférés + béta funkciók + 2x szorzó 24 órára"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Végső csomag",
+    "description": "Pro hozzáférés + minden funkció + egyedi jelvény 3 napig"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ Az 'Automatikus felismerés' csak forrásnyelvként engedélyezett, célnyelvként nem."
   },

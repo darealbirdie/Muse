@@ -1,5 +1,5 @@
 
-{
+  {
   "CASHOUT": {
     "title_success": "🎉 Prestasiepunte omgeskakel!",
     "desc_success": "Jou prestasiepunte is suksesvol omgeskakel na aktiwiteitspunte!",
@@ -15,6 +15,88 @@
     "field_note_value": "Jy het dalk al jou huidige prestasies uitbetaal, of jy moet eers meer prestasies ontgrendel.",
     "error_generic": "❌ Fout met die omskakeling van punte."
   },
+"SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-Dag Basiese Toegang",
+    "description": "Ontsluit Basiese vlakkenmerke vir 24 uur (500 karakters, 30min stem, geskiedenis)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-Dae Basiese Toegang",
+    "description": "Ontsluit Basiese vlakkenmerke vir 3 dae"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-Dag Premium Toegang",
+    "description": "Ontsluit Premium vlakkenmerke vir 24 uur (2000 karakters, 2u stem, prioriteit)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-Dae Premium Toegang",
+    "description": "Ontsluit Premium vlakkenmerke vir 3 dae"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-Dag Pro Toegang",
+    "description": "Ontsluit Pro vlakkenmerke vir 24 uur (onbeperk alles + beta-toegang)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-Dae Pro Toegang",
+    "description": "Ontsluit Pro vlakkenmerke vir 3 dae"
+  },
+  "extended_limits": {
+    "name": "📈 Verhoogde Karakterlimiet",
+    "description": "Verhoog jou karakterlimiet tot 1000 vir 24 uur"
+  },
+  "extended_voice": {
+    "name": "🎤 Verlengde Stemtyd",
+    "description": "Kry 1 uur ekstra stemvertalingstyd"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Verbeterde Stemgesels V2 (Beta)",
+    "description": "Toegang tot gevorderde tweerigting-stemvertaling vir 48 uur"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Verbeterde Stem V2 (1 Dag)",
+    "description": "Ontsluit gevorderde tweerigting-stemvertaling vir 24 uur"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Verbeterde Stem V2 (7 Dae)",
+    "description": "Ontsluit gevorderde tweerigting-stemvertaling vir 1 week"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x Puntvermenigvuldiger",
+    "description": "Verdien 50% meer punte van alle aktiwiteite vir 48 uur"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Puntvermenigvuldiger",
+    "description": "Verdien dubbel die punte van alle aktiwiteite vir 24 uur"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Puntvermenigvuldiger (12h)",
+    "description": "Verdien dubbel die punte van alle aktiwiteite vir 12 uur"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Puntvermenigvuldiger",
+    "description": "Verdien drie keer die punte van alle aktiwiteite vir 12 uur"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Puntvermenigvuldiger",
+    "description": "Verdien vier keer die punte van alle aktiwiteite vir 6 uur"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Puntvermenigvuldiger",
+    "description": "Verdien vyf keer die punte van alle aktiwiteite vir 3 uur"
+  },
+  "starter_bundle": {
+    "name": "🎁 Beginnerspakket",
+    "description": "Basiese toegang + Verhoogde limiete vir 24 uur"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium Pakket",
+    "description": "Premium toegang + Beta-funksies + 2x vermenigvuldiger vir 24 uur"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Uiteindelike Pakket",
+    "description": "Pro toegang + Alle funksies + Pasgemaakte kenteken vir 3 dae"
+  }
+},
 
   "UPGRADE": {
     "title": "💎 Verhoog jou Vertaalervaring",

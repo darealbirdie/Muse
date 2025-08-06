@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Ụbọchị 1 Nweta Basic",
+    "description": "Wụnye atụmatụ Basic maka awa 24 (akụkụ 500, nkeji 30 olu, akụkọ)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Ụbọchị 3 Nweta Basic",
+    "description": "Wụnye atụmatụ Basic maka ụbọchị 3"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Ụbọchị 1 Nweta Premium",
+    "description": "Wụnye atụmatụ Premium maka awa 24 (akụkụ 2000, awa 2 olu, ihe kacha mkpa)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Ụbọchị 3 Nweta Premium",
+    "description": "Wụnye atụmatụ Premium maka ụbọchị 3"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Ụbọchị 1 Nweta Pro",
+    "description": "Wụnye atụmatụ Pro maka awa 24 (atụmatụ niile + nnweta beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Ụbọchị 3 Nweta Pro",
+    "description": "Wụnye atụmatụ Pro maka ụbọchị 3"
+  },
+  "extended_limits": {
+    "name": "📈 Elongated Limit",
+    "description": "Melite oke mkpụrụ edemede gị ruo 1000 maka awa 24"
+  },
+  "extended_voice": {
+    "name": "🎤 Oge olu gbakwunyere",
+    "description": "Tinye otu awa oge ntụgharị olu"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Mmelite olu V2 (Beta)",
+    "description": "Mee ka ntụgharị olu abụọ rụọ ọrụ ruo awa 48"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Mmelite olu V2 (Ụbọchị 1)",
+    "description": "Mee ka ntụgharị olu abụọ rụọ ọrụ maka awa 24"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Mmelite olu V2 (Ụbọchị 7)",
+    "description": "Mee ka ntụgharị olu abụọ rụọ ọrụ maka izu 1"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Ugboro 1.5 nke isi",
+    "description": "Nweta isi 50% karịa site n’ihe omume niile maka awa 48"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Ugboro 2 nke isi",
+    "description": "Nweta isi abụọ site n’ihe omume niile maka awa 24"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Ugboro 2 nke isi (12 awa)",
+    "description": "Nweta isi abụọ site n’ihe omume niile maka awa 12"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Ugboro 3 nke isi",
+    "description": "Nweta isi atọ site n’ihe omume niile maka awa 12"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Ugboro 4 nke isi",
+    "description": "Nweta isi anọ site n’ihe omume niile maka awa 6"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Ugboro 5 nke isi",
+    "description": "Nweta isi ise site n’ihe omume niile maka awa 3"
+  },
+  "starter_bundle": {
+    "name": "🎁 Ngwugwu Mbido",
+    "description": "Nweta Basic + oke gbakwunyere maka awa 24"
+  },
+  "premium_bundle": {
+    "name": "🎉 Ngwugwu Premium",
+    "description": "Nweta Premium + atụmatụ beta + ugboro 2 isi maka awa 24"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ngwugwu Kasị Elu",
+    "description": "Nweta Pro + atụmatụ niile + akara pụrụ iche maka ụbọchị 3"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ A na-ekwe ka 'Nchọpụta akpaghị aka' naanị dị ka asụsụ isi, ọ bụghị dị ka asụsụ ebumnuche."
   },

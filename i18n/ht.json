@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Aksè Debaz 1 Jou",
+    "description": "Dekloke karakteristik nivo Debaz pou 24 èdtan (500 karaktè, 30 minit vwa, istwa)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Aksè Debaz 3 Jou",
+    "description": "Dekloke karakteristik nivo Debaz pou 3 jou"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Aksè Premium 1 Jou",
+    "description": "Dekloke karakteristik nivo Premium pou 24 èdtan (2000 karaktè, 2 èdtan vwa, priyorite)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Aksè Premium 3 Jou",
+    "description": "Dekloke karakteristik nivo Premium pou 3 jou"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Aksè Pro 1 Jou",
+    "description": "Dekloke karakteristik nivo Pro pou 24 èdtan (tout bagay san limit + aksè beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Aksè Pro 3 Jou",
+    "description": "Dekloke karakteristik nivo Pro pou 3 jou"
+  },
+  "extended_limits": {
+    "name": "📈 Limit Karaktè Pwolonje",
+    "description": "Ogmante limit karaktè ou a 1000 pou 24 èdtan"
+  },
+  "extended_voice": {
+    "name": "🎤 Tan Vwa Pwolonje",
+    "description": "Jwenn 1 èdtan anplis pou tradiksyon vwa"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Chat Vwa Avanse V2 (Beta)",
+    "description": "Aksè a tradiksyon vwa avanse bidireksyon pou 48 èdtan"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Vwa Avanse V2 (1 Jou)",
+    "description": "Dekloke tradiksyon vwa avanse bidireksyon pou 24 èdtan"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Vwa Avanse V2 (7 Jou)",
+    "description": "Dekloke tradiksyon vwa avanse bidireksyon pou 1 semèn"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Miltiplikatè Pwen 1.5x",
+    "description": "Gagne 50% plis pwen nan tout aktivite pou 48 èdtan"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Miltiplikatè Pwen 2x",
+    "description": "Gagne doub pwen nan tout aktivite pou 24 èdtan"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Miltiplikatè Pwen 2x (12 èdtan)",
+    "description": "Gagne doub pwen nan tout aktivite pou 12 èdtan"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Miltiplikatè Pwen 3x",
+    "description": "Gagne trip pwen nan tout aktivite pou 12 èdtan"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Miltiplikatè Pwen 4x",
+    "description": "Gagne kat pwen nan tout aktivite pou 6 èdtan"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Miltiplikatè Pwen 5x",
+    "description": "Gagne 5 fwa pwen nan tout aktivite pou 3 èdtan"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pakè Kòmanse",
+    "description": "Aksè debaz + limit pwolonje pou 24 èdtan"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pakè Premium",
+    "description": "Aksè premium + karakteristik beta + miltiplikatè 2x pou 24 èdtan"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pakè Ultim",
+    "description": "Aksè pro + tout karakteristik + badge koutim pou 3 jou"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Deteksyon otomatik' sèlman pèmèt kòm lang sous, pa kòm lang sib."
   },

@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-dag Basis Tagong",
+    "description": "Mei 24 oeren tagong ta basisfunksjes (500 tekens, 30 min stim, skiednis)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-dagen Basis Tagong",
+    "description": "Mei 3 dagen tagong ta basisfunksjes"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-dag Premium Tagong",
+    "description": "Mei 24 oeren tagong ta premiumfunksjes (2000 tekens, 2 oeren stim, prioriteit)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-dagen Premium Tagong",
+    "description": "Mei 3 dagen tagong ta premiumfunksjes"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-dag Pro Tagong",
+    "description": "Mei 24 oeren tagong ta profunksjes (ûnbeheind alles + beta tagong)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-dagen Pro Tagong",
+    "description": "Mei 3 dagen tagong ta profunksjes"
+  },
+  "extended_limits": {
+    "name": "📈 Ferlingde Tekstlimyt",
+    "description": "Fergrutsje jo tekstlimyt nei 1000 tekens foar 24 oeren"
+  },
+  "extended_voice": {
+    "name": "🎤 Ferlingde Stimtiid",
+    "description": "Krij 1 oere ekstra stim-oersettingstiid"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Ferbettere Stimchat V2 (Beta)",
+    "description": "Tagong ta avansearre bidireksjonele stim-oersetting foar 48 oeren"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Ferbettere Stim V2 (1 Dei)",
+    "description": "Mei 24 oeren tagong ta avansearre bidireksjonele stim-oersetting"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Ferbettere Stim V2 (7 Dagen)",
+    "description": "Mei 1 wike tagong ta avansearre bidireksjonele stim-oersetting"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x Punteferfâldiger",
+    "description": "Fertsjinje 50% mear punten fan alle aktiviteiten foar 48 oeren"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Punteferfâldiger",
+    "description": "Fertsjinje dûbel punten fan alle aktiviteiten foar 24 oeren"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Punteferfâldiger (12 oeren)",
+    "description": "Fertsjinje dûbel punten fan alle aktiviteiten foar 12 oeren"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Punteferfâldiger",
+    "description": "Fertsjinje trijefâldich punten fan alle aktiviteiten foar 12 oeren"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Punteferfâldiger",
+    "description": "Fertsjinje fjouwer kear sa folle punten fan alle aktiviteiten foar 6 oeren"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Punteferfâldiger",
+    "description": "Fertsjinje fiif kear sa folle punten fan alle aktiviteiten foar 3 oeren"
+  },
+  "starter_bundle": {
+    "name": "🎁 Starterspakket",
+    "description": "Basis tagong + ferlingde limiten foar 24 oeren"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premiumpakket",
+    "description": "Premium tagong + beta-funksjes + 2x ferfâldiger foar 24 oeren"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimate pakket",
+    "description": "Pro tagong + alle funksjes + oanpast badge foar 3 dagen"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automatyske deteksje' is allinich tastien as boarnetaal, net as doeltaal."
   },

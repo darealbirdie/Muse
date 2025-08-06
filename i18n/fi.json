@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1 päivän peruskäyttö",
+    "description": "Avaa perusominaisuudet 24 tunniksi (500 merkkiä, 30 min ääntä, historia)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3 päivän peruskäyttö",
+    "description": "Avaa perusominaisuudet 3 päiväksi"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1 päivän premium-käyttö",
+    "description": "Avaa premium-ominaisuudet 24 tunniksi (2000 merkkiä, 2 tuntia ääntä, etuoikeus)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3 päivän premium-käyttö",
+    "description": "Avaa premium-ominaisuudet 3 päiväksi"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1 päivän pro-käyttö",
+    "description": "Avaa pro-ominaisuudet 24 tunniksi (kaikki rajattomasti + beta-käyttö)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3 päivän pro-käyttö",
+    "description": "Avaa pro-ominaisuudet 3 päiväksi"
+  },
+  "extended_limits": {
+    "name": "📈 Laajennettu merkkiraja",
+    "description": "Nosta merkkirajaasi 1000 merkkiin 24 tunniksi"
+  },
+  "extended_voice": {
+    "name": "🎤 Laajennettu puheaika",
+    "description": "Saat 1 tunnin lisäpuheaikaa käännöksiin"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Parannettu puhechat V2 (Beta)",
+    "description": "Pääsy edistyneeseen kaksisuuntaiseen puhekäännökseen 48 tunniksi"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Parannettu puhe V2 (1 päivä)",
+    "description": "Avaa edistynyt kaksisuuntainen puhekäännös 24 tunniksi"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Parannettu puhe V2 (7 päivää)",
+    "description": "Avaa edistynyt kaksisuuntainen puhekäännös viikoksi"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1,5x pistekerroin",
+    "description": "Ansaitse 50 % enemmän pisteitä kaikista toiminnoista 48 tunnin ajan"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x pistekerroin",
+    "description": "Ansaitse kaksinkertaiset pisteet kaikista toiminnoista 24 tunnin ajan"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x pistekerroin (12h)",
+    "description": "Ansaitse kaksinkertaiset pisteet kaikista toiminnoista 12 tunnin ajan"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x pistekerroin",
+    "description": "Ansaitse kolminkertaiset pisteet kaikista toiminnoista 12 tunnin ajan"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x pistekerroin",
+    "description": "Ansaitse nelinkertaiset pisteet kaikista toiminnoista 6 tunnin ajan"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x pistekerroin",
+    "description": "Ansaitse viisinkertaiset pisteet kaikista toiminnoista 3 tunnin ajan"
+  },
+  "starter_bundle": {
+    "name": "🎁 Aloituspaketti",
+    "description": "Peruskäyttö + Laajennetut rajat 24 tunniksi"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium-paketti",
+    "description": "Premium-käyttö + Beta-ominaisuudet + 2x kerroin 24 tunniksi"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimate-paketti",
+    "description": "Pro-käyttö + Kaikki ominaisuudet + Mukautettu tunnus 3 päiväksi"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automaattinen tunnistus' on sallittu vain lähdekielenä, ei kohdekielenä."
   },

@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1 dienos pagrindinis prieigas",
+    "description": "Atrakinkite pagrindinio lygio funkcijas 24 valandas (500 simbolių, 30 min. balso, istorija)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3 dienų pagrindinis prieigas",
+    "description": "Atrakinkite pagrindinio lygio funkcijas 3 dienoms"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1 dienos premium prieigas",
+    "description": "Atrakinkite premium lygio funkcijas 24 valandas (2000 simbolių, 2 val. balso, prioritetas)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3 dienų premium prieigas",
+    "description": "Atrakinkite premium lygio funkcijas 3 dienoms"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1 dienos pro prieigas",
+    "description": "Atrakinkite pro lygio funkcijas 24 valandas (neribota viskas + beta prieiga)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3 dienų pro prieigas",
+    "description": "Atrakinkite pro lygio funkcijas 3 dienoms"
+  },
+  "extended_limits": {
+    "name": "📈 Išplėstinis simbolių limitas",
+    "description": "Padidinkite savo simbolių limitą iki 1000 per 24 valandas"
+  },
+  "extended_voice": {
+    "name": "🎤 Pratęstas balso laikas",
+    "description": "Gaukite 1 valandą papildomo balso vertimo laiko"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Patobulintas balso pokalbis V2 (Beta)",
+    "description": "48 valandoms atrakinkite pažangų dvikryptį balso vertimą"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Patobulintas balso pokalbis V2 (1 diena)",
+    "description": "Atrakinamas pažangus dvikryptis balso vertimas 24 valandoms"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Patobulintas balso pokalbis V2 (7 dienos)",
+    "description": "Atrakinamas pažangus dvikryptis balso vertimas 1 savaitei"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1,5x taškų daugiklis",
+    "description": "Uždirbkite 50 % daugiau taškų iš visų veiklų per 48 valandas"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x taškų daugiklis",
+    "description": "Uždirbkite dvigubai daugiau taškų iš visų veiklų per 24 valandas"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x taškų daugiklis (12 val.)",
+    "description": "Uždirbkite dvigubai daugiau taškų iš visų veiklų per 12 valandų"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x taškų daugiklis",
+    "description": "Uždirbkite trigubai daugiau taškų iš visų veiklų per 12 valandų"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x taškų daugiklis",
+    "description": "Uždirbkite keturgubai daugiau taškų iš visų veiklų per 6 valandas"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x taškų daugiklis",
+    "description": "Uždirbkite 5 kartus daugiau taškų iš visų veiklų per 3 valandas"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pradžios paketas",
+    "description": "Pagrindinis prieigas + Išplėsti limitai 24 valandoms"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium paketas",
+    "description": "Premium prieigas + Beta funkcijos + 2x daugiklis 24 valandoms"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Galutinis paketas",
+    "description": "Pro prieigas + Visos funkcijos + Individualus ženklelis 3 dienoms"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ „Automatinis aptikimas“ leidžiamas tik kaip šaltinio kalba, ne kaip tikslinė kalba."
   },

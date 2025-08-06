@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Kuwana Basic kwe1 Zuva",
+    "description": "Vhura zvimiro zveBasic kweawa 24 (500 mavara, maminitsi 30 evhidhiyo, nhoroondo)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Kuwana Basic kwe3 Mazuva",
+    "description": "Vhura zvimiro zveBasic kwemazuva matatu"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Kuwana Premium kwe1 Zuva",
+    "description": "Vhura zvimiro zvePremium kweawa 24 (2000 mavara, maawa 2 evhidhiyo, pekutanga)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Kuwana Premium kwe3 Mazuva",
+    "description": "Vhura zvimiro zvePremium kwemazuva matatu"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Kuwana Pro kwe1 Zuva",
+    "description": "Vhura zvimiro zvePro zvese kweawa 24 (zvisingaperi + mukana webheta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Kuwana Pro kwe3 Mazuva",
+    "description": "Vhura zvimiro zvePro zvese kwemazuva matatu"
+  },
+  "extended_limits": {
+    "name": "📈 Kuwedzera Miganhu yeMavara",
+    "description": "Wedzera muganho wemavara kusvika pa1000 kweawa 24"
+  },
+  "extended_voice": {
+    "name": "🎤 Kuwedzera Nguva yeIzwi",
+    "description": "Tora awa rimwe chete yekuwedzera yekushandura izwi"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Izwi Rakagadziridzwa V2 (Beta)",
+    "description": "wana mukana wekuvandudzwa kwekushandura izwi kweawa 48"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Izwi Rakagadziridzwa V2 (1 Zuva)",
+    "description": "Vhura kushandura izwi kwakavandudzwa kweawa 24"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Izwi Rakagadziridzwa V2 (7 Mazuva)",
+    "description": "Vhura kushandura izwi kwakavandudzwa kwemazuva manomwe"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Kuwedzera Points 1.5x",
+    "description": "Wana mapoinzi 50% zvakawanda kubva pazviitwa zvese kweawa 48"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Kuwedzera Points 2x",
+    "description": "Wana mapoinzi kaviri kubva pazviitwa zvese kweawa 24"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Kuwedzera Points 2x (awa 12)",
+    "description": "Wana mapoinzi kaviri kubva pazviitwa zvese kweawa 12"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Kuwedzera Points 3x",
+    "description": "Wana mapoinzi katatu kubva pazviitwa zvese kweawa 12"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Kuwedzera Points 4x",
+    "description": "Wana mapoinzi kana katatu kubva pazviitwa zvese kweawa 6"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Kuwedzera Points 5x",
+    "description": "Wana mapoinzi kanoshanu kubva pazviitwa zvese kweawa 3"
+  },
+  "starter_bundle": {
+    "name": "🎁 Starter Bundle",
+    "description": "Kuwana Basic + Kuwedzera miganhu kweawa 24"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium Bundle",
+    "description": "Kuwana Premium + Zvinyorwa beta + Kuwedzera points 2x kweawa 24"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimate Bundle",
+    "description": "Kuwana Pro + Zvose zvinoshanda + Badge yega yega kwemazuva 3"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Kuona otomatiki' kunobvumidzwa chete seshoko remutauro wekutanga, kwete semutauro wekwauri kuenda."
   },

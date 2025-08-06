@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-Taga Bazara Aliro",
+    "description": "Malŝlosu bazajn funkciojn dum 24 horoj (500 signoj, 30 min voĉo, historio)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-Tagaj Bazara Aliro",
+    "description": "Malŝlosu bazajn funkciojn dum 3 tagoj"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-Taga Premiuma Aliro",
+    "description": "Malŝlosu premiumajn funkciojn dum 24 horoj (2000 signoj, 2h voĉo, prioritato)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-Tagaj Premiuma Aliro",
+    "description": "Malŝlosu premiumajn funkciojn dum 3 tagoj"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-Taga Pro Aliro",
+    "description": "Malŝlosu pro-funkciojn dum 24 horoj (senlimigita ĉio + beta aliro)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-Tagaj Pro Aliro",
+    "description": "Malŝlosu pro-funkciojn dum 3 tagoj"
+  },
+  "extended_limits": {
+    "name": "📈 Pligrandigita Signolimo",
+    "description": "Pliigu vian signolimon al 1000 dum 24 horoj"
+  },
+  "extended_voice": {
+    "name": "🎤 Plilongigita Voĉa Tempo",
+    "description": "Ricevu 1 horon da ekstra voĉa traduko"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Plibonigita Voĉa Babilejo V2 (Beta)",
+    "description": "Aliro al progresinta duflanka voĉa traduko dum 48 horoj"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Plibonigita Voĉo V2 (1 Tago)",
+    "description": "Malŝlosu progresintan duflankan voĉan tradukon dum 24 horoj"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Plibonigita Voĉo V2 (7 Tagoj)",
+    "description": "Malŝlosu progresintan duflankan voĉan tradukon dum 1 semajno"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x Poent-multiplikilo",
+    "description": "Gajnu 50% pli da poentoj de ĉiuj agadoj dum 48 horoj"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Poent-multiplikilo",
+    "description": "Gajnu duoblon da poentoj de ĉiuj agadoj dum 24 horoj"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Poent-multiplikilo (12h)",
+    "description": "Gajnu duoblon da poentoj de ĉiuj agadoj dum 12 horoj"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Poent-multiplikilo",
+    "description": "Gajnu trioblon da poentoj de ĉiuj agadoj dum 12 horoj"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Poent-multiplikilo",
+    "description": "Gajnu kvaroblon da poentoj de ĉiuj agadoj dum 6 horoj"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Poent-multiplikilo",
+    "description": "Gajnu kvinoblon da poentoj de ĉiuj agadoj dum 3 horoj"
+  },
+  "starter_bundle": {
+    "name": "🎁 Komenca Pako",
+    "description": "Bazara aliro + plilongigitaj limoj dum 24h"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premiuma Pako",
+    "description": "Premiuma aliro + beta-funkcioj + 2x multiplikilo dum 24h"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Finfina Pako",
+    "description": "Pro aliro + ĉiuj funkcioj + propra emblemo dum 3 tagoj"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Aŭtomata detekto' estas permesata nur kiel fonta lingvo, ne kiel cela lingvo."
   },

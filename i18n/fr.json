@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Accès Basique 1 Jour",
+    "description": "Débloquez les fonctionnalités du niveau Basique pendant 24 heures (500 caractères, 30 min de voix, historique)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Accès Basique 3 Jours",
+    "description": "Débloquez les fonctionnalités du niveau Basique pendant 3 jours"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Accès Premium 1 Jour",
+    "description": "Débloquez les fonctionnalités du niveau Premium pendant 24 heures (2000 caractères, 2h de voix, priorité)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Accès Premium 3 Jours",
+    "description": "Débloquez les fonctionnalités du niveau Premium pendant 3 jours"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Accès Pro 1 Jour",
+    "description": "Débloquez les fonctionnalités du niveau Pro pendant 24 heures (tout illimité + accès beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Accès Pro 3 Jours",
+    "description": "Débloquez les fonctionnalités du niveau Pro pendant 3 jours"
+  },
+  "extended_limits": {
+    "name": "📈 Limite de caractères étendue",
+    "description": "Augmentez votre limite de caractères à 1000 pendant 24 heures"
+  },
+  "extended_voice": {
+    "name": "🎤 Temps de voix étendu",
+    "description": "Obtenez 1 heure de temps supplémentaire de traduction vocale"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Chat vocal amélioré V2 (Beta)",
+    "description": "Accès à la traduction vocale bidirectionnelle avancée pendant 48 heures"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Voix améliorée V2 (1 jour)",
+    "description": "Débloquez la traduction vocale bidirectionnelle avancée pendant 24 heures"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Voix améliorée V2 (7 jours)",
+    "description": "Débloquez la traduction vocale bidirectionnelle avancée pendant 1 semaine"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Multiplicateur de points 1.5x",
+    "description": "Gagnez 50 % de points supplémentaires sur toutes les activités pendant 48 heures"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Multiplicateur de points 2x",
+    "description": "Gagnez le double de points sur toutes les activités pendant 24 heures"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Multiplicateur de points 2x (12h)",
+    "description": "Gagnez le double de points sur toutes les activités pendant 12 heures"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Multiplicateur de points 3x",
+    "description": "Gagnez le triple de points sur toutes les activités pendant 12 heures"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Multiplicateur de points 4x",
+    "description": "Gagnez le quadruple de points sur toutes les activités pendant 6 heures"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Multiplicateur de points 5x",
+    "description": "Gagnez 5 fois plus de points sur toutes les activités pendant 3 heures"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pack de démarrage",
+    "description": "Accès basique + Limites étendues pendant 24h"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pack Premium",
+    "description": "Accès premium + Fonctionnalités beta + Multiplicateur 2x pendant 24h"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pack Ultime",
+    "description": "Accès pro + Toutes les fonctionnalités + Badge personnalisé pendant 3 jours"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ La détection automatique est autorisée uniquement comme langue source, pas comme langue cible."
   },

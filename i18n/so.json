@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Helitaanka Aasaasiga ah 1-Maalin",
+    "description": "Fur astaamaha heerka Aasaasiga ah muddo 24 saacadood ah (500 xaraf, 30 daqiiqo cod, taariikh)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Helitaanka Aasaasiga ah 3-Maalin",
+    "description": "Fur astaamaha heerka Aasaasiga ah muddo 3 maalmood ah"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Helitaanka Premium 1-Maalin",
+    "description": "Fur astaamaha heerka Premium muddo 24 saacadood ah (2000 xaraf, 2 saacadood cod, mudnaanta)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Helitaanka Premium 3-Maalin",
+    "description": "Fur astaamaha heerka Premium muddo 3 maalmood ah"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Helitaanka Pro 1-Maalin",
+    "description": "Fur dhammaan astaamaha heerka Pro muddo 24 saacadood ah (aan xadidnayn + helitaanka beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Helitaanka Pro 3-Maalin",
+    "description": "Fur dhammaan astaamaha heerka Pro muddo 3 maalmood ah"
+  },
+  "extended_limits": {
+    "name": "📈 Xadadka Xarafka La Ballaariyay",
+    "description": "Kordhi xadka xarafkaaga ilaa 1000 muddo 24 saacadood ah"
+  },
+  "extended_voice": {
+    "name": "🎤 Waqtiga Codka La Ballaariyay",
+    "description": "Hel 1 saac oo dheeri ah oo turjumaad cod ah"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Codka La Hormariyey V2 (Beta)",
+    "description": "Helitaanka turjumaadda codka oo labada dhinac ah muddo 48 saacadood ah"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Codka La Hormariyey V2 (1 Maalin)",
+    "description": "Fur turjumaadda codka oo labada dhinac ah muddo 24 saacadood ah"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Codka La Hormariyey V2 (7 Maalmood)",
+    "description": "Fur turjumaadda codka oo labada dhinac ah muddo 1 toddobaad ah"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Kordhinta Dhibcaha 1.5x",
+    "description": "Kasbo 50% dhibco dheeri ah dhammaan hawlaha muddo 48 saacadood ah"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Kordhinta Dhibcaha 2x",
+    "description": "Kasbo dhibco labanlaab ah dhammaan hawlaha muddo 24 saacadood ah"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Kordhinta Dhibcaha 2x (12 Saacadood)",
+    "description": "Kasbo dhibco labanlaab ah dhammaan hawlaha muddo 12 saacadood ah"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Kordhinta Dhibcaha 3x",
+    "description": "Kasbo dhibco saddex jibaaran dhammaan hawlaha muddo 12 saacadood ah"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Kordhinta Dhibcaha 4x",
+    "description": "Kasbo dhibco afar jibaaran dhammaan hawlaha muddo 6 saacadood ah"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Kordhinta Dhibcaha 5x",
+    "description": "Kasbo dhibco shan jibaaran dhammaan hawlaha muddo 3 saacadood ah"
+  },
+  "starter_bundle": {
+    "name": "🎁 Xidhmada Bilowga",
+    "description": "Helitaanka aasaasiga ah + Xadadka la ballaariyay muddo 24 saacadood ah"
+  },
+  "premium_bundle": {
+    "name": "🎉 Xidhmada Premium",
+    "description": "Helitaanka premium + Astaamaha beta + Kordhinta dhibcaha 2x muddo 24 saacadood ah"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Xidhmada Ugu Sareysa",
+    "description": "Helitaanka pro + Dhammaan astaamaha + Calaamadda gaarka ah muddo 3 maalmood ah"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Ogaanshaha tooska ah' waxaa loo oggol yahay oo kaliya luqadda isha, ma ahan luqadda bartilmaameedka."
   },

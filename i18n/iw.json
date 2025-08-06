@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 יום אחד של Basic",
+    "description": "הפעל את תוכנית Basic ל־24 שעות (500 הודעות טקסט, 30 דקות שמע, היסטוריה)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3 ימים של Basic",
+    "description": "הפעל את תוכנית Basic ל־3 ימים"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 יום אחד של Premium",
+    "description": "הפעל את תוכנית Premium ל־24 שעות (2000 הודעות טקסט, שעתיים שמע, עדיפות גבוהה)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3 ימים של Premium",
+    "description": "הפעל את תוכנית Premium ל־3 ימים"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 יום אחד של Pro",
+    "description": "הפעל את תוכנית Pro ל־24 שעות (כל הפיצ’רים + גישה לבטא)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3 ימים של Pro",
+    "description": "הפעל את תוכנית Pro ל־3 ימים"
+  },
+  "extended_limits": {
+    "name": "📈 הגבלת הודעות מורחבת",
+    "description": "העלה את מגבלת הודעות הטקסט ל־1000 למשך 24 שעות"
+  },
+  "extended_voice": {
+    "name": "🎤 זמן שמע נוסף",
+    "description": "הוסף שעה נוספת לתרגומי קול"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 קול משופר V2 (בטא)",
+    "description": "הפעל תרגום קולי דו־כיווני ל־48 שעות"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 קול משופר V2 (יום אחד)",
+    "description": "הפעל תרגום קולי דו־כיווני ל־24 שעות"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 קול משופר V2 (7 ימים)",
+    "description": "הפעל תרגום קולי דו־כיווני ל־7 ימים"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 מכפיל נקודות 1.5x",
+    "description": "קבל 50% יותר נקודות על כל פעולה למשך 48 שעות"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 מכפיל נקודות 2x",
+    "description": "קבל פי שניים נקודות על כל פעולה למשך 24 שעות"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 מכפיל נקודות 2x (12 שעות)",
+    "description": "קבל פי שניים נקודות על כל פעולה למשך 12 שעות"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 מכפיל נקודות 3x",
+    "description": "קבל פי שלוש נקודות על כל פעולה למשך 12 שעות"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 מכפיל נקודות 4x",
+    "description": "קבל פי ארבע נקודות על כל פעולה למשך 6 שעות"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 מכפיל נקודות 5x",
+    "description": "קבל פי חמש נקודות על כל פעולה למשך 3 שעות"
+  },
+  "starter_bundle": {
+    "name": "🎁 חבילת התחלה",
+    "description": "קבל Basic + הגבלות מורחבות ל־24 שעות"
+  },
+  "premium_bundle": {
+    "name": "🎉 חבילת פרימיום",
+    "description": "קבל Premium + פיצ’רים בבטא + נקודות כפולות ל־24 שעות"
+  },
+  "ultimate_bundle": {
+    "name": "👑 חבילת אולטימטיבית",
+    "description": "קבל Pro + כל הפיצ’רים + תג מיוחד ל־3 ימים"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'זיהוי אוטומטי' מותר רק כשפת מקור, לא כשפת יעד."
   },

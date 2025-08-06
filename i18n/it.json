@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1 giorno di Basic",
+    "description": "Attiva il piano Basic per 24 ore (500 messaggi di testo, 30 minuti di audio, cronologia)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3 giorni di Basic",
+    "description": "Attiva il piano Basic per 3 giorni"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1 giorno di Premium",
+    "description": "Attiva il piano Premium per 24 ore (2000 messaggi di testo, 2 ore di audio, priorità massima)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3 giorni di Premium",
+    "description": "Attiva il piano Premium per 3 giorni"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1 giorno di Pro",
+    "description": "Attiva il piano Pro per 24 ore (tutte le funzionalità + accesso beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3 giorni di Pro",
+    "description": "Attiva il piano Pro per 3 giorni"
+  },
+  "extended_limits": {
+    "name": "📈 Limiti Estesi",
+    "description": "Aumenta il limite dei messaggi di testo a 1000 per 24 ore"
+  },
+  "extended_voice": {
+    "name": "🎤 Tempo Audio Esteso",
+    "description": "Aggiungi 1 ora in più alle traduzioni vocali"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Voce Migliorata V2 (Beta)",
+    "description": "Attiva traduzioni vocali bidirezionali per 48 ore"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Voce Migliorata V2 (1 giorno)",
+    "description": "Attiva traduzioni vocali bidirezionali per 24 ore"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Voce Migliorata V2 (7 giorni)",
+    "description": "Attiva traduzioni vocali bidirezionali per 7 giorni"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Moltiplicatore Punti 1.5x",
+    "description": "Ottieni il 50% in più di punti per tutte le azioni per 48 ore"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Moltiplicatore Punti 2x",
+    "description": "Ottieni il doppio dei punti per tutte le azioni per 24 ore"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Moltiplicatore Punti 2x (12h)",
+    "description": "Ottieni il doppio dei punti per tutte le azioni per 12 ore"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Moltiplicatore Punti 3x",
+    "description": "Ottieni il triplo dei punti per tutte le azioni per 12 ore"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Moltiplicatore Punti 4x",
+    "description": "Ottieni 4 volte i punti per tutte le azioni per 6 ore"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Moltiplicatore Punti 5x",
+    "description": "Ottieni 5 volte i punti per tutte le azioni per 3 ore"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pacchetto Iniziale",
+    "description": "Ricevi Basic + limiti estesi per 24 ore"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pacchetto Premium",
+    "description": "Ricevi Premium + funzionalità beta + 2x punti per 24 ore"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pacchetto Ultimativo",
+    "description": "Ricevi Pro + tutte le funzionalità + badge speciale per 3 giorni"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Rilevamento automatico' è consentito solo come lingua di origine, non come lingua di destinazione."
   },

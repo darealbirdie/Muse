@@ -1,4 +1,87 @@
  {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Základní přístup na 1 den",
+    "description": "Odemkni funkce základní úrovně na 24 hodin (500 znaků, 30min hlasu, historie)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Základní přístup na 3 dny",
+    "description": "Odemkni funkce základní úrovně na 3 dny"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Prémiový přístup na 1 den",
+    "description": "Odemkni funkce prémiové úrovně na 24 hodin (2000 znaků, 2h hlasu, priorita)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Prémiový přístup na 3 dny",
+    "description": "Odemkni funkce prémiové úrovně na 3 dny"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Pro přístup na 1 den",
+    "description": "Odemkni funkce Pro úrovně na 24 hodin (neomezeně vše + přístup k betaverzi)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Pro přístup na 3 dny",
+    "description": "Odemkni funkce Pro úrovně na 3 dny"
+  },
+  "extended_limits": {
+    "name": "📈 Rozšířený limit znaků",
+    "description": "Zvýšení limitu znaků na 1000 po dobu 24 hodin"
+  },
+  "extended_voice": {
+    "name": "🎤 Rozšířený hlasový čas",
+    "description": "Získej další 1 hodinu hlasového překladu"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Vylepšený hlasový chat V2 (Beta)",
+    "description": "Přístup k pokročilému obousměrnému hlasovému překladu na 48 hodin"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Vylepšený hlas V2 (1 den)",
+    "description": "Odemkni pokročilý obousměrný hlasový překlad na 24 hodin"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Vylepšený hlas V2 (7 dní)",
+    "description": "Odemkni pokročilý obousměrný hlasový překlad na 1 týden"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x Násobič bodů",
+    "description": "Získej o 50 % více bodů ze všech aktivit po dobu 48 hodin"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Násobič bodů",
+    "description": "Získej dvojnásobek bodů ze všech aktivit po dobu 24 hodin"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Násobič bodů (12h)",
+    "description": "Získej dvojnásobek bodů ze všech aktivit po dobu 12 hodin"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Násobič bodů",
+    "description": "Získej trojnásobek bodů ze všech aktivit po dobu 12 hodin"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Násobič bodů",
+    "description": "Získej čtyřnásobek bodů ze všech aktivit po dobu 6 hodin"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Násobič bodů",
+    "description": "Získej pětinásobek bodů ze všech aktivit po dobu 3 hodin"
+  },
+  "starter_bundle": {
+    "name": "🎁 Startovací balíček",
+    "description": "Základní přístup + rozšířené limity na 24 hodin"
+  },
+  "premium_bundle": {
+    "name": "🎉 Prémiový balíček",
+    "description": "Prémiový přístup + beta funkce + 2x násobič na 24 hodin"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimátní balíček",
+    "description": "Pro přístup + všechny funkce + vlastní odznak na 3 dny"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automatická detekce' je povolena pouze jako zdrojový jazyk, nikoli jako cílový jazyk."
   },

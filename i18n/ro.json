@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Acces de Bază pentru 1 Zi",
+    "description": "Deblochează funcțiile nivelului de bază pentru 24 de ore (500 caractere, 30 min voce, istoric)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Acces de Bază pentru 3 Zile",
+    "description": "Deblochează funcțiile nivelului de bază pentru 3 zile"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Acces Premium pentru 1 Zi",
+    "description": "Deblochează funcțiile Premium pentru 24 de ore (2000 caractere, 2h voce, prioritate)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Acces Premium pentru 3 Zile",
+    "description": "Deblochează funcțiile Premium pentru 3 zile"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Acces Pro pentru 1 Zi",
+    "description": "Deblochează toate funcțiile Pro pentru 24 de ore (fără limite + acces Beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Acces Pro pentru 3 Zile",
+    "description": "Deblochează toate funcțiile Pro pentru 3 zile"
+  },
+  "extended_limits": {
+    "name": "📈 Limită de Caractere Extinsă",
+    "description": "Crește limita de caractere la 1000 pentru 24 de ore"
+  },
+  "extended_voice": {
+    "name": "🎤 Timp Suplimentar de Voce",
+    "description": "Primești o oră suplimentară de traducere vocală"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Voce Avansată V2 (Beta)",
+    "description": "Acces la traducere vocală avansată timp de 48 de ore"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Voce Avansată V2 (1 Zi)",
+    "description": "Deblochează Vocea Avansată V2 pentru 24 de ore"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Voce Avansată V2 (7 Zile)",
+    "description": "Deblochează Vocea Avansată V2 pentru 7 zile"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Multiplicator de Puncte 1.5x",
+    "description": "Primești cu 50% mai multe puncte din toate activitățile timp de 48 de ore"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Multiplicator de Puncte 2x",
+    "description": "Primești de două ori mai multe puncte timp de 24 de ore"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Multiplicator de Puncte 2x (12h)",
+    "description": "Primești de două ori mai multe puncte timp de 12 ore"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Multiplicator de Puncte 3x",
+    "description": "Primești de 3 ori mai multe puncte timp de 12 ore"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Multiplicator de Puncte 4x",
+    "description": "Primești de 4 ori mai multe puncte timp de 6 ore"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Multiplicator de Puncte 5x",
+    "description": "Primești de 5 ori mai multe puncte timp de 3 ore"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pachet de Start",
+    "description": "Acces de Bază + limite extinse pentru 24 de ore"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pachet Premium",
+    "description": "Acces Premium + funcții Beta + multiplicator 2x pentru 24 de ore"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pachet Suprem",
+    "description": "Acces Pro + toate funcțiile + insignă personalizată pentru 3 zile"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Detectarea automată' este permisă doar ca limbă sursă, nu ca limbă țintă."
   },

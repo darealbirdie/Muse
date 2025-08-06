@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1 Günlük Temel Erişim",
+    "description": "Temel seviye özelliklerin kilidini 24 saat açar (500 karakter, 30 dakika ses, geçmiş)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3 Günlük Temel Erişim",
+    "description": "Temel seviye özelliklerin kilidini 3 gün açar"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1 Günlük Premium Erişim",
+    "description": "Premium seviye özelliklerin kilidini 24 saat açar (2000 karakter, 2 saat ses, öncelik)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3 Günlük Premium Erişim",
+    "description": "Premium seviye özelliklerin kilidini 3 gün açar"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1 Günlük Pro Erişim",
+    "description": "Pro seviye özelliklerin kilidini 24 saat açar (sınırsız her şey + beta erişimi)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3 Günlük Pro Erişim",
+    "description": "Pro seviye özelliklerin kilidini 3 gün açar"
+  },
+  "extended_limits": {
+    "name": "📈 Uzatılmış Karakter Limiti",
+    "description": "Karakter limitinizi 24 saat boyunca 1000'e çıkarır"
+  },
+  "extended_voice": {
+    "name": "🎤 Uzatılmış Ses Süresi",
+    "description": "1 saat ek ses çeviri süresi kazanırsınız"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Gelişmiş Ses V2 (Beta)",
+    "description": "48 saat boyunca gelişmiş çift yönlü ses çevirisine erişim"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Gelişmiş Ses V2 (1 Gün)",
+    "description": "24 saat boyunca gelişmiş çift yönlü ses çevirisinin kilidini açar"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Gelişmiş Ses V2 (7 Gün)",
+    "description": "1 hafta boyunca gelişmiş çift yönlü ses çevirisinin kilidini açar"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x Puan Çarpanı",
+    "description": "48 saat boyunca tüm aktivitelerden %50 daha fazla puan kazanırsınız"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Puan Çarpanı",
+    "description": "24 saat boyunca tüm aktivitelerden iki kat puan kazanırsınız"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Puan Çarpanı (12s)",
+    "description": "12 saat boyunca tüm aktivitelerden iki kat puan kazanırsınız"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Puan Çarpanı",
+    "description": "12 saat boyunca tüm aktivitelerden üç kat puan kazanırsınız"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Puan Çarpanı",
+    "description": "6 saat boyunca tüm aktivitelerden dört kat puan kazanırsınız"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Puan Çarpanı",
+    "description": "3 saat boyunca tüm aktivitelerden beş kat puan kazanırsınız"
+  },
+  "starter_bundle": {
+    "name": "🎁 Başlangıç Paketi",
+    "description": "Temel erişim + Uzatılmış limitler 24 saat"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium Paketi",
+    "description": "Premium erişim + Beta özellikler + 2x çarpan 24 saat"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Nihai Paket",
+    "description": "Pro erişim + Tüm özellikler + Özel rozet 3 gün"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Otomatik algılama' yalnızca kaynak dil olarak izin verilir, hedef dil olarak değil."
   },

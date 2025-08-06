@@ -1,4 +1,87 @@
 { 
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Privremeni osnovni pristup - 1 dan",
+    "description": "Otključajte osnovne značajke razine na 24 sata (500 znakova, 30 minuta glasa, povijest)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Privremeni osnovni pristup - 3 dana",
+    "description": "Otključajte osnovne značajke razine na 3 dana"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Privremeni premium pristup - 1 dan",
+    "description": "Otključajte premium značajke razine na 24 sata (2000 znakova, 2 sata glasa, prioritet)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Privremeni premium pristup - 3 dana",
+    "description": "Otključajte premium značajke razine na 3 dana"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Privremeni pro pristup - 1 dan",
+    "description": "Otključajte pro značajke razine na 24 sata (neograničeno sve + beta pristup)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Privremeni pro pristup - 3 dana",
+    "description": "Otključajte pro značajke razine na 3 dana"
+  },
+  "extended_limits": {
+    "name": "📈 Povećani limit znakova",
+    "description": "Povećajte svoj limit znakova na 1000 za 24 sata"
+  },
+  "extended_voice": {
+    "name": "🎤 Produženo vrijeme za glas",
+    "description": "Dobijte dodatnih 1 sat vremena za glasovni prijevod"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Poboljšani glasovni chat V2 (beta)",
+    "description": "Pristup naprednom dvosmjernom glasovnom prijevodu na 48 sati"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Poboljšani glas V2 (1 dan)",
+    "description": "Otključajte napredni dvosmjerni glasovni prijevod na 24 sata"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Poboljšani glas V2 (7 dana)",
+    "description": "Otključajte napredni dvosmjerni glasovni prijevod na 1 tjedan"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Množitelj bodova 1.5x",
+    "description": "Zaradite 50 % više bodova iz svih aktivnosti tijekom 48 sati"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Množitelj bodova 2x",
+    "description": "Zaradite dvostruke bodove iz svih aktivnosti tijekom 24 sata"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Množitelj bodova 2x (12 sati)",
+    "description": "Zaradite dvostruke bodove iz svih aktivnosti tijekom 12 sati"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Množitelj bodova 3x",
+    "description": "Zaradite trostruke bodove iz svih aktivnosti tijekom 12 sati"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Množitelj bodova 4x",
+    "description": "Zaradite četverostruke bodove iz svih aktivnosti tijekom 6 sati"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Množitelj bodova 5x",
+    "description": "Zaradite 5x bodova iz svih aktivnosti tijekom 3 sata"
+  },
+  "starter_bundle": {
+    "name": "🎁 Početni paket",
+    "description": "Osnovni pristup + produženi limiti na 24 sata"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium paket",
+    "description": "Premium pristup + beta značajke + 2x množitelj na 24 sata"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Krajnji paket",
+    "description": "Pro pristup + sve značajke + prilagođeni bedž na 3 dana"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automatsko prepoznavanje' dopušteno je samo kao izvorni jezik, a ne kao ciljni jezik."
   },

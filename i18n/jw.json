@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Dhasar 1 Dina",
+    "description": "Aktifake paket Dhasar suwene 24 jam (500 teks, 30 menit swara, riwayat)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Dhasar 3 Dina",
+    "description": "Aktifake paket Dhasar suwene 3 dina"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Premium 1 Dina",
+    "description": "Aktifake paket Premium suwene 24 jam (2000 teks, 2 jam swara, prioritas dhuwur)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Premium 3 Dina",
+    "description": "Aktifake paket Premium suwene 3 dina"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Pro 1 Dina",
+    "description": "Aktifake paket Pro suwene 24 jam (kabeh fitur + akses beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Pro 3 Dina",
+    "description": "Aktifake paket Pro suwene 3 dina"
+  },
+  "extended_limits": {
+    "name": "📈 Watesan Teks Ditambah",
+    "description": "Tambah watesan teks nganti 1000 suwene 24 jam"
+  },
+  "extended_voice": {
+    "name": "🎤 Tambahan Wektu Swara",
+    "description": "Tambah 1 jam wektu terjemahan swara"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Swara V2 (Beta)",
+    "description": "Aktifake terjemahan swara loro-arah suwene 48 jam"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Swara V2 (1 Dina)",
+    "description": "Aktifake terjemahan swara loro-arah suwene 24 jam"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Swara V2 (7 Dina)",
+    "description": "Aktifake terjemahan swara loro-arah suwene 7 dina"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Poin 1.5x",
+    "description": "Entuk 50% poin luwih akeh saka kabeh aktivitas (48 jam)"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Poin 2x",
+    "description": "Entuk kaping pindho poin saka kabeh aktivitas (24 jam)"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Poin 2x (12 Jam)",
+    "description": "Entuk kaping pindho poin saka kabeh aktivitas (12 jam)"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Poin 3x",
+    "description": "Entuk kaping telu poin saka kabeh aktivitas (12 jam)"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Poin 4x",
+    "description": "Entuk kaping papat poin saka kabeh aktivitas (6 jam)"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Poin 5x",
+    "description": "Entuk kaping lima poin saka kabeh aktivitas (3 jam)"
+  },
+  "starter_bundle": {
+    "name": "🎁 Paket Miwitan",
+    "description": "Dhasar + Watesan Ditambah (24 jam)"
+  },
+  "premium_bundle": {
+    "name": "🎉 Paket Premium",
+    "description": "Premium + Fitur Beta + Poin 2x (24 jam)"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Paket Ultimate",
+    "description": "Pro + Kabeh fitur + Badge eksklusif (3 dina)"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Deteksi otomatis' mung diidini minangka basa sumber, dudu basa target."
   },

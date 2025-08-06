@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Upatikanaji wa Msingi wa Siku 1",
+    "description": "Fungua vipengele vya ngazi ya Msingi kwa masaa 24 (herufi 500, dakika 30 sauti, historia)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Upatikanaji wa Msingi wa Siku 3",
+    "description": "Fungua vipengele vya ngazi ya Msingi kwa siku 3"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Upatikanaji wa Premium wa Siku 1",
+    "description": "Fungua vipengele vya ngazi ya Premium kwa masaa 24 (herufi 2000, saa 2 sauti, kipaumbele)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Upatikanaji wa Premium wa Siku 3",
+    "description": "Fungua vipengele vya ngazi ya Premium kwa siku 3"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Upatikanaji wa Pro wa Siku 1",
+    "description": "Fungua vipengele vya ngazi ya Pro kwa masaa 24 (bila kikomo + upatikanaji wa beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Upatikanaji wa Pro wa Siku 3",
+    "description": "Fungua vipengele vya ngazi ya Pro kwa siku 3"
+  },
+  "extended_limits": {
+    "name": "📈 Kiwango Kilichoongezwa cha Herufi",
+    "description": "Ongeza kikomo cha herufi hadi 1000 kwa masaa 24"
+  },
+  "extended_voice": {
+    "name": "🎤 Muda wa Sauti Umeongezwa",
+    "description": "Pata saa 1 ya ziada ya muda wa kutafsiri sauti"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Sauti Ilioboreshwa V2 (Beta)",
+    "description": "Upatikanaji wa tafsiri ya sauti ya pande mbili ya hali ya juu kwa masaa 48"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Sauti Ilioboreshwa V2 (Siku 1)",
+    "description": "Fungua tafsiri ya sauti ya pande mbili ya hali ya juu kwa masaa 24"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Sauti Ilioboreshwa V2 (Siku 7)",
+    "description": "Fungua tafsiri ya sauti ya pande mbili ya hali ya juu kwa wiki 1"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Kuongeza Alama 1.5x",
+    "description": "Pata alama 50% zaidi kutoka kwa shughuli zote kwa masaa 48"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Kuongeza Alama 2x",
+    "description": "Pata alama mara mbili kutoka kwa shughuli zote kwa masaa 24"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Kuongeza Alama 2x (Masaa 12)",
+    "description": "Pata alama mara mbili kutoka kwa shughuli zote kwa masaa 12"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Kuongeza Alama 3x",
+    "description": "Pata alama mara tatu kutoka kwa shughuli zote kwa masaa 12"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Kuongeza Alama 4x",
+    "description": "Pata alama mara nne kutoka kwa shughuli zote kwa masaa 6"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Kuongeza Alama 5x",
+    "description": "Pata alama mara tano kutoka kwa shughuli zote kwa masaa 3"
+  },
+  "starter_bundle": {
+    "name": "🎁 Kifurushi cha Msingi",
+    "description": "Upatikanaji wa msingi + viwango vilivyoongezwa kwa masaa 24"
+  },
+  "premium_bundle": {
+    "name": "🎉 Kifurushi cha Premium",
+    "description": "Upatikanaji wa premium + vipengele vya beta + kuongezwa kwa alama 2x kwa masaa 24"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Kifurushi cha Mwisho",
+    "description": "Upatikanaji wa pro + vipengele vyote + beji maalum kwa siku 3"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Utambuzi wa moja kwa moja' unaruhusiwa tu kama lugha chanzo, si lugha lengwa."
   },

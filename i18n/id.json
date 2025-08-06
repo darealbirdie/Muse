@@ -1,5 +1,88 @@
 
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Akses Basic 1 Hari",
+    "description": "Aktifkan fitur tingkat Basic selama 24 jam (500 karakter, 30 menit suara, riwayat)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Akses Basic 3 Hari",
+    "description": "Aktifkan fitur tingkat Basic selama 3 hari"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Akses Premium 1 Hari",
+    "description": "Aktifkan fitur tingkat Premium selama 24 jam (2000 karakter, 2 jam suara, prioritas)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Akses Premium 3 Hari",
+    "description": "Aktifkan fitur tingkat Premium selama 3 hari"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Akses Pro 1 Hari",
+    "description": "Aktifkan fitur tingkat Pro selama 24 jam (fitur tanpa batas + akses beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Akses Pro 3 Hari",
+    "description": "Aktifkan fitur tingkat Pro selama 3 hari"
+  },
+  "extended_limits": {
+    "name": "📈 Batas Karakter Diperluas",
+    "description": "Tingkatkan batas karakter kamu menjadi 1000 selama 24 jam"
+  },
+  "extended_voice": {
+    "name": "🎤 Waktu Suara Diperluas",
+    "description": "Tambahkan 1 jam waktu terjemahan suara"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Percakapan Suara V2 yang Ditingkatkan (Beta)",
+    "description": "Aktifkan terjemahan suara dua arah selama 48 jam"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Suara Ditingkatkan V2 (1 Hari)",
+    "description": "Aktifkan terjemahan suara dua arah tingkat lanjut selama 24 jam"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Suara Ditingkatkan V2 (7 Hari)",
+    "description": "Aktifkan terjemahan suara dua arah tingkat lanjut selama 1 minggu"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Pengganda Poin 1.5x",
+    "description": "Dapatkan 50% lebih banyak poin dari semua aktivitas selama 48 jam"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Pengganda Poin 2x",
+    "description": "Dapatkan dua kali lipat poin dari semua aktivitas selama 24 jam"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Pengganda Poin 2x (12 Jam)",
+    "description": "Dapatkan dua kali lipat poin dari semua aktivitas selama 12 jam"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Pengganda Poin 3x",
+    "description": "Dapatkan tiga kali lipat poin dari semua aktivitas selama 12 jam"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Pengganda Poin 4x",
+    "description": "Dapatkan empat kali lipat poin dari semua aktivitas selama 6 jam"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Pengganda Poin 5x",
+    "description": "Dapatkan lima kali lipat poin dari semua aktivitas selama 3 jam"
+  },
+  "starter_bundle": {
+    "name": "🎁 Paket Pemula",
+    "description": "Akses Basic + batas yang diperluas selama 24 jam"
+  },
+  "premium_bundle": {
+    "name": "🎉 Paket Premium",
+    "description": "Akses Premium + fitur beta + pengganda 2x selama 24 jam"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Paket Ultimate",
+    "description": "Akses Pro + semua fitur + lencana eksklusif selama 3 hari"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Deteksi otomatis' hanya diizinkan sebagai bahasa sumber, bukan sebagai bahasa target."
   },

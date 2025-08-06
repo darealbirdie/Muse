@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-Rā Uru Pūtake",
+    "description": "Whakatuwherahia ngā āhuatanga papa Pūtake mō te 24 haora (500 pūāhua, 30 meneti reo, hītori)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-Rā Uru Pūtake",
+    "description": "Whakatuwherahia ngā āhuatanga papa Pūtake mō te 3 rā"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-Rā Uru Paerewa",
+    "description": "Whakatuwherahia ngā āhuatanga paerewa mō te 24 haora (2000 pūāhua, 2 haora reo, māramatanga)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-Rā Uru Paerewa",
+    "description": "Whakatuwherahia ngā āhuatanga paerewa mō te 3 rā"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-Rā Uru Matatau",
+    "description": "Whakatuwherahia ngā āhuatanga matatau mō te 24 haora (kore ārai + uru beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-Rā Uru Matatau",
+    "description": "Whakatuwherahia ngā āhuatanga matatau mō te 3 rā"
+  },
+  "extended_limits": {
+    "name": "📈 Te Whakaroa Roa o te Rahinga Pūāhua",
+    "description": "Whakanuia tō here pūāhua ki te 1000 mō te 24 haora"
+  },
+  "extended_voice": {
+    "name": "🎤 Te Roa Reo Whakaroa",
+    "description": "Whiwhi 1 haora atu mō te wā whakawhiti reo"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Korero Reo Whakahou V2 (Beta)",
+    "description": "Uru atu ki te whakawhiti reo ā-rua āheinga mō te 48 haora"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Korero Reo Whakahou V2 (1 Rā)",
+    "description": "Whakatuwherahia te whakawhiti reo ā-rua mō te 24 haora"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Korero Reo Whakahou V2 (7 Rā)",
+    "description": "Whakatuwherahia te whakawhiti reo ā-rua mō te 1 wiki"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Kaitipati Poini 1.5x",
+    "description": "Whiwhi 50% atu i ngā poihi i ngā mahi katoa mō te 48 haora"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Kaitipati Poini 2x",
+    "description": "Whiwhi ētahi atu poihi rua hēkona i ngā mahi katoa mō te 24 haora"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Kaitipati Poini 2x (12h)",
+    "description": "Whiwhi ētahi atu poihi rua hēkona i ngā mahi katoa mō te 12 haora"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Kaitipati Poini 3x",
+    "description": "Whiwhi toru ngā poihi i ngā mahi katoa mō te 12 haora"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Kaitipati Poini 4x",
+    "description": "Whiwhi whā ngā poihi i ngā mahi katoa mō te 6 haora"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Kaitipati Poini 5x",
+    "description": "Whiwhi rima ngā poihi i ngā mahi katoa mō te 3 haora"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pae Tiaki Tīmata",
+    "description": "Uru Pūtake + Herenga Whakarākei mō te 24 haora"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pae Paerewa",
+    "description": "Uru Paerewa + Āhuatanga Beta + Kaitipati 2x mō te 24 haora"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pae Mutunga",
+    "description": "Uru Matatau + Āhuatanga Katoa + Tohu Ritenga mō te 3 rā"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ Ko te 'Aroturuki Aunoa' e whakaaetia ana hei reo puna anake, kāore hei reo whāinga."
   },

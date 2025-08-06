@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-dags Grundläggande Tillgång",
+    "description": "Lås upp funktioner på grundläggande nivå i 24 timmar (500 tecken, 30 min röst, historik)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-dagars Grundläggande Tillgång",
+    "description": "Lås upp funktioner på grundläggande nivå i 3 dagar"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-dags Premium Tillgång",
+    "description": "Lås upp funktioner på premiumnivå i 24 timmar (2000 tecken, 2 tim röst, prioritet)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-dagars Premium Tillgång",
+    "description": "Lås upp funktioner på premiumnivå i 3 dagar"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-dags Pro Tillgång",
+    "description": "Lås upp professionella funktioner i 24 timmar (obegränsat + betaåtkomst)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-dagars Pro Tillgång",
+    "description": "Lås upp professionella funktioner i 3 dagar"
+  },
+  "extended_limits": {
+    "name": "📈 Utökad Teckengräns",
+    "description": "Öka din teckengräns till 1000 i 24 timmar"
+  },
+  "extended_voice": {
+    "name": "🎤 Förlängd Röstatid",
+    "description": "Få 1 extra timme för röstöversättning"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Förbättrad Röst V2 (Beta)",
+    "description": "Tillgång till avancerad tvåvägs röstöversättning i 48 timmar"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Förbättrad Röst V2 (1 Dag)",
+    "description": "Lås upp avancerad tvåvägs röstöversättning i 24 timmar"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Förbättrad Röst V2 (7 Dagar)",
+    "description": "Lås upp avancerad tvåvägs röstöversättning i 1 vecka"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Poängmultiplikator 1.5x",
+    "description": "Tjäna 50 % fler poäng från alla aktiviteter i 48 timmar"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Poängmultiplikator 2x",
+    "description": "Tjäna dubbelt så många poäng från alla aktiviteter i 24 timmar"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Poängmultiplikator 2x (12h)",
+    "description": "Tjäna dubbelt så många poäng från alla aktiviteter i 12 timmar"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Poängmultiplikator 3x",
+    "description": "Tjäna tredubbla poäng från alla aktiviteter i 12 timmar"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Poängmultiplikator 4x",
+    "description": "Tjäna fyrdubbla poäng från alla aktiviteter i 6 timmar"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Poängmultiplikator 5x",
+    "description": "Tjäna femdubbla poäng från alla aktiviteter i 3 timmar"
+  },
+  "starter_bundle": {
+    "name": "🎁 Startpaket",
+    "description": "Grundläggande tillgång + utökade gränser i 24 timmar"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premiumpaket",
+    "description": "Premiumtillgång + beta-funktioner + 2x multiplikator i 24 timmar"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimat paket",
+    "description": "Pro-tillgång + alla funktioner + anpassad badge i 3 dagar"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automatisk identifiering' är endast tillåten som källspråk, inte som målspråk."
   },

@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Cead Bun-sgoile 1 Latha",
+    "description": "Fosgail feartan ìre Bun-sgoile airson 24 uair (500 caractar, 30 mionaid guth, eachdraidh)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Cead Bun-sgoile 3 Latha",
+    "description": "Fosgail feartan ìre Bun-sgoile airson 3 latha"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Cead Premium 1 Latha",
+    "description": "Fosgail feartan ìre Premium airson 24 uair (2000 caractar, 2 uair a thìde guth, prìomhachas)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Cead Premium 3 Latha",
+    "description": "Fosgail feartan ìre Premium airson 3 latha"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Cead Pro 1 Latha",
+    "description": "Fosgail feartan ìre Pro airson 24 uair (gun chrìochan + cead beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Cead Pro 3 Latha",
+    "description": "Fosgail feartan ìre Pro airson 3 latha"
+  },
+  "extended_limits": {
+    "name": "📈 Crìochan Caractar Farsaing",
+    "description": "Meudaich an crìoch caractar agad gu 1000 airson 24 uair"
+  },
+  "extended_voice": {
+    "name": "🎤 Ùine Fuaim Farsaing",
+    "description": "Faigh 1 uair a thìde a bharrachd de ùine eadar-theangachaidh fuaim"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Cabadaich Fuaim Leasaichte V2 (Beta)",
+    "description": "Cead airson eadar-theangachadh fuaim dà-shligheach adhartach airson 48 uair"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Fuaim Leasaichte V2 (1 Latha)",
+    "description": "Fosgail eadar-theangachadh fuaim dà-shligheach adhartach airson 24 uair"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Fuaim Leasaichte V2 (7 Latha)",
+    "description": "Fosgail eadar-theangachadh fuaim dà-shligheach adhartach airson 1 seachdain"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Iomaichte Puingean 1.5x",
+    "description": "Faigh 50% barrachd phuingean bho gach gnìomh airson 48 uair"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Iomaichte Puingean 2x",
+    "description": "Faigh dùbailte de phuingean bho gach gnìomh airson 24 uair"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Iomaichte Puingean 2x (12 uairean)",
+    "description": "Faigh dùbailte de phuingean bho gach gnìomh airson 12 uair"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Iomaichte Puingean 3x",
+    "description": "Faigh trì uiread de phuingean bho gach gnìomh airson 12 uair"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Iomaichte Puingean 4x",
+    "description": "Faigh ceithir uiread de phuingean bho gach gnìomh airson 6 uairean"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Iomaichte Puingean 5x",
+    "description": "Faigh còig uiread de phuingean bho gach gnìomh airson 3 uairean"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pasgan Tòiseachaidh",
+    "description": "Cead bun-sgoile + crìochan farsaing airson 24 uair"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pasgan Premium",
+    "description": "Cead premium + feartan beta + iomaichte 2x airson 24 uair"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pasgan Deireannach",
+    "description": "Cead pro + na feartan uile + baga custom airson 3 latha"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ ’Faodar aithneachadh fèin-ghluasadach’ a chleachdadh mar chànan stòrais a-mhàin, chan e mar chànan targaid."
   },

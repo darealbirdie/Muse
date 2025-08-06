@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-päevane Põhijuurdepääs",
+    "description": "Lukusta lahti põhitaseme funktsioonid 24 tunniks (500 märki, 30 minutit hääl, ajalugu)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-päevane Põhijuurdepääs",
+    "description": "Lukusta lahti põhitaseme funktsioonid 3 päevaks"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-päevane Premium juurdepääs",
+    "description": "Lukusta lahti premium taseme funktsioonid 24 tunniks (2000 märki, 2 tundi hääl, prioriteet)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-päevane Premium juurdepääs",
+    "description": "Lukusta lahti premium taseme funktsioonid 3 päevaks"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-päevane Pro juurdepääs",
+    "description": "Lukusta lahti pro taseme funktsioonid 24 tunniks (piiramatu kõik + beeta juurdepääs)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-päevane Pro juurdepääs",
+    "description": "Lukusta lahti pro taseme funktsioonid 3 päevaks"
+  },
+  "extended_limits": {
+    "name": "📈 Pikendatud märgipiirang",
+    "description": "Suurenda oma märgipiirangut 1000-ni 24 tunniks"
+  },
+  "extended_voice": {
+    "name": "🎤 Pikendatud hääle aeg",
+    "description": "Saa 1 tund lisahääle tõlke aega"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Täiustatud hääle vestlus V2 (Beeta)",
+    "description": "Ligipääs täiustatud kahepoolsesse hääletõlkesse 48 tunniks"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Täiustatud hääl V2 (1 päev)",
+    "description": "Lukusta lahti täiustatud kahepoolsesse hääletõlkesse 24 tunniks"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Täiustatud hääl V2 (7 päeva)",
+    "description": "Lukusta lahti täiustatud kahepoolsesse hääletõlkesse 1 nädalaks"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1,5x punktikordaja",
+    "description": "Teenige kõigist tegevustest 50% rohkem punkte 48 tunni jooksul"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x punktikordaja",
+    "description": "Teenige kõigist tegevustest topeltpunkte 24 tunni jooksul"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x punktikordaja (12 tundi)",
+    "description": "Teenige kõigist tegevustest topeltpunkte 12 tunni jooksul"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x punktikordaja",
+    "description": "Teenige kõigist tegevustest kolm korda rohkem punkte 12 tunni jooksul"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x punktikordaja",
+    "description": "Teenige kõigist tegevustest neli korda rohkem punkte 6 tunni jooksul"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x punktikordaja",
+    "description": "Teenige kõigist tegevustest viis korda rohkem punkte 3 tunni jooksul"
+  },
+  "starter_bundle": {
+    "name": "🎁 Algajate pakk",
+    "description": "Põhijuurdepääs + pikendatud piirangud 24 tunniks"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium pakk",
+    "description": "Premium juurdepääs + beetafunktsioonid + 2x kordaja 24 tunniks"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimate pakk",
+    "description": "Pro juurdepääs + kõik funktsioonid + kohandatud märk 3 päevaks"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automaatne tuvastamine' on lubatud ainult lähtekeelena, mitte sihtkeelena."
   },

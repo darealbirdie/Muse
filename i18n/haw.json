@@ -1,4 +1,87 @@
  {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Hoʻolauna Kūmole 1 Lā",
+    "description": "Hāleʻa i nā hiʻohiʻona kūmole no 24 hola (500 mau huaʻōlelo, 30 minuke leo, moʻokūʻauhau)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Hoʻolauna Kūmole 3 Lā",
+    "description": "Hāleʻa i nā hiʻohiʻona kūmole no 3 lā"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Hoʻolauna Paʻa 1 Lā",
+    "description": "Hāleʻa i nā hiʻohiʻona paʻa no 24 hola (2000 mau huaʻōlelo, 2 hola leo, ma mua)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Hoʻolauna Paʻa 3 Lā",
+    "description": "Hāleʻa i nā hiʻohiʻona paʻa no 3 lā"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Hoʻolauna Pro 1 Lā",
+    "description": "Hāleʻa i nā hiʻohiʻona pro no 24 hola (ʻaʻole i palena ʻia + komo beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Hoʻolauna Pro 3 Lā",
+    "description": "Hāleʻa i nā hiʻohiʻona pro no 3 lā"
+  },
+  "extended_limits": {
+    "name": "📈 Palena Huaʻōlelo Hoʻonui ʻia",
+    "description": "Hoʻonui i kou palena huaʻōlelo i 1000 no 24 hola"
+  },
+  "extended_voice": {
+    "name": "🎤 Ka manawa leo i hoʻonui ʻia",
+    "description": "Loaʻa 1 hola hou no ka unuhi leo"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Kūʻai Leo Hoʻonui V2 (Beta)",
+    "description": "Loaʻa i ka unuhi leo ʻelua ala no 48 hola"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Leo Hoʻonui V2 (1 Lā)",
+    "description": "Hāleʻa i ka unuhi leo ʻelua ala no 24 hola"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Leo Hoʻonui V2 (7 Lā)",
+    "description": "Hāleʻa i ka unuhi leo ʻelua ala no 1 pule"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Hoʻonui Kūlana Pona 1.5x",
+    "description": "Loaʻa 50% hou aʻe i nā pōna maikaʻi mai nā hana a pau no 48 hola"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Hoʻonui Kūlana Pona 2x",
+    "description": "Loaʻa double nā pōna maikaʻi mai nā hana a pau no 24 hola"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Hoʻonui Kūlana Pona 2x (12 hola)",
+    "description": "Loaʻa double nā pōna maikaʻi mai nā hana a pau no 12 hola"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Hoʻonui Kūlana Pona 3x",
+    "description": "Loaʻa triple nā pōna maikaʻi mai nā hana a pau no 12 hola"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Hoʻonui Kūlana Pona 4x",
+    "description": "Loaʻa quadruple nā pōna maikaʻi mai nā hana a pau no 6 hola"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Hoʻonui Kūlana Pona 5x",
+    "description": "Loaʻa 5 manawa hou aʻe i nā pōna maikaʻi mai nā hana a pau no 3 hola"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pūʻulu Hoʻomaka",
+    "description": "Kūmole + Palena Hoʻonui no 24 hola"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pūʻulu Paʻa",
+    "description": "Paʻa + hiʻohiʻona beta + Hoʻonui Kūlana Pona 2x no 24 hola"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pūʻulu Hoʻokahi",
+    "description": "Pro + Nā hiʻohiʻona a pau + hōʻailona kūikawā no 3 lā"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ ʻAe ʻia wale nō ke ʻano ʻōlelo kumu ʻo ka 'Hoʻohālike Akamai', ʻaʻole ke ʻano ʻōlelo pahuhopu."
   },

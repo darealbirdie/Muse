@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Aċċess Bażiku ta’ 1 Ġurnata",
+    "description": "Ħalli l-karatteristiċi tat-Tier Bażiku għal 24 siegħa (500 karattru, 30 minuta awdjo, storja)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Aċċess Bażiku ta’ 3 Ġranet",
+    "description": "Ħalli l-karatteristiċi tat-Tier Bażiku għal 3 ġranet"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Aċċess Premium ta’ 1 Ġurnata",
+    "description": "Ħalli l-karatteristiċi tat-Tier Premium għal 24 siegħa (2000 karattru, 2 siegħa awdjo, priorità)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Aċċess Premium ta’ 3 Ġranet",
+    "description": "Ħalli l-karatteristiċi tat-Tier Premium għal 3 ġranet"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Aċċess Pro ta’ 1 Ġurnata",
+    "description": "Ħalli l-karatteristiċi tat-Tier Pro għal 24 siegħa (kollox bla limitu + aċċess beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Aċċess Pro ta’ 3 Ġranet",
+    "description": "Ħalli l-karatteristiċi tat-Tier Pro għal 3 ġranet"
+  },
+  "extended_limits": {
+    "name": "📈 Limitu Estendut ta’ Karattri",
+    "description": "Żid il-limitu tiegħek għal 1000 karattru għal 24 siegħa"
+  },
+  "extended_voice": {
+    "name": "🎤 Ħin ta’ Voci Estendut",
+    "description": "Irċievi siegħa waħda żejda ta’ ħin ta’ traduzzjoni bil-vuċi"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Chat tal-Vuċi Avvanzat V2 (Beta)",
+    "description": "Aċċess għal traduzzjoni bil-vuċi bidirezzjonali avvanzata għal 48 siegħa"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Vuċi Avvanzata V2 (1 Ġurnata)",
+    "description": "Ħalli traduzzjoni bil-vuċi bidirezzjonali avvanzata għal 24 siegħa"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Vuċi Avvanzata V2 (7 Ġranet)",
+    "description": "Ħalli traduzzjoni bil-vuċi bidirezzjonali avvanzata għal ġimgħa"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Moltiplikatur ta’ Punti 1.5x",
+    "description": "Ikseb 50% punti aktar minn kull attivita’ għal 48 siegħa"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Moltiplikatur ta’ Punti 2x",
+    "description": "Ikseb doppju ta’ punti minn kull attivita’ għal 24 siegħa"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Moltiplikatur ta’ Punti 2x (12 siegħa)",
+    "description": "Ikseb doppju ta’ punti minn kull attivita’ għal 12 siegħa"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Moltiplikatur ta’ Punti 3x",
+    "description": "Ikseb tliet darbiet il-punti minn kull attivita’ għal 12 siegħa"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Moltiplikatur ta’ Punti 4x",
+    "description": "Ikseb erbat darbiet il-punti minn kull attivita’ għal 6 siegħa"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Moltiplikatur ta’ Punti 5x",
+    "description": "Ikseb ħams darbiet il-punti minn kull attivita’ għal 3 siegħa"
+  },
+  "starter_bundle": {
+    "name": "🎁 Bundel Tal-Bidu",
+    "description": "Aċċess bażiku + limiti estenduti għal 24 siegħa"
+  },
+  "premium_bundle": {
+    "name": "🎉 Bundel Premium",
+    "description": "Aċċess premium + karatteristiċi beta + moltiplikatur 2x għal 24 siegħa"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Bundel Ultimattiv",
+    "description": "Aċċess pro + kull karatteristika + badge personalizzat għal 3 ġranet"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Skoperta awtomatika' hija permessa biss bħala lingwa sors, mhux bħala lingwa destinazzjoni."
   },

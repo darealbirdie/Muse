@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Avanoa Faavae (1 aso)",
+    "description": "Tatala galuega faavae mo le 24 itula (500 mataitusi, 30 minute leo, tala faasolopito)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Avanoa Faavae (3 aso)",
+    "description": "Tatala galuega faavae mo le 3 aso"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Avanoa Premium (1 aso)",
+    "description": "Tatala galuega premium mo le 24 itula (2000 mataitusi, 2 itula leo, muamua le sao)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Avanoa Premium (3 aso)",
+    "description": "Tatala galuega premium mo le 3 aso"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Avanoa Pro (1 aso)",
+    "description": "Tatala galuega uma pro mo le 24 itula (leai ni tapulaʻa + ulufale beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Avanoa Pro (3 aso)",
+    "description": "Tatala galuega uma pro mo le 3 aso"
+  },
+  "extended_limits": {
+    "name": "📈 Tapulaʻa Faʻalauteleina",
+    "description": "Faalautele tapulaʻa mataitusi i le 1000 mo le 24 itula"
+  },
+  "extended_voice": {
+    "name": "🎤 Taimi Faaopoopo Leo",
+    "description": "Faʻaopoopo 1 itula o le faaliliuga leo"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Leo Faaleleia V2 (Beta)",
+    "description": "Ulufale i le leo faaliliu faaleleia V2 mo le 48 itula"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Leo Faaleleia V2 (1 aso)",
+    "description": "Faagaioi le leo faaliliu faaleleia V2 mo le 24 itula"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Leo Faaleleia V2 (7 aso)",
+    "description": "Faagaioi le leo faaliliu faaleleia V2 mo le 7 aso"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x Faateleina Toʻgi",
+    "description": "Maua le 50% sili atu o togi mai galuega uma mo le 48 itula"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Faateleina Toʻgi",
+    "description": "Maua togi faalua mai galuega uma mo le 24 itula"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Faateleina Toʻgi (12 itula)",
+    "description": "Maua togi faalua mai galuega uma mo le 12 itula"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Faateleina Toʻgi",
+    "description": "Maua togi faatolu mai galuega uma mo le 12 itula"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Faateleina Toʻgi",
+    "description": "Maua togi faafā mai galuega uma mo le 6 itula"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Faateleina Toʻgi",
+    "description": "Maua togi faalima mai galuega uma mo le 3 itula"
+  },
+  "starter_bundle": {
+    "name": "🎁 Afifi Amata",
+    "description": "Avanoa faavae + tapulaʻa faalautele mo le 24 itula"
+  },
+  "premium_bundle": {
+    "name": "🎉 Afifi Premium",
+    "description": "Avanoa premium + galuega beta + 2x faateleina mo le 24 itula"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Afifi Sili",
+    "description": "Avanoa pro + galuega uma + badge patino mo le 3 aso"
+  }
+},
+
    "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Mataʻituina otometi' e fa'atagaina na'o i le gagana amata, ae le o le gagana taula'i."
   },

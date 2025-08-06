@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1 dienas pamata piekļuve",
+    "description": "Atbloķē pamata līmeņa funkcijas uz 24 stundām (500 rakstzīmes, 30 minūtes balss, vēsture)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3 dienu pamata piekļuve",
+    "description": "Atbloķē pamata līmeņa funkcijas uz 3 dienām"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1 dienas premium piekļuve",
+    "description": "Atbloķē premium līmeņa funkcijas uz 24 stundām (2000 rakstzīmes, 2 stundas balss, prioritāte)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3 dienu premium piekļuve",
+    "description": "Atbloķē premium līmeņa funkcijas uz 3 dienām"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1 dienas pro piekļuve",
+    "description": "Atbloķē pro līmeņa funkcijas uz 24 stundām (neierobežoti visi + beta piekļuve)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3 dienu pro piekļuve",
+    "description": "Atbloķē pro līmeņa funkcijas uz 3 dienām"
+  },
+  "extended_limits": {
+    "name": "📈 Paplašinātais rakstzīmju limits",
+    "description": "Palielini savu rakstzīmju limitu līdz 1000 uz 24 stundām"
+  },
+  "extended_voice": {
+    "name": "🎤 Paplašināts balss laiks",
+    "description": "Saņem 1 stundu papildu balss tulkošanas laika"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Uzlabota balss tērzēšana V2 (Beta)",
+    "description": "Iegūsti piekļuvi uzlabotai divvirzienu balss tulkošanai uz 48 stundām"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Uzlabota balss V2 (1 diena)",
+    "description": "Atbloķē uzlabotu divvirzienu balss tulkošanu uz 24 stundām"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Uzlabota balss V2 (7 dienas)",
+    "description": "Atbloķē uzlabotu divvirzienu balss tulkošanu uz 1 nedēļu"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x punktu reizinātājs",
+    "description": "Iegūsti par 50% vairāk punktu no visām aktivitātēm uz 48 stundām"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x punktu reizinātājs",
+    "description": "Iegūsti dubultu punktu skaitu no visām aktivitātēm uz 24 stundām"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x punktu reizinātājs (12h)",
+    "description": "Iegūsti dubultu punktu skaitu no visām aktivitātēm uz 12 stundām"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x punktu reizinātājs",
+    "description": "Iegūsti trīskāršu punktu skaitu no visām aktivitātēm uz 12 stundām"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x punktu reizinātājs",
+    "description": "Iegūsti četrkāršu punktu skaitu no visām aktivitātēm uz 6 stundām"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x punktu reizinātājs",
+    "description": "Iegūsti 5 reizes vairāk punktu no visām aktivitātēm uz 3 stundām"
+  },
+  "starter_bundle": {
+    "name": "🎁 Sākuma komplekts",
+    "description": "Pamata piekļuve + paplašināti limiti uz 24 stundām"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium komplekts",
+    "description": "Premium piekļuve + beta funkcijas + 2x reizinātājs uz 24 stundām"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Galīgais komplekts",
+    "description": "Pro piekļuve + visas funkcijas + pielāgots žetons uz 3 dienām"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automātiskā noteikšana' ir atļauta tikai kā avota valoda, nevis kā mērķa valoda."
   },

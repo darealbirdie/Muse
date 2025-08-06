@@ -533,7 +533,88 @@
 "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Auto-detect' is only allowed as the source language, not the target language."
   },
-
+  "SHOP_REWARDS": {
+    "temp_basic_1d": {
+      "name": "🥉 1-Day Basic Access",
+      "description": "Unlock Basic tier features for 24 hours (500 chars, 30min voice, history)"
+    },
+    "temp_basic_3d": {
+      "name": "🥉 3-Day Basic Access",
+      "description": "Unlock Basic tier features for 3 days"
+    },
+    "temp_premium_1d": {
+      "name": "🥈 1-Day Premium Access",
+      "description": "Unlock Premium tier features for 24 hours (2000 chars, 2h voice, priority)"
+    },
+    "temp_premium_3d": {
+      "name": "🥈 3-Day Premium Access",
+      "description": "Unlock Premium tier features for 3 days"
+    },
+    "temp_pro_1d": {
+      "name": "🥇 1-Day Pro Access",
+      "description": "Unlock Pro tier features for 24 hours (unlimited everything + beta access)"
+    },
+    "temp_pro_3d": {
+      "name": "🥇 3-Day Pro Access",
+      "description": "Unlock Pro tier features for 3 days"
+    },
+    "extended_limits": {
+      "name": "📈 Extended Character Limit",
+      "description": "Increase your character limit to 1000 for 24 hours"
+    },
+    "extended_voice": {
+      "name": "🎤 Extended Voice Time",
+      "description": "Get 1 hour of additional voice translation time"
+    },
+    "enhanced_voice_beta": {
+      "name": "🚀 Enhanced Voice Chat V2 (Beta)",
+      "description": "Access to advanced bidirectional voice translation for 48 hours"
+    },
+    "enhanced_voice_1d": {
+      "name": "🚀 Enhanced Voice V2 (1 Day)",
+      "description": "Unlock advanced bidirectional voice translation for 24 hours"
+    },
+    "enhanced_voice_7d": {
+      "name": "🚀 Enhanced Voice V2 (7 Days)",
+      "description": "Unlock advanced bidirectional voice translation for 1 week"
+    },
+    "point_multiplier_1_5x": {
+      "name": "💵 1.5x Point Multiplier",
+      "description": "Earn 50% more points from all activities for 48 hours"
+    },
+    "point_multiplier_2x": {
+      "name": "💰 2x Point Multiplier",
+      "description": "Earn double points from all activities for 24 hours"
+    },
+    "point_multiplier_2x_12h": {
+      "name": "💰 2x Point Multiplier (12h)",
+      "description": "Earn double points from all activities for 12 hours"
+    },
+    "point_multiplier_3x": {
+      "name": "💎 3x Point Multiplier",
+      "description": "Earn triple points from all activities for 12 hours"
+    },
+    "point_multiplier_4x": {
+      "name": "🔥 4x Point Multiplier",
+      "description": "Earn quadruple points from all activities for 6 hours"
+    },
+    "point_multiplier_5x": {
+      "name": "💥 5x Point Multiplier",
+      "description": "Earn 5x points from all activities for 3 hours"
+    },
+    "starter_bundle": {
+      "name": "🎁 Starter Bundle",
+      "description": "Basic access + Extended limits for 24h"
+    },
+    "premium_bundle": {
+      "name": "🎉 Premium Bundle",
+      "description": "Premium access + Beta features + 2x multiplier for 24h"
+    },
+    "ultimate_bundle": {
+      "name": "👑 Ultimate Bundle",
+      "description": "Pro access + All features + Custom badge for 3 days"
+    }
+  }, 
 "LANGUAGES": {
   "auto": "🔍 Auto-detect",
   "af": "Afrikaans",

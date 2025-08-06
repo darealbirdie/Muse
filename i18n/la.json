@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Accessus Basicus 1-Dies",
+    "description": "Aperi facultates gradus Basicus per 24 horas (500 characteres, 30 minuta vocis, historia)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Accessus Basicus 3-Dies",
+    "description": "Aperi facultates gradus Basicus per 3 dies"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Accessus Premium 1-Dies",
+    "description": "Aperi facultates gradus Premium per 24 horas (2000 characteres, 2 horas vocis, prioritas)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Accessus Premium 3-Dies",
+    "description": "Aperi facultates gradus Premium per 3 dies"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Accessus Pro 1-Dies",
+    "description": "Aperi facultates gradus Pro per 24 horas (infinitas omnia + accessus beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Accessus Pro 3-Dies",
+    "description": "Aperi facultates gradus Pro per 3 dies"
+  },
+  "extended_limits": {
+    "name": "📈 Limites Characterum Extensi",
+    "description": "Auge limitis characterum tuorum ad 1000 pro 24 horis"
+  },
+  "extended_voice": {
+    "name": "🎤 Tempus Vocis Extensum",
+    "description": "Accipe 1 horam additam pro translatione vocis"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Vox Amplificata V2 (Beta)",
+    "description": "Accessum ad translationem vocis bidirectionalem provectam per 48 horas"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Vox Amplificata V2 (1 Dies)",
+    "description": "Aperi translationem vocis bidirectionalem provectam per 24 horas"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Vox Amplificata V2 (7 Dies)",
+    "description": "Aperi translationem vocis bidirectionalem provectam per 1 hebdomadam"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Multiplicator Punctorum 1.5x",
+    "description": "Merere 50% plura puncta ex omnibus activitatibus per 48 horas"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Multiplicator Punctorum 2x",
+    "description": "Merere bis puncta ex omnibus activitatibus per 24 horas"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Multiplicator Punctorum 2x (12h)",
+    "description": "Merere bis puncta ex omnibus activitatibus per 12 horas"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Multiplicator Punctorum 3x",
+    "description": "Merere ter puncta ex omnibus activitatibus per 12 horas"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Multiplicator Punctorum 4x",
+    "description": "Merere quater puncta ex omnibus activitatibus per 6 horas"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Multiplicator Punctorum 5x",
+    "description": "Merere quinquies puncta ex omnibus activitatibus per 3 horas"
+  },
+  "starter_bundle": {
+    "name": "🎁 Fasciculus Initii",
+    "description": "Accessus Basicus + Limites Extensi per 24 horas"
+  },
+  "premium_bundle": {
+    "name": "🎉 Fasciculus Premium",
+    "description": "Accessus Premium + Facultates Beta + Multiplicator 2x per 24 horas"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Fasciculus Ultimus",
+    "description": "Accessus Pro + Omnia Facultates + Insigne Custom per 3 dies"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Detectio automatica' tantum licet uti ut lingua fontis, non ut lingua destinatae."
   },

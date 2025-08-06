@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Základný prístup (1 deň)",
+    "description": "Odomkne základné funkcie na 24 hodín (500 znakov, 30 minút hlasu, história)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Základný prístup (3 dni)",
+    "description": "Odomkne základné funkcie na 3 dni"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Prémiový prístup (1 deň)",
+    "description": "Odomkne prémiové funkcie na 24 hodín (2000 znakov, 2 hodiny hlasu, priorita)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Prémiový prístup (3 dni)",
+    "description": "Odomkne prémiové funkcie na 3 dni"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Pro prístup (1 deň)",
+    "description": "Odomkne všetky pro funkcie na 24 hodín (neobmedzené + beta prístup)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Pro prístup (3 dni)",
+    "description": "Odomkne všetky pro funkcie na 3 dni"
+  },
+  "extended_limits": {
+    "name": "📈 Rozšízený limit znakov",
+    "description": "Zvýši limit znakov na 1000 po dobu 24 hodín"
+  },
+  "extended_voice": {
+    "name": "🎤 Extra hlasový čas",
+    "description": "Pridá 1 hodinu hlasového prekladu"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Vylepšený hlas V2 (Beta)",
+    "description": "Prístup k vylepšenému hlasovému prekladu V2 na 48 hodín"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Vylepšený hlas V2 (1 deň)",
+    "description": "Aktivuje vylepšený hlasový preklad V2 na 24 hodín"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Vylepšený hlas V2 (7 dní)",
+    "description": "Aktivuje vylepšený hlasový preklad V2 na 7 dní"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x násobič bodov",
+    "description": "Získajte o 50% viac bodov zo všetkých aktivít na 48 hodín"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x násobič bodov",
+    "description": "Získajte dvojnásobné body zo všetkých aktivít na 24 hodín"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x násobič bodov (12 hodín)",
+    "description": "Získajte dvojnásobné body zo všetkých aktivít na 12 hodín"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x násobič bodov",
+    "description": "Získajte trojnásobné body zo všetkých aktivít na 12 hodín"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x násobič bodov",
+    "description": "Získajte štvornásobné body zo všetkých aktivít na 6 hodín"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x násobič bodov",
+    "description": "Získajte päťnásobné body zo všetkých aktivít na 3 hodiny"
+  },
+  "starter_bundle": {
+    "name": "🎁 Štartovací balík",
+    "description": "Základný prístup + rozšízené limity na 24 hodín"
+  },
+  "premium_bundle": {
+    "name": "🎉 Prémiový balík",
+    "description": "Prémiový prístup + beta funkcie + 2x násobič na 24 hodín"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimátny balík",
+    "description": "Pro prístup + všetky funkcie + osobný odznak na 3 dni"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automatické rozpoznávanie' je povolené len ako zdrojový jazyk, nie ako cieľový jazyk."
   },

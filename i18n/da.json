@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-dags Basisadgang",
+    "description": "Lås op for Basis-funktioner i 24 timer (500 tegn, 30 min tale, historik)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-dages Basisadgang",
+    "description": "Lås op for Basis-funktioner i 3 dage"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-dags Premiumadgang",
+    "description": "Lås op for Premium-funktioner i 24 timer (2000 tegn, 2 timers tale, prioritet)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-dages Premiumadgang",
+    "description": "Lås op for Premium-funktioner i 3 dage"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-dags Pro-adgang",
+    "description": "Lås op for Pro-funktioner i 24 timer (ubegrænset alt + betaadgang)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-dages Pro-adgang",
+    "description": "Lås op for Pro-funktioner i 3 dage"
+  },
+  "extended_limits": {
+    "name": "📈 Udvidet Tegnbegrænsning",
+    "description": "Forøg din tegnbegrænsning til 1000 i 24 timer"
+  },
+  "extended_voice": {
+    "name": "🎤 Udvidet Taletid",
+    "description": "Få 1 times ekstra taleoversættelsestid"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Avanceret Talechat V2 (Beta)",
+    "description": "Adgang til avanceret tovejstaleoversættelse i 48 timer"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Avanceret Tale V2 (1 dag)",
+    "description": "Lås op for avanceret tovejstaleoversættelse i 24 timer"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Avanceret Tale V2 (7 dage)",
+    "description": "Lås op for avanceret tovejstaleoversættelse i 1 uge"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1,5x Pointmultiplikator",
+    "description": "Tjen 50% flere point fra alle aktiviteter i 48 timer"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Pointmultiplikator",
+    "description": "Tjen dobbelt point fra alle aktiviteter i 24 timer"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Pointmultiplikator (12t)",
+    "description": "Tjen dobbelt point fra alle aktiviteter i 12 timer"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Pointmultiplikator",
+    "description": "Tjen tredobbelt point fra alle aktiviteter i 12 timer"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Pointmultiplikator",
+    "description": "Tjen firedobbelt point fra alle aktiviteter i 6 timer"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Pointmultiplikator",
+    "description": "Tjen 5x point fra alle aktiviteter i 3 timer"
+  },
+  "starter_bundle": {
+    "name": "🎁 Startpakke",
+    "description": "Basisadgang + Udvidede grænser i 24 timer"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premiumpakke",
+    "description": "Premiumadgang + Beta-funktioner + 2x multiplikator i 24 timer"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimativ Pakke",
+    "description": "Pro-adgang + Alle funktioner + Brugerdefineret badge i 3 dage"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automatisk registrering' er kun tilladt som kildesprog, ikke som målsprog."
   },

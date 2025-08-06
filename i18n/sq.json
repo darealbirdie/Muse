@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Hyrje Bazike 1-Ditëshe",
+    "description": "Zhblloko veçoritë bazike për 24 orë (500 karaktere, 30 minuta zë, histori)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Hyrje Bazike 3-Ditëshe",
+    "description": "Zhblloko veçoritë bazike për 3 ditë"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Hyrje Premium 1-Ditëshe",
+    "description": "Zhblloko veçoritë premium për 24 orë (2000 karaktere, 2 orë zë, prioritet)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Hyrje Premium 3-Ditëshe",
+    "description": "Zhblloko veçoritë premium për 3 ditë"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Hyrje Pro 1-Ditëshe",
+    "description": "Zhblloko të gjitha veçoritë pro për 24 orë (pa kufi + hyrje beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Hyrje Pro 3-Ditëshe",
+    "description": "Zhblloko të gjitha veçoritë pro për 3 ditë"
+  },
+  "extended_limits": {
+    "name": "📈 Kufiri i Zgjeruar i Karaktereve",
+    "description": "Rrit kufirin tënd të karaktereve në 1000 për 24 orë"
+  },
+  "extended_voice": {
+    "name": "🎤 Koha e Zgjeruar e Zërit",
+    "description": "Merr 1 orë shtesë për përkthimin e zërit"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Zëri i Përmirësuar V2 (Beta)",
+    "description": "Hyrje në përkthimin e zërit me dy drejtime për 48 orë"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Zëri i Përmirësuar V2 (1 Ditë)",
+    "description": "Zhblloko përkthimin e avancuar të zërit për 24 orë"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Zëri i Përmirësuar V2 (7 Ditë)",
+    "description": "Zhblloko përkthimin e avancuar të zërit për 1 javë"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Shumëzuesi i Pikëve 1.5x",
+    "description": "Fitoni 50% më shumë pikë nga të gjitha aktivitetet për 48 orë"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Shumëzuesi i Pikëve 2x",
+    "description": "Fitoni pikë dyfish nga të gjitha aktivitetet për 24 orë"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Shumëzuesi i Pikëve 2x (12 orë)",
+    "description": "Fitoni pikë dyfish nga të gjitha aktivitetet për 12 orë"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Shumëzuesi i Pikëve 3x",
+    "description": "Fitoni pikë trefish nga të gjitha aktivitetet për 12 orë"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Shumëzuesi i Pikëve 4x",
+    "description": "Fitoni pikë katërfish nga të gjitha aktivitetet për 6 orë"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Shumëzuesi i Pikëve 5x",
+    "description": "Fitoni pikë pesëfish nga të gjitha aktivitetet për 3 orë"
+  },
+  "starter_bundle": {
+    "name": "🎁 Paketa Fillestare",
+    "description": "Hyrje bazike + Kufij të zgjeruar për 24 orë"
+  },
+  "premium_bundle": {
+    "name": "🎉 Paketa Premium",
+    "description": "Hyrje premium + Veçori beta + Shumëzues 2x për 24 orë"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Paketa Ultimate",
+    "description": "Hyrje pro + Të gjitha veçoritë + Shenjë e personalizuar për 3 ditë"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Zbulimi automatik' lejohet vetëm si gjuha burimore, jo si gjuha e synuar."
   },

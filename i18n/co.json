@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Accessu Basic di 1 ghjornu",
+    "description": "Sblocca e funziunalità di u livellu Basic per 24 ore (500 caratteri, 30min di voce, storia)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Accessu Basic di 3 ghjorni",
+    "description": "Sblocca e funziunalità di u livellu Basic per 3 ghjorni"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Accessu Premium di 1 ghjornu",
+    "description": "Sblocca e funziunalità di u livellu Premium per 24 ore (2000 caratteri, 2h di voce, priorità)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Accessu Premium di 3 ghjorni",
+    "description": "Sblocca e funziunalità di u livellu Premium per 3 ghjorni"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Accessu Pro di 1 ghjornu",
+    "description": "Sblocca e funziunalità di u livellu Pro per 24 ore (tuttu illimitatu + accessu beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Accessu Pro di 3 ghjorni",
+    "description": "Sblocca e funziunalità di u livellu Pro per 3 ghjorni"
+  },
+  "extended_limits": {
+    "name": "📈 Limite di Caratteri Estesu",
+    "description": "Aumenta u vostru limite di caratteri à 1000 per 24 ore"
+  },
+  "extended_voice": {
+    "name": "🎤 Tempu di Voce Estesu",
+    "description": "Ottene 1 ora in più di traduzzione vocale"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Chat Vucale Avanzata V2 (Beta)",
+    "description": "Accessu à a traduzzione vocale bidirezziunale avanzata per 48 ore"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Voce Avanzata V2 (1 ghjornu)",
+    "description": "Sblocca a traduzzione vocale bidirezziunale avanzata per 24 ore"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Voce Avanzata V2 (7 ghjorni)",
+    "description": "Sblocca a traduzzione vocale bidirezziunale avanzata per 1 settimana"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Multiplicatore di Punti 1.5x",
+    "description": "Guadagna 50% di punti in più da tutte l'attività per 48 ore"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Multiplicatore di Punti 2x",
+    "description": "Guadagna doppi punti da tutte l'attività per 24 ore"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Multiplicatore di Punti 2x (12h)",
+    "description": "Guadagna doppi punti da tutte l'attività per 12 ore"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Multiplicatore di Punti 3x",
+    "description": "Guadagna tripli punti da tutte l'attività per 12 ore"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Multiplicatore di Punti 4x",
+    "description": "Guadagna 4x punti da tutte l'attività per 6 ore"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Multiplicatore di Punti 5x",
+    "description": "Guadagna 5x punti da tutte l'attività per 3 ore"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pacchettu Iniziale",
+    "description": "Accessu Basic + Limiti Estesi per 24 ore"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pacchettu Premium",
+    "description": "Accessu Premium + Funzioni Beta + Multiplicatore 2x per 24 ore"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pacchettu Ultimu",
+    "description": "Accessu Pro + Tutte e funzioni + Badge persunalizatu per 3 ghjorni"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Rilevazione automatica' hè permessa solu cum'è lingua di origine, micca cum'è lingua di destinazione."
   },

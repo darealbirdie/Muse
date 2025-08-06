@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Akses Dasar 1 Poé",
+    "description": "Buka fitur tingkat Dasar salami 24 jam (500 karakter, 30 menit sora, sajarah)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Akses Dasar 3 Poé",
+    "description": "Buka fitur tingkat Dasar salami 3 dinten"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Akses Premium 1 Poé",
+    "description": "Buka fitur tingkat Premium salami 24 jam (2000 karakter, 2 jam sora, prioritas)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Akses Premium 3 Poé",
+    "description": "Buka fitur tingkat Premium salami 3 dinten"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Akses Pro 1 Poé",
+    "description": "Buka fitur tingkat Pro salami 24 jam (tanpa wates + aksés beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Akses Pro 3 Poé",
+    "description": "Buka fitur tingkat Pro salami 3 dinten"
+  },
+  "extended_limits": {
+    "name": "📈 Watesan Karakter Diperpanjang",
+    "description": "Tambah wates karakter anjeun jadi 1000 salami 24 jam"
+  },
+  "extended_voice": {
+    "name": "🎤 Waktu Suara Diperpanjang",
+    "description": "Entong 1 jam tambahan waktos tarjamahan sora"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Suara Ditingkatkeun V2 (Beta)",
+    "description": "Aksés tarjamahan sora dua arah anu canggih salami 48 jam"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Suara Ditingkatkeun V2 (1 Poé)",
+    "description": "Buka tarjamahan sora dua arah anu canggih salami 24 jam"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Suara Ditingkatkeun V2 (7 Poé)",
+    "description": "Buka tarjamahan sora dua arah anu canggih salami 1 minggu"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Pangali Poin 1.5x",
+    "description": "Kéngingkeun 50% poin langkung seueur tina sagala kagiatan salami 48 jam"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Pangali Poin 2x",
+    "description": "Kéngingkeun poin dua kali tina sagala kagiatan salami 24 jam"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Pangali Poin 2x (12 jam)",
+    "description": "Kéngingkeun poin dua kali tina sagala kagiatan salami 12 jam"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Pangali Poin 3x",
+    "description": "Kéngingkeun poin tilu kali tina sagala kagiatan salami 12 jam"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Pangali Poin 4x",
+    "description": "Kéngingkeun poin opat kali tina sagala kagiatan salami 6 jam"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Pangali Poin 5x",
+    "description": "Kéngingkeun poin lima kali tina sagala kagiatan salami 3 jam"
+  },
+  "starter_bundle": {
+    "name": "🎁 Paket Pamula",
+    "description": "Akses dasar + Watesan diperpanjang salami 24 jam"
+  },
+  "premium_bundle": {
+    "name": "🎉 Paket Premium",
+    "description": "Akses premium + Fitur beta + Pangali poin 2x salami 24 jam"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Paket Ultimate",
+    "description": "Akses pro + Sadaya fitur + Lencana khusus salami 3 dinten"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Deteksi otomatis' ngan ukur diidinan pikeun basa sumber, sanés basa tujuan."
   },

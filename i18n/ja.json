@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 ベーシック1日間",
+    "description": "24時間ベーシックプランを有効化（テキスト500件、音声30分、履歴）"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 ベーシック3日間",
+    "description": "3日間ベーシックプランを有効化"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 プレミアム1日間",
+    "description": "24時間プレミアムプランを有効化（テキスト2000件、音声2時間、優先度高）"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 プレミアム3日間",
+    "description": "3日間プレミアムプランを有効化"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 プロ1日間",
+    "description": "24時間プロプランを有効化（すべての機能 + ベータアクセス）"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 プロ3日間",
+    "description": "3日間プロプランを有効化"
+  },
+  "extended_limits": {
+    "name": "📈 拡張テキスト上限",
+    "description": "24時間テキスト上限を1000に増加"
+  },
+  "extended_voice": {
+    "name": "🎤 音声翻訳時間の追加",
+    "description": "音声翻訳時間を1時間追加"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 強化音声V2（ベータ）",
+    "description": "双方向音声翻訳を48時間有効化"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 強化音声V2（1日）",
+    "description": "双方向音声翻訳を24時間有効化"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 強化音声V2（7日間）",
+    "description": "双方向音声翻訳を7日間有効化"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 ポイント1.5倍",
+    "description": "すべての行動で獲得ポイントが50%増加（48時間）"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 ポイント2倍",
+    "description": "すべての行動で獲得ポイントが2倍（24時間）"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 ポイント2倍（12時間）",
+    "description": "すべての行動で獲得ポイントが2倍（12時間）"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 ポイント3倍",
+    "description": "すべての行動で獲得ポイントが3倍（12時間）"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 ポイント4倍",
+    "description": "すべての行動で獲得ポイントが4倍（6時間）"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 ポイント5倍",
+    "description": "すべての行動で獲得ポイントが5倍（3時間）"
+  },
+  "starter_bundle": {
+    "name": "🎁 スターターバンドル",
+    "description": "ベーシック + 拡張上限（24時間）"
+  },
+  "premium_bundle": {
+    "name": "🎉 プレミアムバンドル",
+    "description": "プレミアム + ベータ機能 + 2倍ポイント（24時間）"
+  },
+  "ultimate_bundle": {
+    "name": "👑 アルティメットバンドル",
+    "description": "プロ + すべての機能 + 限定バッジ（3日間）"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 「自動検出」は翻訳元の言語としてのみ使用できます。翻訳先の言語としては使用できません。"
   },

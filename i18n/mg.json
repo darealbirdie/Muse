@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Fidirana Fototra 1 Andro",
+    "description": "Sokafy ny endri-javatra amin'ny sosona Fototra mandritra ny 24 ora (500 tarehintsoratra, 30 minitra feo, tantara)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Fidirana Fototra 3 Andro",
+    "description": "Sokafy ny endri-javatra amin'ny sosona Fototra mandritra ny 3 andro"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Fidirana Premium 1 Andro",
+    "description": "Sokafy ny endri-javatra amin'ny sosona Premium mandritra ny 24 ora (2000 tarehintsoratra, 2 ora feo, laharam-pahamehana)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Fidirana Premium 3 Andro",
+    "description": "Sokafy ny endri-javatra amin'ny sosona Premium mandritra ny 3 andro"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Fidirana Pro 1 Andro",
+    "description": "Sokafy ny endri-javatra amin'ny sosona Pro mandritra ny 24 ora (tsy misy fetra rehetra + fidirana beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Fidirana Pro 3 Andro",
+    "description": "Sokafy ny endri-javatra amin'ny sosona Pro mandritra ny 3 andro"
+  },
+  "extended_limits": {
+    "name": "📈 Fetra Tarehintsoratra Nohalalina",
+    "description": "Ampitomboy ho 1000 ny fetra tarehintsoratra ho an'ny 24 ora"
+  },
+  "extended_voice": {
+    "name": "🎤 Fotoana Feo Nohalalina",
+    "description": "Mahazoa 1 ora fanampiny amin'ny fandikan-teny feo"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Resaka Feo Nohatsaraina V2 (Beta)",
+    "description": "Fidirana amin'ny fandikan-teny feo bidirectionnelle mandroso mandritra ny 48 ora"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Feo Nohatsaraina V2 (1 Andro)",
+    "description": "Sokafy ny fandikan-teny feo bidirectionnelle mandroso mandritra ny 24 ora"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Feo Nohatsaraina V2 (7 Andro)",
+    "description": "Sokafy ny fandikan-teny feo bidirectionnelle mandroso mandritra ny 1 herinandro"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Mpampitombo Isa 1.5x",
+    "description": "Mahazoa isa 50% bebe kokoa avy amin'ny asa rehetra mandritra ny 48 ora"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Mpampitombo Isa 2x",
+    "description": "Mahazoa isa avo roa heny avy amin'ny asa rehetra mandritra ny 24 ora"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Mpampitombo Isa 2x (12h)",
+    "description": "Mahazoa isa avo roa heny avy amin'ny asa rehetra mandritra ny 12 ora"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Mpampitombo Isa 3x",
+    "description": "Mahazoa isa avo telo heny avy amin'ny asa rehetra mandritra ny 12 ora"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Mpampitombo Isa 4x",
+    "description": "Mahazoa isa avo efatra heny avy amin'ny asa rehetra mandritra ny 6 ora"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Mpampitombo Isa 5x",
+    "description": "Mahazoa isa 5 heny avy amin'ny asa rehetra mandritra ny 3 ora"
+  },
+  "starter_bundle": {
+    "name": "🎁 Fonosana Fanombohana",
+    "description": "Fidirana fototra + Fetra nohatsaraina mandritra ny 24 ora"
+  },
+  "premium_bundle": {
+    "name": "🎉 Fonosana Premium",
+    "description": "Fidirana premium + endri-javatra beta + mpampitombo 2x mandritra ny 24 ora"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Fonosana Faratampony",
+    "description": "Fidirana pro + endri-javatra rehetra + mari-pamantarana manokana mandritra ny 3 andro"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ Ny 'Fahitana ho azy' dia ekena ho fiteny loharano ihany, fa tsy ho fiteny kendrena."
   },

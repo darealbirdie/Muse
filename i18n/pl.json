@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-dniowy dostęp Basic",
+    "description": "Odblokuj funkcje poziomu Basic na 24 godziny (500 znaków, 30 minut głosu, historia)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-dniowy dostęp Basic",
+    "description": "Odblokuj funkcje poziomu Basic na 3 dni"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-dniowy dostęp Premium",
+    "description": "Odblokuj funkcje poziomu Premium na 24 godziny (2000 znaków, 2 godziny głosu, priorytet)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-dniowy dostęp Premium",
+    "description": "Odblokuj funkcje poziomu Premium na 3 dni"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-dniowy dostęp Pro",
+    "description": "Odblokuj funkcje poziomu Pro na 24 godziny (wszystko bez limitów + dostęp beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-dniowy dostęp Pro",
+    "description": "Odblokuj funkcje poziomu Pro na 3 dni"
+  },
+  "extended_limits": {
+    "name": "📈 Zwiększony limit znaków",
+    "description": "Zwiększ swój limit znaków do 1000 na 24 godziny"
+  },
+  "extended_voice": {
+    "name": "🎤 Dodatkowy czas głosu",
+    "description": "Zyskaj dodatkową godzinę tłumaczenia głosowego"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Ulepszony głos V2 (Beta)",
+    "description": "Dostęp do zaawansowanego tłumaczenia głosowego przez 48 godzin"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Ulepszony głos V2 (1 dzień)",
+    "description": "Odblokuj ulepszone tłumaczenie głosowe V2 na 24 godziny"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Ulepszony głos V2 (7 dni)",
+    "description": "Odblokuj ulepszone tłumaczenie głosowe V2 na 7 dni"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Mnożnik punktów 1.5x",
+    "description": "Zarabiaj 50% więcej punktów ze wszystkich aktywności przez 48 godzin"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Mnożnik punktów 2x",
+    "description": "Zarabiaj podwójne punkty ze wszystkich aktywności przez 24 godziny"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Mnożnik punktów 2x (12h)",
+    "description": "Zarabiaj podwójne punkty ze wszystkich aktywności przez 12 godzin"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Mnożnik punktów 3x",
+    "description": "Zarabiaj potrójne punkty ze wszystkich aktywności przez 12 godzin"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Mnożnik punktów 4x",
+    "description": "Zarabiaj czterokrotne punkty ze wszystkich aktywności przez 6 godzin"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Mnożnik punktów 5x",
+    "description": "Zarabiaj pięciokrotne punkty ze wszystkich aktywności przez 3 godziny"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pakiet startowy",
+    "description": "Dostęp Basic + zwiększone limity na 24 godziny"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pakiet Premium",
+    "description": "Dostęp Premium + funkcje beta + 2x mnożnik na 24 godziny"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pakiet Ultimate",
+    "description": "Dostęp Pro + wszystkie funkcje + niestandardowa odznaka na 3 dni"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automatyczne wykrywanie' jest dozwolone tylko jako język źródłowy, a nie docelowy."
   },

@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-Deeg Basis Zougang",
+    "description": "Schalt Basisniveau-Funktiounen fir 24 Stonnen fräi (500 Zeechen, 30 Minutte Stëmm, Geschicht)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-Deeg Basis Zougang",
+    "description": "Schalt Basisniveau-Funktiounen fir 3 Deeg fräi"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-Deeg Premium Zougang",
+    "description": "Schalt Premiumniveau-Funktiounen fir 24 Stonnen fräi (2000 Zeechen, 2 Stonne Stëmm, Prioritéit)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-Deeg Premium Zougang",
+    "description": "Schalt Premiumniveau-Funktiounen fir 3 Deeg fräi"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-Deeg Pro Zougang",
+    "description": "Schalt Proniveau-Funktiounen fir 24 Stonnen fräi (onlimitéiert alles + Beta Zougang)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-Deeg Pro Zougang",
+    "description": "Schalt Proniveau-Funktiounen fir 3 Deeg fräi"
+  },
+  "extended_limits": {
+    "name": "📈 Erweidert Zeechenlimiten",
+    "description": "Erhéij deng Zeechenlimite fir 24 Stonnen op 1000"
+  },
+  "extended_voice": {
+    "name": "🎤 Erweidert Stëmmzäit",
+    "description": "Kritt 1 Stonn zousätzlech Stëmm iwwersetzung"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Verbessert Stëmmchat V2 (Beta)",
+    "description": "Zougang zu fortgeschratt bidirektional Stëmm iwwersetzung fir 48 Stonnen"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Verbessert Stëmm V2 (1 Dag)",
+    "description": "Schalt fortgeschratt bidirektional Stëmm iwwersetzung fir 24 Stonnen fräi"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Verbessert Stëmm V2 (7 Deeg)",
+    "description": "Schalt fortgeschratt bidirektional Stëmm iwwersetzung fir 1 Woch fräi"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x Punktmultiplikator",
+    "description": "Verdéng 50% méi Punkten aus all Aktivitéiten fir 48 Stonnen"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Punktmultiplikator",
+    "description": "Verdéng duebel Punkten aus all Aktivitéiten fir 24 Stonnen"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Punktmultiplikator (12h)",
+    "description": "Verdéng duebel Punkten aus all Aktivitéiten fir 12 Stonnen"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Punktmultiplikator",
+    "description": "Verdéng dräifach Punkten aus all Aktivitéiten fir 12 Stonnen"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Punktmultiplikator",
+    "description": "Verdéng véierfach Punkten aus all Aktivitéiten fir 6 Stonnen"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Punktmultiplikator",
+    "description": "Verdéng 5x Punkten aus all Aktivitéiten fir 3 Stonnen"
+  },
+  "starter_bundle": {
+    "name": "🎁 Starterpaket",
+    "description": "Basiszougang + Erweidert Limiten fir 24h"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium Paket",
+    "description": "Premiumzougang + Beta Funktiounen + 2x Multiplikator fir 24h"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimativ Paket",
+    "description": "Prozougang + All Funktiounen + Custom Badge fir 3 Deeg"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automatesch Detektioun' ass nëmme wéi Quellsprooch erlaabt, net wéi Zilsprooch."
   },

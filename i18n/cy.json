@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Mynediad Sylfaenol 1-Diwrnod",
+    "description": "Datgloi nodweddion haen Sylfaenol am 24 awr (500 nod, 30 munud llais, hanes)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Mynediad Sylfaenol 3-Diwrnod",
+    "description": "Datgloi nodweddion haen Sylfaenol am 3 diwrnod"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Mynediad Premiwm 1-Diwrnod",
+    "description": "Datgloi nodweddion haen Premiwm am 24 awr (2000 nod, 2 awr llais, blaenoriaeth)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Mynediad Premiwm 3-Diwrnod",
+    "description": "Datgloi nodweddion haen Premiwm am 3 diwrnod"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Mynediad Pro 1-Diwrnod",
+    "description": "Datgloi nodweddion haen Pro am 24 awr (popeth yn ddiderfyn + mynediad beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Mynediad Pro 3-Diwrnod",
+    "description": "Datgloi nodweddion haen Pro am 3 diwrnod"
+  },
+  "extended_limits": {
+    "name": "📈 Terfyn Nodweddion Estynedig",
+    "description": "Cynyddu eich terfyn nodau i 1000 am 24 awr"
+  },
+  "extended_voice": {
+    "name": "🎤 Amser Llais Estynedig",
+    "description": "Cael 1 awr ychwanegol o amser cyfieithu llais"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Sgwrs Llais Uwch V2 (Beta)",
+    "description": "Mynediad i gyfieithiad llais deuddyblyg uwch am 48 awr"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Llais Uwch V2 (1 Diwrnod)",
+    "description": "Datgloi cyfieithiad llais deuddyblyg uwch am 24 awr"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Llais Uwch V2 (7 Diwrnod)",
+    "description": "Datgloi cyfieithiad llais deuddyblyg uwch am 1 wythnos"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Lluosydd Pwyntiau 1.5x",
+    "description": "Ennill 50% mwy o bwyntiau o bob gweithgaredd am 48 awr"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Lluosydd Pwyntiau 2x",
+    "description": "Ennill dwywaith y pwyntiau o bob gweithgaredd am 24 awr"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Lluosydd Pwyntiau 2x (12h)",
+    "description": "Ennill dwywaith y pwyntiau o bob gweithgaredd am 12 awr"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Lluosydd Pwyntiau 3x",
+    "description": "Ennill tair gwaith y pwyntiau o bob gweithgaredd am 12 awr"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Lluosydd Pwyntiau 4x",
+    "description": "Ennill pedair gwaith y pwyntiau o bob gweithgaredd am 6 awr"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Lluosydd Pwyntiau 5x",
+    "description": "Ennill 5 gwaith y pwyntiau o bob gweithgaredd am 3 awr"
+  },
+  "starter_bundle": {
+    "name": "🎁 Pecyn Cychwyn",
+    "description": "Mynediad sylfaenol + Terfynau estynedig am 24h"
+  },
+  "premium_bundle": {
+    "name": "🎉 Pecyn Premiwm",
+    "description": "Mynediad premiwm + Nodweddion beta + lluosydd 2x am 24h"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Pecyn Eithafol",
+    "description": "Mynediad pro + Pob nodwedd + Bathodyn personol am 3 diwrnod"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ Dim ond fel iaith ffynhonnell y caniateir 'Canfod yn awtomatig', nid fel iaith darged."
   },

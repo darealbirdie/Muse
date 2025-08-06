@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Guhertina Bingehîn 1 Roj",
+    "description": "Vebike taybetmendiyên asta Bingehîn bo 24 saet (500 tîp, 30 deqîqe deng, dîrok)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Guhertina Bingehîn 3 Roj",
+    "description": "Vebike taybetmendiyên asta Bingehîn bo 3 roj"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Guhertina Premium 1 Roj",
+    "description": "Vebike taybetmendiyên asta Premium bo 24 saet (2000 tîp, 2 saet deng, pêşxistin)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Guhertina Premium 3 Roj",
+    "description": "Vebike taybetmendiyên asta Premium bo 3 roj"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Guhertina Pro 1 Roj",
+    "description": "Vebike taybetmendiyên asta Pro bo 24 saet (hemû tişt bê sinor + destûra beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Guhertina Pro 3 Roj",
+    "description": "Vebike taybetmendiyên asta Pro bo 3 roj"
+  },
+  "extended_limits": {
+    "name": "📈 Sinora Tîpan Mezinkirî",
+    "description": "Sinora tîpan xwe bo 1000 tîp bo 24 saet zêde bike"
+  },
+  "extended_voice": {
+    "name": "🎤 Demjimêra Dengê Mezinkirî",
+    "description": "1 saet zêdetir ji bo wergera dengê bistîne"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Çavkaniya Dengê Pêşkeftî V2 (Beta)",
+    "description": "Destûr ji bo wergera dengê herdu alî bo 48 saet"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Dengê Pêşkeftî V2 (1 Roj)",
+    "description": "Vebike wergera dengê herdu alî bo 24 saet"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Dengê Pêşkeftî V2 (7 Roj)",
+    "description": "Vebike wergera dengê herdu alî bo 1 hefte"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Zêdekirina 1.5x Xalên",
+    "description": "Ji hemû çalakiyan bo 48 saet 50% xalên zêdetir bistîne"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Zêdekirina 2x Xalên",
+    "description": "Ji hemû çalakiyan bo 24 saet du car xal bistîne"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Zêdekirina 2x Xalên (12 saet)",
+    "description": "Ji hemû çalakiyan bo 12 saet du car xal bistîne"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Zêdekirina 3x Xalên",
+    "description": "Ji hemû çalakiyan bo 12 saet sê car xal bistîne"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Zêdekirina 4x Xalên",
+    "description": "Ji hemû çalakiyan bo 6 saet çar car xal bistîne"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Zêdekirina 5x Xalên",
+    "description": "Ji hemû çalakiyan bo 3 saet pênc car xal bistîne"
+  },
+  "starter_bundle": {
+    "name": "🎁 Komkira Destpêkê",
+    "description": "Mynediya Bingehîn + Sinorên Mezinkirî bo 24 saet"
+  },
+  "premium_bundle": {
+    "name": "🎉 Komkira Premium",
+    "description": "Mynediya Premium + Taybetmendiyên Beta + Zêdekirina 2x Xalên bo 24 saet"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Komkira Herî Bilind",
+    "description": "Mynediya Pro + Hemû Taybetmendiyên + Nîşana Xweşxas bo 3 roj"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Dîtina otomatik' tenê wekî zimanê çavkaniyê tê destûr dane, ne wekî zimanê hedefê."
   },

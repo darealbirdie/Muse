@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-Araw na Basic Access",
+    "description": "I-unlock ang mga tampok ng Basic tier para sa 24 na oras (500 karakter, 30 minutong boses, kasaysayan)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-Araw na Basic Access",
+    "description": "I-unlock ang mga tampok ng Basic tier para sa 3 araw"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-Araw na Premium Access",
+    "description": "I-unlock ang mga tampok ng Premium tier para sa 24 na oras (2000 karakter, 2 oras na boses, prayoridad)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-Araw na Premium Access",
+    "description": "I-unlock ang mga tampok ng Premium tier para sa 3 araw"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-Araw na Pro Access",
+    "description": "I-unlock ang mga tampok ng Pro tier para sa 24 na oras (walang limitasyon + beta access)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-Araw na Pro Access",
+    "description": "I-unlock ang mga tampok ng Pro tier para sa 3 araw"
+  },
+  "extended_limits": {
+    "name": "📈 Pinalawak na Limitasyon sa Character",
+    "description": "Taasan ang iyong limitasyon sa karakter sa 1000 para sa 24 na oras"
+  },
+  "extended_voice": {
+    "name": "🎤 Pinalawak na Oras ng Boses",
+    "description": "Kumuha ng 1 oras na karagdagang oras ng pagsasalin ng boses"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Pinalawak na Boses V2 (Beta)",
+    "description": "Access sa advanced na bidirectional voice translation para sa 48 na oras"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Pinalawak na Boses V2 (1 Araw)",
+    "description": "I-unlock ang advanced na bidirectional voice translation para sa 24 na oras"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Pinalawak na Boses V2 (7 Araw)",
+    "description": "I-unlock ang advanced na bidirectional voice translation para sa 1 linggo"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x Point Multiplier",
+    "description": "Kumita ng 50% higit pang puntos mula sa lahat ng aktibidad para sa 48 na oras"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Point Multiplier",
+    "description": "Kumita ng dobleng puntos mula sa lahat ng aktibidad para sa 24 na oras"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Point Multiplier (12h)",
+    "description": "Kumita ng dobleng puntos mula sa lahat ng aktibidad para sa 12 na oras"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Point Multiplier",
+    "description": "Kumita ng triple na puntos mula sa lahat ng aktibidad para sa 12 na oras"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Point Multiplier",
+    "description": "Kumita ng quadruple na puntos mula sa lahat ng aktibidad para sa 6 na oras"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Point Multiplier",
+    "description": "Kumita ng limang beses na puntos mula sa lahat ng aktibidad para sa 3 na oras"
+  },
+  "starter_bundle": {
+    "name": "🎁 Starter Bundle",
+    "description": "Basic access + Pinalawak na limitasyon para sa 24 na oras"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium Bundle",
+    "description": "Premium access + Beta features + 2x multiplier para sa 24 na oras"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimate Bundle",
+    "description": "Pro access + Lahat ng features + Custom badge para sa 3 araw"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ Ang 'Awtomatikong pagtuklas' ay pinapayagan lamang bilang pinagmulan ng wika, hindi bilang target na wika."
   },

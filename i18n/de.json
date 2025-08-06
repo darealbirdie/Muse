@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-Tägiger Basiszugang",
+    "description": "Schalte Basisfunktionen für 24 Stunden frei (500 Zeichen, 30 Min. Sprache, Verlauf)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-Tägiger Basiszugang",
+    "description": "Schalte Basisfunktionen für 3 Tage frei"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-Tägiger Premiumzugang",
+    "description": "Schalte Premiumfunktionen für 24 Stunden frei (2000 Zeichen, 2 Std. Sprache, Priorität)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-Tägiger Premiumzugang",
+    "description": "Schalte Premiumfunktionen für 3 Tage frei"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-Tägiger Pro-Zugang",
+    "description": "Schalte Profunktionen für 24 Stunden frei (alles unbegrenzt + Beta-Zugang)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-Tägiger Pro-Zugang",
+    "description": "Schalte Profunktionen für 3 Tage frei"
+  },
+  "extended_limits": {
+    "name": "📈 Erweiterte Zeichenbegrenzung",
+    "description": "Erhöhe dein Zeichenlimit für 24 Stunden auf 1000"
+  },
+  "extended_voice": {
+    "name": "🎤 Erweiterte Sprachzeit",
+    "description": "Erhalte 1 zusätzliche Stunde Sprachübersetzung"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Erweiterter Sprachchat V2 (Beta)",
+    "description": "Zugang zur fortgeschrittenen Zwei-Wege-Sprachübersetzung für 48 Stunden"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Erweiterte Sprache V2 (1 Tag)",
+    "description": "Schalte erweiterte Zwei-Wege-Sprachübersetzung für 24 Stunden frei"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Erweiterte Sprache V2 (7 Tage)",
+    "description": "Schalte erweiterte Zwei-Wege-Sprachübersetzung für 1 Woche frei"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1,5x Punkte-Multiplikator",
+    "description": "Verdiene 50% mehr Punkte durch alle Aktivitäten für 48 Stunden"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x Punkte-Multiplikator",
+    "description": "Verdiene doppelte Punkte durch alle Aktivitäten für 24 Stunden"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x Punkte-Multiplikator (12h)",
+    "description": "Verdiene doppelte Punkte durch alle Aktivitäten für 12 Stunden"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x Punkte-Multiplikator",
+    "description": "Verdiene dreifache Punkte durch alle Aktivitäten für 12 Stunden"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x Punkte-Multiplikator",
+    "description": "Verdiene vierfache Punkte durch alle Aktivitäten für 6 Stunden"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x Punkte-Multiplikator",
+    "description": "Verdiene fünffache Punkte durch alle Aktivitäten für 3 Stunden"
+  },
+  "starter_bundle": {
+    "name": "🎁 Starterpaket",
+    "description": "Basiszugang + Erweiterte Limits für 24 Stunden"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premiumpaket",
+    "description": "Premiumzugang + Beta-Funktionen + 2x Multiplikator für 24 Stunden"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimatives Paket",
+    "description": "Pro-Zugang + Alle Funktionen + Benutzerdefiniertes Abzeichen für 3 Tage"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Automatische Erkennung' ist nur als Quellsprache erlaubt, nicht als Zielsprache."
   },

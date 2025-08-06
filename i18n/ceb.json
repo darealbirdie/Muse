@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 1-Adlaw nga Basic Access",
+    "description": "I-unlock ang Basic nga lebel nga mga feature sulod sa 24 ka oras (500 ka karakter, 30min nga tingog, historya)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 3-Adlaw nga Basic Access",
+    "description": "I-unlock ang Basic nga lebel nga mga feature sulod sa 3 ka adlaw"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 1-Adlaw nga Premium Access",
+    "description": "I-unlock ang Premium nga lebel nga mga feature sulod sa 24 ka oras (2000 ka karakter, 2h nga tingog, prayoridad)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 3-Adlaw nga Premium Access",
+    "description": "I-unlock ang Premium nga lebel nga mga feature sulod sa 3 ka adlaw"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 1-Adlaw nga Pro Access",
+    "description": "I-unlock ang Pro nga lebel nga mga feature sulod sa 24 ka oras (walay limitasyon + beta access)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 3-Adlaw nga Pro Access",
+    "description": "I-unlock ang Pro nga lebel nga mga feature sulod sa 3 ka adlaw"
+  },
+  "extended_limits": {
+    "name": "📈 Gisaka nga Limit sa Karakter",
+    "description": "Palapdan ang imong karakter nga limit ngadto sa 1000 sulod sa 24 ka oras"
+  },
+  "extended_voice": {
+    "name": "🎤 Dugang nga Oras sa Tingog",
+    "description": "Makakuha ug 1 ka oras nga dugang sa tingog nga hubad"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Enhanced Voice Chat V2 (Beta)",
+    "description": "Access sa abanteng bidirectional nga tingog nga hubad sulod sa 48 ka oras"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Enhanced Voice V2 (1 Adlaw)",
+    "description": "I-unlock ang abanteng bidirectional nga tingog nga hubad sulod sa 24 ka oras"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Enhanced Voice V2 (7 Ka Adlaw)",
+    "description": "I-unlock ang abanteng bidirectional nga tingog nga hubad sulod sa 1 ka semana"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 1.5x nga Multiplier sa Puntos",
+    "description": "Makakuha ug 50% dugang nga puntos sa tanang kalihokan sulod sa 48 ka oras"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 2x nga Multiplier sa Puntos",
+    "description": "Makakuha ug doble nga puntos sa tanang kalihokan sulod sa 24 ka oras"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 2x nga Multiplier sa Puntos (12h)",
+    "description": "Makakuha ug doble nga puntos sa tanang kalihokan sulod sa 12 ka oras"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 3x nga Multiplier sa Puntos",
+    "description": "Makakuha ug triple nga puntos sa tanang kalihokan sulod sa 12 ka oras"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 4x nga Multiplier sa Puntos",
+    "description": "Makakuha ug quadruple nga puntos sa tanang kalihokan sulod sa 6 ka oras"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 5x nga Multiplier sa Puntos",
+    "description": "Makakuha ug 5x nga puntos sa tanang kalihokan sulod sa 3 ka oras"
+  },
+  "starter_bundle": {
+    "name": "🎁 Starter Bundle",
+    "description": "Basic access + Gisaka nga limit sulod sa 24h"
+  },
+  "premium_bundle": {
+    "name": "🎉 Premium Bundle",
+    "description": "Premium access + Beta nga mga feature + 2x multiplier sulod sa 24h"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ultimate Bundle",
+    "description": "Pro access + Tanang feature + Custom nga badge sulod sa 3 ka adlaw"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ Ang 'Awtomatik nga pagpangita' gitugotan lamang isip pinulongan nga gigikanan, dili isip target nga pinulongan."
   },
