@@ -10476,7 +10476,9 @@ async def shop(interaction: discord.Interaction):
         elif user_data['points'] < reward['cost']:
             status = get_translation(ui_lang, "SHOP.status_not_enough")
         
-        field_name = f"{reward['name']} - {reward['cost']} 💎{status}"
+        # Use i18n for reward names
+        reward_name = get_translation(ui_lang, f"SHOP_REWARDS.{reward_id}.name")
+        field_name = f"{reward_name} - {reward['cost']} 💎{status}"
         field_value = get_translation(ui_lang, "SHOP.field_duration", hours=reward['duration_hours'])
         
         embed.add_field(
@@ -10488,6 +10490,8 @@ async def shop(interaction: discord.Interaction):
     embed.set_footer(text=get_translation(ui_lang, "SHOP.footer"))
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 # Assuming these dicts hold active features and multipliers keyed by user_id
 # Each entry: { reward_id: expires_at }
 user_features = {}
@@ -10536,7 +10540,13 @@ async def buy_reward(interaction: discord.Interaction, reward: str):
     # Find reward by name or ID (case insensitive)
     reward_id = None
     for r_id, r_data in REWARDS.items():
-        if reward.lower() in r_data['name'].lower() or reward.lower() == r_id.lower():
+        # Check against both the original name (for backward compatibility) and translated name
+        translated_name = get_translation(ui_lang, f"SHOP_REWARDS.{r_id}.name")
+        original_name = r_data.get('name', '')
+        
+        if (reward.lower() in translated_name.lower() or 
+            reward.lower() in original_name.lower() or 
+            reward.lower() == r_id.lower()):
             reward_id = r_id
             break
 
@@ -10573,7 +10583,6 @@ async def buy_reward(interaction: discord.Interaction, reward: str):
         # Pass reward_id instead of reward_type, since your new method extracts tier from reward_id
         apply_success, apply_message = await tier_handler.upgrade_user_tier(user_id, reward_id, expires_at)
 
-
     elif reward_type in ['feature', 'beta_feature']:
         # You need to implement grant_feature yourself; placeholder here:
         apply_success, apply_message = await grant_feature(user_id, reward_id, expires_at)
@@ -10588,7 +10597,7 @@ async def buy_reward(interaction: discord.Interaction, reward: str):
             included_reward = REWARDS[included_reward_id]
             inc_type = included_reward.get('type', '')
             if inc_type in ['basic', 'premium', 'pro']:
-                success, msg = tier_handler.upgrade_user_tier(user_id, inc_type, expires_at)
+                success, msg = await tier_handler.upgrade_user_tier(user_id, included_reward_id, expires_at)
             elif inc_type in ['feature', 'beta_feature']:
                 success, msg = await grant_feature(user_id, included_reward_id, expires_at)
             elif inc_type == 'multiplier':
@@ -10597,17 +10606,23 @@ async def buy_reward(interaction: discord.Interaction, reward: str):
                 success, msg = True, "Cosmetic or unsupported reward in bundle"
             if not success:
                 apply_success = False
-                apply_message += f"\nFailed to apply {included_reward['name']}: {msg}"
+                # Use translated name for error messages
+                included_reward_name = get_translation(ui_lang, f"SHOP_REWARDS.{included_reward_id}.name")
+                apply_message += f"\nFailed to apply {included_reward_name}: {msg}"
 
     else:
         # Cosmetic reward - no backend action needed
         apply_success = True
         apply_message = "Cosmetic reward granted."
 
+    # Get translated reward name for success message
+    translated_reward_name = get_translation(ui_lang, f"SHOP_REWARDS.{reward_id}.name")
+    translated_description = get_translation(ui_lang, f"SHOP_REWARDS.{reward_id}.description")
+
     # Compose embed to send feedback
     embed = discord.Embed(
         title=get_translation(ui_lang, "BUY.success_title") if apply_success else get_translation(ui_lang, "BUY.error_failed_title"),
-        description=get_translation(ui_lang, "BUY.success_description", reward_name=reward_data['name']) if apply_success else apply_message,
+        description=get_translation(ui_lang, "BUY.success_description", reward_name=translated_reward_name) if apply_success else apply_message,
         color=0x2ecc71 if apply_success else 0xe74c3c
     )
 
@@ -10632,7 +10647,7 @@ async def buy_reward(interaction: discord.Interaction, reward: str):
 
     embed.add_field(
         name=get_translation(ui_lang, "BUY.field_description"),
-        value=reward_data['description'],
+        value=translated_description,
         inline=False
     )
 
@@ -10640,11 +10655,20 @@ async def buy_reward(interaction: discord.Interaction, reward: str):
 
 # Add autocomplete for buy command
 async def reward_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    user_id = interaction.user.id
+    ui_lang = await get_user_ui_language(user_id)
+    
     choices = []
     for reward_id, reward_data in REWARDS.items():
-        if current.lower() in reward_data['name'].lower():
+        # Get translated name for autocomplete
+        translated_name = get_translation(ui_lang, f"SHOP_REWARDS.{reward_id}.name")
+        original_name = reward_data.get('name', '')
+        
+        # Check if current input matches either translated or original name
+        if (current.lower() in translated_name.lower() or 
+            current.lower() in original_name.lower()):
             choices.append(app_commands.Choice(
-                name=f"{reward_data['name']} - {reward_data['cost']} 💎",
+                name=f"{translated_name} - {reward_data['cost']} 💎",
                 value=reward_id
             ))
     return choices[:25]
@@ -13363,6 +13387,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             "❌ An unexpected error occurred while processing the command.",
             ephemeral=True
         )
+
 
 @client.event
 async def on_ready():
