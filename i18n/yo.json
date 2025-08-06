@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Ìwọle Basic Ọjọ 1",
+    "description": "Ṣí àwọn ẹya Basic fun wakati 24 (aṣoju 500, ìpẹ̀yà ohùn iṣẹju 30, ìtàn)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Ìwọle Basic Ọjọ 3",
+    "description": "Ṣí àwọn ẹya Basic fun ọjọ mẹta"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Ìwọle Premium Ọjọ 1",
+    "description": "Ṣí àwọn ẹya Premium fun wakati 24 (aṣoju 2000, ìpẹ̀yà ohùn wakati 2, ìfẹsẹ̀múlẹ̀)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Ìwọle Premium Ọjọ 3",
+    "description": "Ṣí àwọn ẹya Premium fun ọjọ mẹta"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Ìwọle Pro Ọjọ 1",
+    "description": "Ṣí àwọn ẹya Pro fun wakati 24 (gbogbo ohun láìlòkìkí + wọlé beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Ìwọle Pro Ọjọ 3",
+    "description": "Ṣí àwọn ẹya Pro fun ọjọ mẹta"
+  },
+  "extended_limits": {
+    "name": "📈 Àfikún Ìdíyelé Àkójọpọ̀ Ọ̀rọ̀",
+    "description": "Fí àfikún àkójọpọ̀ ọ̀rọ̀ rẹ sí 1000 fún wakati 24"
+  },
+  "extended_voice": {
+    "name": "🎤 Àfikún Àkókò Ohùn",
+    "description": "Gba wakati 1 afikun fún ìtumọ̀ ohùn"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Ìfọ̀rọ̀wọ́pọ̀ Ohùn Ti a Mú Lọ́pọ̀ V2 (Beta)",
+    "description": "Wọlé sí ìtumọ̀ ohùn ọ̀pọ̀ àwọn èdè fún wakati 48"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Ìfọ̀rọ̀wọ́pọ̀ Ohùn V2 (Ọjọ 1)",
+    "description": "Ṣí ìtumọ̀ ohùn ọ̀pọ̀ àwọn èdè fún wakati 24"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Ìfọ̀rọ̀wọ́pọ̀ Ohùn V2 (Ọjọ 7)",
+    "description": "Ṣí ìtumọ̀ ohùn ọ̀pọ̀ àwọn èdè fún ọ̀sẹ̀ kan"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Ìwọnpo Àwọn Ìpò 1.5x",
+    "description": "Jèrè 50% àwọn ìpò síi látinú gbogbo iṣẹ́ fún wakati 48"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Ìwọnpo Àwọn Ìpò 2x",
+    "description": "Jèrè èrè méjì látinú gbogbo iṣẹ́ fún wakati 24"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Ìwọnpo Àwọn Ìpò 2x (Wakati 12)",
+    "description": "Jèrè èrè méjì látinú gbogbo iṣẹ́ fún wakati 12"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Ìwọnpo Àwọn Ìpò 3x",
+    "description": "Jèrè èrè mẹ́ta látinú gbogbo iṣẹ́ fún wakati 12"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Ìwọnpo Àwọn Ìpò 4x",
+    "description": "Jèrè èrè mẹ́rin látinú gbogbo iṣẹ́ fún wakati 6"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Ìwọnpo Àwọn Ìpò 5x",
+    "description": "Jèrè èrè márùn-ún látinú gbogbo iṣẹ́ fún wakati 3"
+  },
+  "starter_bundle": {
+    "name": "🎁 Ẹ̀dá ìbẹ̀rẹ̀",
+    "description": "Ìwọle Basic + Àfikún ìdíyelé fún wakati 24"
+  },
+  "premium_bundle": {
+    "name": "🎉 Ẹ̀dá Premium",
+    "description": "Ìwọle Premium + Àwọn ẹya Beta + Ìwọnpo 2x fún wakati 24"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Ẹ̀dá Ultimate",
+    "description": "Ìwọle Pro + Gbogbo àwọn ẹya + Àmi àṣà fún ọjọ mẹ́ta"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Àwárí laifọwọyi' gba laaye gẹ́gẹ́ bí èdè orísun nìkan, kì í ṣe gẹ́gẹ́ bí èdè ibi-afẹ́."
   },
