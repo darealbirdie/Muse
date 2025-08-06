@@ -1,4 +1,87 @@
 {
+  "SHOP_REWARDS": {
+  "temp_basic_1d": {
+    "name": "🥉 Quyền truy cập Basic 1 ngày",
+    "description": "Mở khóa các tính năng cấp Basic trong 24 giờ (500 ký tự, 30 phút giọng nói, lịch sử)"
+  },
+  "temp_basic_3d": {
+    "name": "🥉 Quyền truy cập Basic 3 ngày",
+    "description": "Mở khóa các tính năng cấp Basic trong 3 ngày"
+  },
+  "temp_premium_1d": {
+    "name": "🥈 Quyền truy cập Premium 1 ngày",
+    "description": "Mở khóa các tính năng cấp Premium trong 24 giờ (2000 ký tự, 2 giờ giọng nói, ưu tiên)"
+  },
+  "temp_premium_3d": {
+    "name": "🥈 Quyền truy cập Premium 3 ngày",
+    "description": "Mở khóa các tính năng cấp Premium trong 3 ngày"
+  },
+  "temp_pro_1d": {
+    "name": "🥇 Quyền truy cập Pro 1 ngày",
+    "description": "Mở khóa các tính năng cấp Pro trong 24 giờ (mọi thứ không giới hạn + quyền truy cập beta)"
+  },
+  "temp_pro_3d": {
+    "name": "🥇 Quyền truy cập Pro 3 ngày",
+    "description": "Mở khóa các tính năng cấp Pro trong 3 ngày"
+  },
+  "extended_limits": {
+    "name": "📈 Giới hạn ký tự mở rộng",
+    "description": "Tăng giới hạn ký tự lên 1000 trong 24 giờ"
+  },
+  "extended_voice": {
+    "name": "🎤 Thời gian thoại mở rộng",
+    "description": "Nhận thêm 1 giờ thời gian dịch thoại"
+  },
+  "enhanced_voice_beta": {
+    "name": "🚀 Trò chuyện thoại nâng cao V2 (Beta)",
+    "description": "Truy cập dịch thoại hai chiều nâng cao trong 48 giờ"
+  },
+  "enhanced_voice_1d": {
+    "name": "🚀 Trò chuyện thoại nâng cao V2 (1 ngày)",
+    "description": "Mở khóa dịch thoại hai chiều nâng cao trong 24 giờ"
+  },
+  "enhanced_voice_7d": {
+    "name": "🚀 Trò chuyện thoại nâng cao V2 (7 ngày)",
+    "description": "Mở khóa dịch thoại hai chiều nâng cao trong 1 tuần"
+  },
+  "point_multiplier_1_5x": {
+    "name": "💵 Bộ nhân điểm 1.5x",
+    "description": "Kiếm được 50% điểm thưởng thêm từ tất cả các hoạt động trong 48 giờ"
+  },
+  "point_multiplier_2x": {
+    "name": "💰 Bộ nhân điểm 2x",
+    "description": "Kiếm được điểm thưởng gấp đôi từ tất cả các hoạt động trong 24 giờ"
+  },
+  "point_multiplier_2x_12h": {
+    "name": "💰 Bộ nhân điểm 2x (12 giờ)",
+    "description": "Kiếm được điểm thưởng gấp đôi từ tất cả các hoạt động trong 12 giờ"
+  },
+  "point_multiplier_3x": {
+    "name": "💎 Bộ nhân điểm 3x",
+    "description": "Kiếm được điểm thưởng gấp ba từ tất cả các hoạt động trong 12 giờ"
+  },
+  "point_multiplier_4x": {
+    "name": "🔥 Bộ nhân điểm 4x",
+    "description": "Kiếm được điểm thưởng gấp bốn từ tất cả các hoạt động trong 6 giờ"
+  },
+  "point_multiplier_5x": {
+    "name": "💥 Bộ nhân điểm 5x",
+    "description": "Kiếm được điểm thưởng gấp năm từ tất cả các hoạt động trong 3 giờ"
+  },
+  "starter_bundle": {
+    "name": "🎁 Gói khởi đầu",
+    "description": "Quyền truy cập Basic + Giới hạn mở rộng trong 24 giờ"
+  },
+  "premium_bundle": {
+    "name": "🎉 Gói Premium",
+    "description": "Quyền truy cập Premium + Tính năng Beta + Bộ nhân 2x trong 24 giờ"
+  },
+  "ultimate_bundle": {
+    "name": "👑 Gói Ultimate",
+    "description": "Quyền truy cập Pro + Tất cả tính năng + Huy hiệu tùy chỉnh trong 3 ngày"
+  }
+},
+
     "AUTO": {
     "error_auto_not_allowed_for_target": "❌ 'Phát hiện tự động' chỉ được phép làm ngôn ngữ nguồn, không được làm ngôn ngữ đích."
   },
