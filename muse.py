@@ -802,9 +802,26 @@ class TierHandler:
                 if datetime.now() < tier_info['expires']:
                     return tier_info['tier']
                 else:
-                    # Tier expired, remove it
+                    # Tier expired, restore original tier
+                    original_tier = tier_info.get('original_tier', 'free')
                     del self.user_tiers[user_id]
-        
+                
+                    # If original tier was not free, make sure they're in the right permanent set
+                    if original_tier == 'premium' and user_id not in self.premium_users:
+                        self.premium_users.add(user_id)
+                    elif original_tier == 'pro':
+                        if not hasattr(self, 'pro_users'):
+                         self.pro_users = set()
+                        if user_id not in self.pro_users:
+                            self.pro_users.add(user_id)
+                    elif original_tier == 'basic':
+                        if not hasattr(self, 'basic_users'):
+                            self.basic_users = set()
+                        if user_id not in self.basic_users:
+                            self.basic_users.add(user_id)
+                
+                    return original_tier
+    
         # Check permanent tiers (highest to lowest priority)
         if hasattr(self, 'pro_users') and user_id in self.pro_users:
             return 'pro'
@@ -812,7 +829,7 @@ class TierHandler:
             return 'premium'
         elif hasattr(self, 'basic_users') and user_id in self.basic_users:
             return 'basic'
-        
+    
         return 'free'
 
     # ORIGINAL METHODS (from your working code)
@@ -827,15 +844,15 @@ class TierHandler:
 
     def set_user_tier(self, user_id: int, tier: str, expires=None):
         """Set a user's tier with optional expiration - NOT ASYNC"""
-        # Remove from all permanent tier sets first
-        self.premium_users.discard(user_id)
-        if hasattr(self, 'pro_users'):
-            self.pro_users.discard(user_id)
-        if hasattr(self, 'basic_users'):
-            self.basic_users.discard(user_id)
+    
+        if expires is None:
+            # Permanent tier assignment - remove from all sets and add to appropriate one
+            self.premium_users.discard(user_id)
+            if hasattr(self, 'pro_users'):
+                self.pro_users.discard(user_id)
+            if hasattr(self, 'basic_users'):
+                self.basic_users.discard(user_id)
         
-        if tier in ['premium', 'pro', 'basic'] and expires is None:
-            # Permanent tier assignment
             if tier == 'premium':
                 self.premium_users.add(user_id)
             elif tier == 'pro':
@@ -846,19 +863,33 @@ class TierHandler:
                 if not hasattr(self, 'basic_users'):
                     self.basic_users = set()
                 self.basic_users.add(user_id)
-            
+        
             # Remove from temporary tiers if exists
             if user_id in self.user_tiers:
                 del self.user_tiers[user_id]
         else:
-            # Temporary tier assignment
+            # Temporary tier assignment - DON'T remove from permanent tiers
+            # Store the current permanent tier (if any) in the temporary tier info
+            current_permanent_tier = None
+        
+            # Check what permanent tier they currently have
+            if user_id in self.premium_users:
+                current_permanent_tier = 'premium'
+            elif hasattr(self, 'pro_users') and user_id in self.pro_users:
+                current_permanent_tier = 'pro'
+            elif hasattr(self, 'basic_users') and user_id in self.basic_users:
+                current_permanent_tier = 'basic'
+            else:
+                current_permanent_tier = 'free'
+        
+            # Store temporary tier with original tier info
             self.user_tiers[user_id] = {
                 'tier': tier,
-                'expires': expires
+                'expires': expires,
+                'original_tier': current_permanent_tier  # Store what to revert to
             }
-        
+    
         return True  # Return success indicator
-
     async def set_user_tier_async(self, user_id: int, tier: str, expires=None):
         """Async wrapper for set_user_tier"""
         return self.set_user_tier(user_id, tier, expires)
@@ -884,17 +915,32 @@ class TierHandler:
             del self.user_tiers[user_id]
 
     def cleanup_expired_tiers(self):
-        """Remove expired tiers"""
+        """Remove expired tiers and restore original tiers"""
         from datetime import datetime
         expired_users = []
-        
+    
         for user_id, tier_info in self.user_tiers.items():
             if 'expires' in tier_info and tier_info['expires'] and datetime.now() >= tier_info['expires']:
                 expired_users.append(user_id)
-        
+            
+                # Restore original tier if it wasn't free
+                original_tier = tier_info.get('original_tier', 'free')
+                if original_tier == 'premium' and user_id not in self.premium_users:
+                    self.premium_users.add(user_id)
+                elif original_tier == 'pro':
+                    if not hasattr(self, 'pro_users'):
+                        self.pro_users = set()
+                    if user_id not in self.pro_users:
+                        self.pro_users.add(user_id)
+                elif original_tier == 'basic':
+                    if not hasattr(self, 'basic_users'):
+                        self.basic_users = set()
+                    if user_id not in self.basic_users:
+                        self.basic_users.add(user_id)
+    
         for user_id in expired_users:
             del self.user_tiers[user_id]
-        
+    
         return len(expired_users)
 
     # NEW METHODS - Usage and Limit Checking
@@ -13387,7 +13433,6 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             "❌ An unexpected error occurred while processing the command.",
             ephemeral=True
         )
-
 
 @client.event
 async def on_ready():
