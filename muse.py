@@ -748,7 +748,6 @@ async def source_language_autocomplete(
 
 
 
-
 class TierHandler:
     def __init__(self):
         self.premium_users = set()  # Premium users
@@ -834,9 +833,25 @@ class TierHandler:
 
     # ORIGINAL METHODS (from your working code)
     def get_limits(self, user_id: int):
-        """Get limits for a specific user"""
+        """Get limits for a specific user INCLUDING extended limits"""
+        # Get base limits
         tier = self.get_user_tier(user_id)
-        return self.tiers.get(tier, self.tiers['free'])
+        base_limits = self.tiers.get(tier, self.tiers['free']).copy()
+    
+        # Get extended limits
+        extensions = self.get_extended_limits(user_id)
+    
+        # Apply extensions
+        if base_limits['text_limit'] != float('inf'):
+            base_limits['text_limit'] += extensions['text_limit_bonus']
+    
+        if base_limits['voice_limit'] != float('inf'):
+            base_limits['voice_limit'] += extensions['voice_limit_bonus']
+    
+        # Add extension info for debugging
+        base_limits['extensions'] = extensions
+    
+        return base_limits
     
     def get_limits_for_tier(self, tier_name: str):
         """Get limits for a specific tier by name"""
@@ -945,24 +960,36 @@ class TierHandler:
 
     # NEW METHODS - Usage and Limit Checking
     def check_usage_limits(self, user_id: int, text_chars: int = 0, voice_seconds: int = 0, usage_type: str = None, amount: int = 1):
-        """Check if user can perform action within limits - supports both old and new syntax"""
+        """Check if user can perform action within limits - supports both old and new syntax WITH extended limits"""
         from datetime import datetime, date
-    
-        tier = self.get_user_tier(user_id)
-        limits = self.tiers[tier]
-    
+
+        # Get limits WITH extensions applied
+        limits = self.get_limits(user_id)
+
         # Handle old syntax (text_chars, voice_seconds parameters)
         if text_chars > 0 or voice_seconds > 0:
-            # Check text limit (per translation)
+            # Check text limit (per translation) with extensions
             if text_chars > limits['text_limit']:
-                return False, f"Text too long! {tier.title()} tier limit: {limits['text_limit']} characters per translation"
+                extensions = limits.get('extensions', {})
+                if extensions.get('text_limit_bonus', 0) > 0:
+                    base_limit = limits['text_limit'] - extensions['text_limit_bonus']
+                    return False, f"Text too long! Your extended limit is {limits['text_limit']} characters per translation (base: {base_limit}, +{extensions['text_limit_bonus']} from rewards)"
+                else:
+                    tier = self.get_user_tier(user_id)
+                    return False, f"Text too long! {tier.title()} tier limit: {limits['text_limit']} characters per translation"
         
-            # Check voice limit 
+            # Check voice limit with extensions
             if voice_seconds > limits['voice_limit'] and limits['voice_limit'] != float('inf'):
-                return False, f"Voice limit exceeded! {tier.title()} tier limit: {limits['voice_limit']//60} minutes"
+                extensions = limits.get('extensions', {})
+                if extensions.get('voice_limit_bonus', 0) > 0:
+                    base_limit = limits['voice_limit'] - extensions['voice_limit_bonus']
+                    return False, f"Voice limit exceeded! Your extended limit is {limits['voice_limit']//60} minutes (base: {base_limit//60}, +{extensions['voice_limit_bonus']//60} from rewards)"
+                else:
+                    tier = self.get_user_tier(user_id)
+                    return False, f"Voice limit exceeded! {tier.title()} tier limit: {limits['voice_limit']//60} minutes"
         
             return True, "Within limits"
-    
+
         # Handle new syntax (usage_type parameter)
         if usage_type:
             # Initialize usage tracking for user if not exists
@@ -978,7 +1005,7 @@ class TierHandler:
         
             daily_usage = self.usage_tracking[user_id][today]
         
-            # Check limits based on usage type
+            # Check limits based on usage type with extensions
             if usage_type == 'text_characters':
                 if amount > limits['text_limit']:
                     return False, f"Text too long (limit: {limits['text_limit']} characters)"
@@ -986,10 +1013,8 @@ class TierHandler:
             elif usage_type == 'voice_seconds':
                 if daily_usage['voice_seconds'] + amount > limits['voice_limit']:
                     return False, f"Daily voice limit reached ({limits['voice_limit']//60} minutes)"
-    
+
         return True, "OK"
-
-
     def add_usage(self, user_id: int, usage_type: str, amount: int):
         """Add usage for a user"""
         from datetime import date
@@ -1023,11 +1048,11 @@ class TierHandler:
         return self.usage_tracking[user_id][today].copy()
 
     def get_remaining_limits(self, user_id: int):
-        """Get remaining limits for a user"""
-        tier = self.get_user_tier(user_id)
-        limits = self.tiers[tier]
+        """Get remaining limits for a user INCLUDING extensions"""
+        # Get limits with extensions
+        limits = self.get_limits(user_id)
         usage = self.get_usage_stats(user_id)
-        
+    
         remaining = {}
         for key in ['translations', 'voice_seconds']:
             if limits.get(f'daily_{key}', float('inf')) == float('inf'):
@@ -1035,9 +1060,15 @@ class TierHandler:
             else:
                 limit_key = f'daily_{key}' if key == 'translations' else 'voice_limit'
                 remaining[key] = max(0, limits[limit_key] - usage.get(key, 0))
-        
+    
+        # Text limit is per-translation, not daily
         remaining['text_limit'] = limits['text_limit']
+    
+        # Add extension info
+        remaining['extensions'] = limits.get('extensions', {})
+    
         return remaining
+
 
     def has_feature(self, user_id: int, feature: str):
         """Check if user has access to a specific feature"""
@@ -1113,15 +1144,103 @@ class TierHandler:
             tier_data['translations_display'] = f"{tier_data['daily_translations']} per day"
         
         return tier_data
+    def get_extended_limits(self, user_id: int) -> dict:
+        """Get any extended limits from active rewards"""
+        # Clean expired rewards first
+    
+        extended_limits = {
+            'text_limit_bonus': 0,
+            'voice_limit_bonus': 0,
+            'active_extensions': []
+        }
+    
+        if user_id not in user_features or not user_features[user_id]:
+            return extended_limits
+    
+        from datetime import datetime
+        now = datetime.now()
+    
+        for reward_id, expires_at in user_features[user_id].items():
+            if expires_at and expires_at > now:
+                if reward_id == 'extended_limits':
+                    # Extended Character Limit: Increase to 1000 characters
+                    current_text_limit = self.get_base_text_limit(user_id)
+                    if current_text_limit < 1000:
+                        extended_limits['text_limit_bonus'] = max(
+                            extended_limits['text_limit_bonus'],
+                            1000 - current_text_limit
+                        )
+                    extended_limits['active_extensions'].append({
+                        'type': 'text_limit',
+                        'reward_id': reward_id,
+                        'bonus': max(0, 1000 - current_text_limit),
+                        'expires_at': expires_at
+                    })
+            
+                elif reward_id == 'extended_voice':
+                    # Extended Voice Time: Add 1 hour (3600 seconds)
+                    extended_limits['voice_limit_bonus'] = max(
+                        extended_limits['voice_limit_bonus'],
+                        3600  # 1 hour in seconds
+                    )
+                    extended_limits['active_extensions'].append({
+                        'type': 'voice_limit',
+                        'reward_id': reward_id,
+                        'bonus': 3600,
+                        'expires_at': expires_at
+                    })
+    
+        return extended_limits
+    def get_base_text_limit(self, user_id: int) -> int:
+        """Get base text limit without extensions"""
+        tier = self.get_user_tier(user_id)
+        return self.tiers[tier]['text_limit']
+    def get_base_voice_limit(self, user_id: int) -> int:
+        """Get base voice limit without extensions"""
+        tier = self.get_user_tier(user_id)
+        return self.tiers[tier]['voice_limit']
+    def has_extended_character_limit(self, user_id: int) -> bool:
+        """Check if user has active extended character limit"""
+        extensions = self.get_extended_limits(user_id)
+        return extensions['text_limit_bonus'] > 0
+    def has_extended_voice_time(self, user_id: int) -> bool:
+        """Check if user has active extended voice time"""
+        extensions = self.get_extended_limits(user_id)
+        return extensions['voice_limit_bonus'] > 0
+    def get_user_extension_status(self, user_id: int) -> dict:
+        """Get detailed status of user's extended limits"""
+        extensions = self.get_extended_limits(user_id)
+        base_limits = {
+            'text': self.get_base_text_limit(user_id),
+            'voice': self.get_base_voice_limit(user_id)
+        }
+        current_limits = self.get_limits(user_id)
+    
+        status = {
+            'user_id': user_id,
+            'base_text_limit': base_limits['text'],
+            'base_voice_limit': base_limits['voice'],
+            'current_text_limit': current_limits['text_limit'],
+            'current_voice_limit': current_limits['voice_limit'],
+            'text_bonus': extensions['text_limit_bonus'],
+            'voice_bonus': extensions['voice_limit_bonus'],
+            'has_extensions': len(extensions['active_extensions']) > 0,
+            'active_extensions': extensions['active_extensions']
+        }
+    
+        return status
 
     def get_user_stats(self, user_id: int):
-        """Get comprehensive user statistics"""
+        """Get comprehensive user statistics INCLUDING extensions"""
         tier = self.get_user_tier(user_id)
-        limits = self.get_limits(user_id)
+        limits = self.get_limits(user_id)  # This now includes extensions
         usage = self.get_usage_stats(user_id)
         remaining = self.get_remaining_limits(user_id)
         expiration = self.get_tier_expiration(user_id)
-        
+    
+        # Get extension details
+        extensions = self.get_extended_limits(user_id)
+    
         return {
             'user_id': user_id,
             'tier': tier,
@@ -1129,8 +1248,42 @@ class TierHandler:
             'usage': usage,
             'remaining': remaining,
             'expiration': expiration,
-            'features': limits.get('features', [])
+            'features': limits.get('features', []),
+            'extended_limits': extensions
         }
+    def has_extended_character_limit(self, user_id: int) -> bool:
+        """Check if user has active extended character limit"""
+        extensions = self.get_extended_limits(user_id)
+        return extensions['text_limit_bonus'] > 0
+
+    def has_extended_voice_time(self, user_id: int) -> bool:
+        """Check if user has active extended voice time"""
+        extensions = self.get_extended_limits(user_id)
+        return extensions['voice_limit_bonus'] > 0
+
+    def get_user_extension_status(self, user_id: int) -> dict:
+        """Get detailed status of user's extended limits"""
+        extensions = self.get_extended_limits(user_id)
+        base_limits = {
+            'text': self.get_base_text_limit(user_id),
+            'voice': self.get_base_voice_limit(user_id)
+        }
+        current_limits = self.get_limits(user_id)
+    
+        status = {
+            'user_id': user_id,
+            'base_text_limit': base_limits['text'],
+            'base_voice_limit': base_limits['voice'],
+            'current_text_limit': current_limits['text_limit'],
+            'current_voice_limit': current_limits['voice_limit'],
+            'text_bonus': extensions['text_limit_bonus'],
+            'voice_bonus': extensions['voice_limit_bonus'],
+            'has_extensions': len(extensions['active_extensions']) > 0,
+            'active_extensions': extensions['active_extensions']
+        }
+    
+        return status
+
 
     # Tier Status Check Methods
     def is_premium(self, user_id: int):
@@ -1458,9 +1611,113 @@ class TierHandler:
             return True, f"User upgraded to {tier_type.title()} tier until {expires_at.strftime('%Y-%m-%d %H:%M:%S')}"
         else:
             return False, "Failed to upgrade user tier."
+    
 
 # Update tier_handler instance
 tier_handler = TierHandler()
+# === CONVENIENCE FUNCTIONS THAT USE YOUR EXISTING TIER_HANDLER ===
+
+def get_user_current_limits(user_id: int) -> dict:
+    """Convenience function to get user's current limits with extensions"""
+    return tier_handler.get_limits(user_id)
+
+def check_text_limit(user_id: int, text_length: int) -> tuple[bool, str]:
+    """Check if text is within user's limit (including extensions)"""
+    return tier_handler.check_usage_limits(user_id, text_chars=text_length)
+
+def check_voice_limit(user_id: int, voice_seconds: int) -> tuple[bool, str]:
+    """Check if voice duration is within user's limit (including extensions)"""
+    return tier_handler.check_usage_limits(user_id, voice_seconds=voice_seconds)
+
+def debug_user_extensions(user_id: int):
+    """Debug function to check user's extended limits"""
+    status = tier_handler.get_user_extension_status(user_id)
+    
+    print(f"\n=== EXTENDED LIMITS DEBUG FOR USER {user_id} ===")
+    print(f"Base Tier: {tier_handler.get_user_tier(user_id)}")
+    print(f"Base Text Limit: {status['base_text_limit']} characters")
+    print(f"Current Text Limit: {status['current_text_limit']} characters")
+    if status['text_bonus'] > 0:
+        print(f"  ↳ Text Bonus: +{status['text_bonus']} characters from rewards")
+    
+    print(f"Base Voice Limit: {status['base_voice_limit']//60} minutes")
+    print(f"Current Voice Limit: {status['current_voice_limit']//60} minutes")
+    if status['voice_bonus'] > 0:
+        print(f"  ↳ Voice Bonus: +{status['voice_bonus']//60} minutes from rewards")
+    
+    print(f"Active Extensions: {len(status['active_extensions'])}")
+    for ext in status['active_extensions']:
+        print(f"  - {ext['reward_id']}: {ext['type']} (+{ext['bonus']}) expires {ext['expires_at']}")
+    
+    print("=" * 50)
+
+# === TESTING FUNCTION ===
+
+def test_integrated_extended_limits():
+    """Test function to verify integrated extended limits are working"""
+    user_id = 999999  # Test user ID
+    
+    print("=== TESTING INTEGRATED EXTENDED LIMITS ===")
+    
+    # Check base limits
+    print("1. Base limits:")
+    base_text = tier_handler.get_base_text_limit(user_id)
+    base_voice = tier_handler.get_base_voice_limit(user_id)
+    print(f"   Base Text: {base_text}, Base Voice: {base_voice//60} min")
+    
+    # Grant extended limits
+    print("2. Granting extended character limit...")
+    from datetime import datetime, timedelta
+    import asyncio
+    asyncio.run(grant_feature(user_id, 'extended_limits', datetime.now() + timedelta(hours=1)))
+    
+    # Check new limits
+    print("3. New limits after extension:")
+    limits = tier_handler.get_limits(user_id)
+    print(f"   Current Text: {limits['text_limit']}, Current Voice: {limits['voice_limit']//60} min")
+    
+    # Test limit checking
+    print("4. Testing limit checks:")
+    can_do, msg = check_text_limit(user_id, 800)
+    print(f"   Can translate 800 chars: {can_do} - {msg}")
+    
+    # Debug info
+    debug_user_extensions(user_id)
+    
+    print("=== INTEGRATION TEST COMPLETE ===")
+
+# === EXAMPLE USAGE WITH YOUR EXISTING SYSTEM ===
+
+async def example_integration_usage():
+    """Example of how to use the integrated system"""
+    user_id = 12345
+    
+    # Your existing tier_handler now supports extended limits!
+    
+    # Check what tier user is in
+    current_tier = tier_handler.get_user_tier(user_id)
+    print(f"User tier: {current_tier}")
+    
+    # Get current limits (will include any active extensions)
+    limits = tier_handler.get_limits(user_id)
+    print(f"Current limits: {limits['text_limit']} chars, {limits['voice_limit']//60} min")
+    
+    # Grant extended character limit
+    from datetime import datetime, timedelta
+    expires_at = datetime.now() + timedelta(hours=24)
+    await grant_feature(user_id, 'extended_limits', expires_at)
+    
+    # Check limits again - should now show extended limits
+    new_limits = tier_handler.get_limits(user_id)
+    print(f"After extension: {new_limits['text_limit']} chars, {new_limits['voice_limit']//60} min")
+    
+    # Test translation with 800 characters (should work with extended limits)
+    can_translate, message = tier_handler.check_usage_limits(user_id, text_chars=800)
+    print(f"Can translate 800 chars: {can_translate} - {message}")
+    
+    # Get detailed status
+    status = tier_handler.get_user_extension_status(user_id)
+    print(f"Extension status: {status}")
 
 
 # Load environment variables
@@ -10545,7 +10802,7 @@ user_multipliers = {}
 
 async def grant_feature(user_id: int, reward_id: str, expires_at):
     """
-    Grants a feature reward to a user, with expiration.
+    Enhanced grant_feature that handles extended limits properly
     """
     # Initialize user's feature dict if missing
     if user_id not in user_features:
@@ -10554,9 +10811,17 @@ async def grant_feature(user_id: int, reward_id: str, expires_at):
     # Add or update feature expiration
     user_features[user_id][reward_id] = expires_at
 
-    # You can add more logic here to enable feature effects, e.g. update DB
+    # Log what type of extension was granted
+    extension_info = ""
+    if reward_id == 'extended_limits':
+        extension_info = " (extends character limit to 1000)"
+    elif reward_id == 'extended_voice':
+        extension_info = " (adds 1 hour voice time)"
+    
+    print(f"DEBUG: Granted feature '{reward_id}'{extension_info} to user {user_id} until {expires_at}")
+    
+    return True, f"Feature '{reward_id}'{extension_info} granted until {expires_at.strftime('%Y-%m-%d %H:%M:%S')}"
 
-    return True, f"Feature '{reward_id}' granted until {expires_at.strftime('%Y-%m-%d %H:%M:%S')}"
 
 async def grant_multiplier(user_id: int, reward_id: str, expires_at):
     """
