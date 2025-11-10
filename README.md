@@ -12,47 +12,47 @@ A real-time voice and text translation bot for Discord communities.
 - Custom channel selection
 
 ## Commands
-/voicechat [source] [target] - Real-time voice chat translation
-/voicechat2 [lang1] [lang2] - Enhanced bidirectional translation
-/voice [text] [source] [target] - Text to speech translation
-/speak [text] [source] [target] - Translate and play in voice channel
-📝 Text Commands
-/texttr [text] [source] [target] - Translate text
-/autotranslate [source] [target] - Auto-translate all your messages
-/read [message_id] [target] - Translate any sent message by ID
-/dmtr [user] [text] [source] [target] - Send translated DM
+- /voicechat [source] [target] - Real-time voice chat translation
+- /voicechat2 [lang1] [lang2] - Enhanced bidirectional translation
+- /voice [text] [source] [target] - Text to speech translation
+- /speak [text] [source] [target] - Translate and play in voice channel
+ 📝 Text Commands
+- /texttr [text] [source] [target] - Translate text
+- /autotranslate [source] [target] - Auto-translate all your messages
+- /read [message_id] [target] - Translate any sent message by ID
+- /dmtr [user] [text] [source] [target] - Send translated DM
 🖼️ Image Translation
-/readimage [target_lang] - Extract and translate image text using OCR
+- /readimage [target_lang] - Extract and translate image text using OCR
 🏆 Achievements & Points
-/achievements - View your achievement progress
-/rewards - Check your points and rank
-/cashout - Convert achievement points to activity points
-/daily - Claim daily points
-/shop - Browse point shop
-/buy [item] - Purchase items from shop
-/buypoints [amount] - Purchase additional points
-/gift [amount] - Gift your friends points
-/profile - View your profile
-/leaderboard - See top users
-/transactions - View point transaction history
+- /achievements - View your achievement progress
+- /rewards - Check your points and rank
+- /cashout - Convert achievement points to activity points
+- /daily - Claim daily points
+- /shop - Browse point shop
+- /buy [item] - Purchase items from shop
+- /buypoints [amount] - Purchase additional points
+- /gift [amount] - Gift your friends points
+- /profile - View your profile
+- /leaderboard - See top users
+- /transactions - View point transaction history
 🎛️ Settings
-/hide - Hide original message in translations
-/show - Show original message in translations
-/preferences - Customize your default languages
-/history - View your translation history
+- /hide - Hide original message in translations
+- /show - Show original message in translations
+- /preferences - Customize your default languages
+- /history - View your translation history
 🏆 Social & Competition
-/leaderboard - See the top point earners
-/achievements - View achievements and badges
-/cashout - Redeem achievement points in the /shop
-/transactions - View your point transaction history
+- /leaderboard - See the top point earners
+- /achievements - View achievements and badges
+- /cashout - Redeem achievement points in the /shop
+- /transactions - View your point transaction history
 ⚙️ Setup & Controls
-/stop - Stop any active translation sessions
+- /stop - Stop any active translation sessions
 ℹ️ Info
-/list - View all supported languages
-/upgrade - View premium options
-/invite - Get bot invite links
-/vote - Get bot listing links
-/help - Show this command list
+- /list - View all supported languages
+- /upgrade - View premium options
+- /invite - Get bot invite links
+- /vote - Get bot listing links
+- /help - Show this command list
 📱 Context Menu
 Right-click message → Apps → Read Message - Translate any message
 💡 Tips
