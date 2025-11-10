@@ -12,25 +12,6 @@ A real-time voice and text translation bot for Discord communities.
 - Custom channel selection
 
 ## Commands
-🚀 Welcome Back to Muse! 🥈
-Hello Shoubhit! Your translator is ready to use.
-⭐ Your Tier: Premium
-📝 Text Limit: 2000 chars
-🎤 Voice Limit: 120 min
-💎 Points: 1,886
-🎉 Premium Features Active
-• Enhanced limits: 2000 chars
-• Voice time: 120 minutes
-• Point multiplier: 2x
-• Thank you for supporting Muse! 💖
-🎁 Daily Reward Available
-Use /daily to claim your points!
-📊 Your Stats
-💎 Points: 1,886
-🎯 Sessions: 40
-⏱️ Usage: 0.0h
-⭐ Tier: Premium
-🗣️ Voice Commands
 /voicechat [source] [target] - Real-time voice chat translation
 /voicechat2 [lang1] [lang2] - Enhanced bidirectional translation
 /voice [text] [source] [target] - Text to speech translation
