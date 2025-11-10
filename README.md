@@ -10,6 +10,7 @@ A real-time voice and text translation bot for Discord communities.
 - Audio Trasnlation
 - Concurrent user sessions
 - Custom channel selection
+- Rewards system and full on premium tier mapping through Kofi
 
 ## Commands
 - /voicechat [source] [target] - Real-time voice chat translation
