@@ -54,14 +54,14 @@ A real-time voice and text translation bot for Discord communities.
 - /vote - Get bot listing links
 - /help - Show this command list
 📱 Context Menu
-Right-click message → Apps → Read Message - Translate any message
+- Right-click message → Apps → Read Message - Translate any message
 💡 Tips
-• Use auto to auto-detect language
-• Language codes: en, es, fr or names: English, Spanish, French
-• Earn points daily and buy temporary premium perks!
-• Example: /texttr text:'hola' source_lang:es target_lang:en
+- Use auto to auto-detect language
+- Language codes: en, es, fr or names: English, Spanish, French
+- Earn points daily and buy temporary premium perks!
+- Example: /texttr text:'hola' source_lang:es target_lang:en
 📝 Language Format
 You can use language names or codes:
-• Names: English, Spanish, Japanese
-• Codes: en, es, ja
-• Example: /texttr text:'Hello World' source_lang:English target_lang:Spanish
+- Names: English, Spanish, Japanese
+- Codes: en, es, ja
+- Example: /texttr text:'Hello World' source_lang:English target_lang:Spanish
